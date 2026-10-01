@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3Dトラック積載計画シミュレーター</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Three.js & OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+    body {
+      font-family: 'Noto Sans JP', 'Inter', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    #threeCanvas {
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- ヘッダー -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-blue-600 p-2 rounded-lg shadow-inner">
+          <i data-lucide="truck" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">3Dトラック積載シミュレーター</h1>
+          <p class="text-xs text-slate-400">混載高密度バラ積み・隙間充填・積み残し可視化エンジン</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <!-- 車両タイプ切替 -->
+        <select id="vehiclePresetSelect" onchange="changeVehiclePreset()" class="bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 px-3 py-2 rounded-lg border border-slate-700 outline-none transition cursor-pointer">
+          <option value="lowFloor10t">低床10tウイング (960×240×260cm)</option>
+          <option value="standard4t">4t中型ウイング (620×220×230cm)</option>
+          <option value="compact2t">2t小型ドライバン (310×180×190cm)</option>
+        </select>
+        <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 px-3 py-2 rounded-lg border border-slate-700 flex items-center transition">
+          <i data-lucide="upload" class="w-4 h-4 mr-1"></i> JSON読込
+          <input type="file" id="jsonInput" accept=".json" class="hidden" onchange="handleFileUpload(event)">
+        </label>
+        <button onclick="exportJSON()" class="bg-blue-600 hover:bg-blue-500 text-xs text-white px-3 py-2 rounded-lg font-medium flex items-center transition shadow-sm">
+          <i data-lucide="download" class="w-4 h-4 mr-1"></i> JSON保存
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPI & トラック情報サマリー -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- トラック諸元 -->
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">車両スペック</span>
+          <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold" id="truckType">低床10tウイング</span>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-slate-700" id="truckDims">L 960 × W 240 × H 260 cm</div>
+          <div class="text-xs text-slate-500 mt-1">最大積載重量: <span class="font-bold text-slate-700" id="truckMaxWeight">13,000</span> kg</div>
+          <div class="text-xs text-slate-500">最大積載容積: <span class="font-bold text-slate-700" id="truckMaxVolume">59.90</span> m³</div>
+        </div>
+      </div>
+
+      <!-- 積載数量・品目数 -->
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">積載貨物量</span>
+          <div class="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+            <i data-lucide="package" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div>
+          <div class="text-2xl font-bold text-slate-900" id="totalQty">0 <span class="text-sm font-normal text-slate-500">ケース</span></div>
+          <div class="text-xs text-slate-500 mt-1">全 <span class="font-bold text-slate-700" id="itemTypeCount">0</span> 品目</div>
+        </div>
+      </div>
+
+      <!-- 重量積載率 -->
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">重量積載率</span>
+          <div class="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+            <i data-lucide="scale" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-baseline justify-between mb-1">
+            <span class="text-2xl font-bold text-slate-900" id="weightUsage">0%</span>
+            <span class="text-xs text-slate-500" id="weightDetail">0 / 13,000 kg</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div id="weightBar" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 容積利用率 -->
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">容積利用率</span>
+          <div class="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
+            <i data-lucide="box" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-baseline justify-between mb-1">
+            <span class="text-2xl font-bold text-slate-900" id="volumeUsage">0%</span>
+            <span class="text-xs text-slate-500" id="volumeDetail">0 / 59.90 m³</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div id="volumeBar" class="bg-amber-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 積み残しアラート & パッキングモード切替アクションバー -->
+    <div id="unloadedAlertBar" class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-all">
+      <div class="flex items-center space-x-3 w-full md:w-auto">
+        <div id="unloadedIconBg" class="p-2.5 bg-emerald-500 text-white rounded-xl flex-shrink-0 shadow-sm">
+          <i id="unloadedIcon" data-lucide="check-circle-2" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="font-bold text-slate-800 text-sm flex items-center gap-2" id="unloadedStatusTitle">
+            全数格納完了 (積み残し 0ケース)
+          </div>
+          <div class="text-xs text-slate-600 mt-0.5" id="unloadedStatusSub">
+            全ケースがトラック荷台内に安全かつ最適に納まっています。
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-2 flex-shrink-0 w-full md:w-auto justify-end">
+        <!-- パッキングモード切替ボタングループ -->
+        <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-white shadow-sm">
+          <button id="btnModeHighDensity" onclick="setPackingMode('highDensity')" class="px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 3D高密度バラ積み
+          </button>
+          <button id="btnModeWall" onclick="setPackingMode('wallBuilding')" class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5">
+            <i data-lucide="layers" class="w-3.5 h-3.5"></i> 従来ウォール積み
+          </button>
+        </div>
+
+        <button onclick="optimizePacking()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3.5 py-2 rounded-lg font-semibold flex items-center transition shadow-sm">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5 mr-1.5"></i> 再計算
+        </button>
+      </div>
+    </div>
+
+    <!-- 3D表示キャンバスエリア -->
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-100">
+        <div>
+          <h2 class="font-bold text-slate-800 flex items-center gap-2">
+            <i data-lucide="box" class="w-5 h-5 text-blue-600"></i> トラック荷台3Dモデル＆積み付けパッキング表示
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">ドラッグで360度回転、スクロールで拡大縮小、右ドラッグで並行移動。貨物クリックで詳細表示。</p>
+        </div>
+        
+        <!-- コントロールボタン -->
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <button onclick="toggleTruckWalls()" id="wallToggleBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1">
+            <i data-lucide="eye" class="w-3.5 h-3.5"></i> 壁・天井: ON
+          </button>
+          <button onclick="resetCameraView()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 視点リセット
+          </button>
+        </div>
+      </div>
+
+      <!-- 3D描画エリア -->
+      <div class="relative w-full h-[520px] bg-slate-900 rounded-lg overflow-hidden shadow-inner">
+        <canvas id="threeCanvas"></canvas>
+        
+        <!-- 3D操作ガイドオーバーレイ・凡例 -->
+        <div class="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-md text-white text-[11px] p-3 rounded-xl border border-slate-700 pointer-events-none space-y-1.5 shadow-lg">
+          <div class="font-bold text-slate-300 border-b border-slate-700/60 pb-1 text-[10px] tracking-wide uppercase">積載ゾーン凡例</div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-emerald-400 inline-block shadow-sm"></span> <span>奥側（キャビン側）: <b>Stage 1 (配送先 1)</b></span></div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-sky-400 inline-block shadow-sm"></span> <span>手前側（後方ゲート）: <b>Stage 2 (配送先 2)</b></span></div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-red-500/80 border border-red-300 inline-block shadow-sm"></span> <span class="text-red-300 font-semibold">後方ゲート外: 積み残し保管エリア (Overflow)</span></div>
+          <div class="text-emerald-300 text-[11px] pt-1 font-bold border-t border-slate-700/60 mt-1" id="meshCounter">3D積載描画数: 0 / 0 ケース</div>
+        </div>
+
+        <!-- パッキング方式インジケーター（右上） -->
+        <div class="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-sm text-slate-300 text-[10px] px-2.5 py-1.5 rounded-lg border border-slate-700 pointer-events-none flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+          <span>現在のロジック: <b id="currentLogicBadge" class="text-white">3D高密度バラ積み充填 (BLF)</b></span>
+        </div>
+
+        <!-- クリック時ポップアップツールチップ -->
+        <div id="3dTooltip" class="absolute top-3 right-3 bg-slate-900/95 text-white text-xs p-4 rounded-xl border border-slate-700 shadow-2xl hidden max-w-xs transition-all pointer-events-auto">
+          <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-800">
+            <div class="font-bold text-blue-400 text-sm" id="tooltipTitle">品名</div>
+            <button onclick="closeTooltip()" class="text-slate-400 hover:text-white p-0.5"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+          <div class="text-[11px] text-slate-300 space-y-1">
+            <div class="flex justify-between items-center py-0.5">
+              <span>積載状態:</span>
+              <span id="tooltipStatusBadge" class="font-bold px-2 py-0.5 rounded text-[10px]">荷台内積載</span>
+            </div>
+            <div>ケース総数: <span id="tooltipQty" class="font-semibold text-white"></span></div>
+            <div>元サイズ (L×W×H): <span id="tooltipSize" class="text-white"></span></div>
+            <div>配置サイズ (L×W×H): <span id="tooltipOrient" class="text-amber-300 font-mono font-bold"></span></div>
+            <div>単体重量: <span id="tooltipWeight" class="text-white"></span></div>
+            <div>配送ステージ: <span id="tooltipStage" class="text-white"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 貨物アイテムテーブル -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <!-- フィルタ・コントロールバー -->
+      <div class="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="flex items-center gap-2 flex-1 max-w-md">
+          <div class="relative w-full">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+            <input type="text" id="searchInput" oninput="renderTable()" placeholder="品名やIDで検索..." class="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- ステージフィルター -->
+          <select id="stageFilter" onchange="renderTable()" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="all">全ステージ表示</option>
+            <option value="1">Stage 1 (奥)</option>
+            <option value="2">Stage 2 (手前)</option>
+          </select>
+
+          <!-- 並び替え -->
+          <select id="sortBy" onchange="renderTable()" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="default">標準（JSON順）</option>
+            <option value="qty-desc">数量（多い順）</option>
+            <option value="weight-desc">総重量（重い順）</option>
+            <option value="volume-desc">総容積（大きい順）</option>
+            <option value="name">品名順</option>
+          </select>
+
+          <!-- 新規アイテム追加ボタン -->
+          <button onclick="openModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium flex items-center transition">
+            <i data-lucide="plus" class="w-4 h-4 mr-1"></i> 品目追加
+          </button>
+        </div>
+      </div>
+
+      <!-- テーブル -->
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-600 border-b border-slate-200 font-semibold">
+              <th class="py-3 px-4">カラー</th>
+              <th class="py-3 px-4">配送ステージ</th>
+              <th class="py-3 px-4">品名</th>
+              <th class="py-3 px-4">サイズ (L×W×H cm)</th>
+              <th class="py-3 px-4 text-right">単体重量 (kg)</th>
+              <th class="py-3 px-4 text-right">数量 (ケース)</th>
+              <th class="py-3 px-4 text-right">合計重量 (kg)</th>
+              <th class="py-3 px-4 text-right">合計容積 (m³)</th>
+              <th class="py-3 px-4 text-center">操作</th>
+            </tr>
+          </thead>
+          <tbody id="cargoTableBody" class="divide-y divide-slate-100">
+            <!-- JavaScriptで動的生成 -->
+          </tbody>
+        </table>
+      </div>
+      <div class="p-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex justify-between items-center">
+        <span>表示中の品目数: <span id="displayedCount" class="font-bold text-slate-700">0</span> 件</span>
+        <span>※商品行をクリックして詳細編集可能</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 編集・追加モーダル -->
+  <div id="itemModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 m-4 relative">
+      <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <h3 class="text-base font-bold text-slate-800 mb-4" id="modalTitle">貨物アイテムの追加</h3>
+
+      <form id="itemForm" onsubmit="saveItem(event)" class="space-y-4 text-xs">
+        <input type="hidden" id="editItemId">
+        
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">品名</label>
+          <input type="text" id="itemName" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">配送ステージ</label>
+            <select id="itemStage" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+              <option value="1">Stage 1 (奥)</option>
+              <option value="2">Stage 2 (手前)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">表示カラー</label>
+            <input type="color" id="itemColor" value="#3b82f6" class="w-full h-9 p-1 border border-slate-300 rounded-lg cursor-pointer">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">長さ L (cm)</label>
+            <input type="number" step="0.1" id="itemL" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">幅 W (cm)</label>
+            <input type="number" step="0.1" id="itemW" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">高さ H (cm)</label>
+            <input type="number" step="0.1" id="itemH" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">単体重量 (kg)</label>
+            <input type="number" step="0.01" id="itemWeight" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">数量 (ケース)</label>
+            <input type="number" id="itemQty" required min="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-4 border-t border-slate-100">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition">キャンセル</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition font-medium">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- カスタム確認ダイアログモーダル -->
+  <div id="confirmModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 m-4 border border-slate-200">
+      <div class="flex items-center space-x-3 text-amber-600 mb-3">
+        <div class="p-2 bg-amber-50 rounded-lg">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        </div>
+        <h4 class="font-bold text-slate-800 text-sm">確認</h4>
+      </div>
+      <p id="confirmMessage" class="text-xs text-slate-600 mb-5 leading-relaxed">処理を実行しますか？</p>
+      <div class="flex justify-end space-x-2">
+        <button id="confirmCancelBtn" class="px-3.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-600 hover:bg-slate-50 transition">キャンセル</button>
+        <button id="confirmOkBtn" class="px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-medium transition">実行する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知コンテナ -->
+  <div id="toastContainer" class="fixed top-20 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <script>
+    // 車両プリセット定義
+    const VEHICLE_PRESETS = {
+      lowFloor10t: { name: "低床10tウイング", L: 960, W: 240, H: 260, maxWeight: 13000 },
+      standard4t: { name: "4t中型ウイング", L: 620, W: 220, H: 230, maxWeight: 4000 },
+      compact2t: { name: "2t小型ドライバン", L: 310, W: 180, H: 190, maxWeight: 2000 }
+    };
+
+    // 初期データセット（最新の実測・詳細寸法データ 35品目・全792ケース）
+    let initialData = {
+      "version": "2.0",
+      "truck": {
+        "selected": "lowFloor10t",
+        "customDims": { "L": 960, "W": 240, "H": 260, "maxWeight": 13000 }
+      },
+      "cargoItems": [
+        { "id": "box_3450_12129", "name": "LF点わやP120cc 56枚", "L": 51.5, "W": 41.5, "H": 44.5, "weight": 10.27, "qty": 32, "color": "#0284c7", "deliveryStage": 1 },
+        { "id": "box_3450_54671", "name": "LFあんしんうす型S2", "L": 55.0, "W": 42.0, "H": 38.0, "weight": 6.6, "qty": 16, "color": "#0f766e", "deliveryStage": 1 },
+        { "id": "box_3450_24381", "name": "ズレずにパンツP4回夜 30", "L": 54.0, "W": 36.0, "H": 44.0, "weight": 7.22, "qty": 24, "color": "#6d28d9", "deliveryStage": 1 },
+        { "id": "box_3450_50773", "name": "LFさわやかP80cc 68枚", "L": 58.0, "W": 41.0, "H": 34.5, "weight": 10.01, "qty": 36, "color": "#2563eb", "deliveryStage": 1 },
+        { "id": "box_3450_54762", "name": "LFあんしんうす型L1 8", "L": 52.0, "W": 41.0, "H": 38.5, "weight": 6.0, "qty": 8, "color": "#c2410c", "deliveryStage": 1 },
+        { "id": "box_3450_37786", "name": "S超熟睡G400-16", "L": 42.0, "W": 35.5, "H": 47.0, "weight": 4.6, "qty": 24, "color": "#581c87", "deliveryStage": 1 },
+        { "id": "box_3450_45883_rdc", "name": "ムーニーマン汗男女L4(中国)", "L": 47.0, "W": 34.0, "H": 42.0, "weight": 5.8, "qty": 12, "color": "#047857", "deliveryStage": 1 },
+        { "id": "box_3450_79386", "name": "LFうす型軽快パンツL L26", "L": 44.5, "W": 34.0, "H": 40.5, "weight": 3.99, "qty": 22, "color": "#4d7c0f", "deliveryStage": 1 },
+        { "id": "box_3450_37453", "name": "ポコパンツL42枚ドラ", "L": 46.5, "W": 31.0, "H": 41.5, "weight": 5.75, "qty": 16, "color": "#db2777", "deliveryStage": 1 },
+        { "id": "box_3450_22628", "name": "オヤスミマン男SB12枚", "L": 49.1, "W": 43.1, "H": 27.2, "weight": 5.7, "qty": 12, "color": "#047857", "deliveryStage": 1 },
+        { "id": "box_3450_21560", "name": "LFリハビリパンツL2", "L": 43.0, "W": 33.0, "H": 39.5, "weight": 4.12, "qty": 16, "color": "#b45309", "deliveryStage": 1 },
+        { "id": "box_77931", "name": "ポコパンツM50枚ドラ", "L": 48.0, "W": 27.0, "H": 41.5, "weight": 4.99, "qty": 16, "color": "#4338ca", "deliveryStage": 1 },
+        { "id": "box_3450_75741", "name": "Sはだスリム260羽1 7", "L": 45.5, "W": 38.0, "H": 31.0, "weight": 4.06, "qty": 12, "color": "#701a75", "deliveryStage": 1 },
+        { "id": "box_3450_92164", "name": "ポコパンツB大24枚ドラ", "L": 50.5, "W": 24.0, "H": 42.5, "weight": 3.61, "qty": 11, "color": "#7c2d12", "deliveryStage": 1 },
+        { "id": "box_3450_77892", "name": "CN長時間安心用18", "L": 35.0, "W": 33.5, "H": 39.0, "weight": 4.15, "qty": 5, "color": "#a16207", "deliveryStage": 1 },
+        { "id": "box_3450_23243", "name": "CN少量用66枚", "L": 42.0, "W": 33.0, "H": 35.0, "weight": 5.52, "qty": 8, "color": "#be123c", "deliveryStage": 1 },
+        { "id": "box_3450_39864", "name": "MNやわ素材替76×8トミカ", "L": 43.0, "W": 30.0, "H": 21.5, "weight": 9.16, "qty": 32, "color": "#1d4ed8", "deliveryStage": 1 },
+        { "id": "box_3450_98618", "name": "ムーニーおしり極上50×6", "L": 43.0, "W": 30.0, "H": 16.5, "weight": 6.68, "qty": 5, "color": "#451a03", "deliveryStage": 1 },
+        { "id": "box_3450_83410", "name": "シルコットピュアW替58×3", "L": 36.0, "W": 33.5, "H": 16.0, "weight": 5.18, "qty": 12, "color": "#15803d", "deliveryStage": 1 },
+        { "id": "box_3450_48132", "name": "MN手口詰替58×3", "L": 36.0, "W": 33.5, "H": 16.0, "weight": 5.18, "qty": 36, "color": "#0369a1", "deliveryStage": 1 },
+        { "id": "box_3450_59630", "name": "ズレずにPP4回夜42", "L": 54.0, "W": 36.0, "H": 44.0, "weight": 7.52, "qty": 2, "color": "#22c55e", "deliveryStage": 2 },
+        { "id": "box_3450_78733", "name": "LF-晩中あんしんS3", "L": 61.0, "W": 41.5, "H": 33.5, "weight": 10.13, "qty": 18, "color": "#d946ef", "deliveryStage": 2 },
+        { "id": "box_3450_96262", "name": "LFうす型軽快パンツM", "L": 46.0, "W": 45.0, "H": 38.0, "weight": 5.1, "qty": 4, "color": "#65a30d", "deliveryStage": 2 },
+        { "id": "box_3450_55033", "name": "LF尿とりなしパンツL", "L": 51.0, "W": 41.0, "H": 37.5, "weight": 5.4, "qty": 5, "color": "#a855f7", "deliveryStage": 2 },
+        { "id": "box_3450_21691", "name": "ズレずにPP5回夜S3", "L": 54.0, "W": 36.0, "H": 44.5, "weight": 7.43, "qty": 69, "color": "#0ea5e9", "deliveryStage": 2 },
+        { "id": "box_3450_45883_fdc", "name": "ムーニーマン汗男女L4(広島)", "L": 47.0, "W": 34.0, "H": 42.0, "weight": 5.8, "qty": 5, "color": "#10b981", "deliveryStage": 2 },
+        { "id": "box_3450_29899", "name": "ムーニーマン低刺ビッグ", "L": 44.5, "W": 33.5, "H": 43.5, "weight": 5.42, "qty": 43, "color": "#f59e0b", "deliveryStage": 2 },
+        { "id": "box_3450_54731", "name": "LFあんしんうす型M3", "L": 45.0, "W": 36.3, "H": 39.0, "weight": 4.8, "qty": 64, "color": "#8b5cf6", "deliveryStage": 2 },
+        { "id": "box_3450_57962", "name": "ムーニー-L48枚", "L": 49.5, "W": 28.5, "H": 44.5, "weight": 6.91, "qty": 19, "color": "#06b6d4", "deliveryStage": 2 },
+        { "id": "box_3450_77976", "name": "ムーニーマンS54+4枚", "L": 53.5, "W": 31.0, "H": 37.5, "weight": 4.99, "qty": 15, "color": "#eab308", "deliveryStage": 2 },
+        { "id": "box_3450_54867", "name": "LFリハビリパンツS2", "L": 44.0, "W": 36.3, "H": 38.0, "weight": 4.3, "qty": 25, "color": "#f97316", "deliveryStage": 2 },
+        { "id": "box_3450_13538", "name": "ムーニーマン汗男女M4", "L": 48.0, "W": 27.5, "H": 43.5, "weight": 5.21, "qty": 3, "color": "#ec4899", "deliveryStage": 2 },
+        { "id": "box_3450_48568", "name": "ポコ夜B大22枚", "L": 50.0, "W": 24.0, "H": 42.5, "weight": 3.44, "qty": 68, "color": "#ef4444", "deliveryStage": 2 },
+        { "id": "box_3450_19649", "name": "MNふきやわ素材替76", "L": 43.0, "W": 30.0, "H": 21.5, "weight": 9.16, "qty": 62, "color": "#3b82f6", "deliveryStage": 2 },
+        { "id": "box_3450_21523", "name": "MN手口詰替58×8", "L": 35.5, "W": 31.5, "H": 21.5, "weight": 6.71, "qty": 35, "color": "#14b8a6", "deliveryStage": 2 }
+      ]
+    };
+
+    let currentData = JSON.parse(JSON.stringify(initialData));
+    let packingMode = 'highDensity'; // 'highDensity' (バラ積み隙間充填) または 'wallBuilding' (従来ウォール積み)
+
+    // Three.js グローバル変数
+    let scene, camera, renderer, controls;
+    let truckGroup, cargoGroup, wallMeshGroup;
+    let showWalls = true;
+    let raycaster, mouse;
+    let cargoMeshList = [];
+
+    window.onload = function() {
+      lucide.createIcons();
+      initThreeJS();
+      updateDashboard();
+      
+      window.addEventListener('resize', onWindowResize);
+    };
+
+    function initThreeJS() {
+      const canvas = document.getElementById('threeCanvas');
+      const container = canvas.parentElement;
+
+      // 1. Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b1120); // slate-950
+
+      // 2. Camera
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 6000);
+      
+      // 3. Renderer
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+
+      // 4. Controls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      // 5. Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+      dirLight.position.set(600, 1200, 600);
+      dirLight.castShadow = true;
+      scene.add(dirLight);
+
+      const dirLight2 = new THREE.DirectionalLight(0x93c5fd, 0.4);
+      dirLight2.position.set(-600, -300, -600);
+      scene.add(dirLight2);
+
+      // グループコンテナ
+      truckGroup = new THREE.Group();
+      cargoGroup = new THREE.Group();
+      wallMeshGroup = new THREE.Group();
+      
+      truckGroup.add(wallMeshGroup);
+      truckGroup.add(cargoGroup);
+      scene.add(truckGroup);
+
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+
+      canvas.addEventListener('pointerdown', onCanvasClick);
+
+      resetCameraView();
+      animate();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function resetCameraView() {
+      const t = currentData.truck.customDims;
+      // 積み残しエリア（+X方向）も見渡しやすくカメラ位置を調整
+      camera.position.set(t.L * 1.35, t.H * 2.3, t.W * 3.3);
+      controls.target.set(t.L * 0.15, t.H * 0.45, 0);
+      controls.update();
+    }
+
+    function onWindowResize() {
+      const canvas = document.getElementById('threeCanvas');
+      const container = canvas.parentElement;
+      if (!container) return;
+
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    function setPackingMode(mode) {
+      packingMode = mode;
+      
+      const btnHD = document.getElementById('btnModeHighDensity');
+      const btnWall = document.getElementById('btnModeWall');
+      const badge = document.getElementById('currentLogicBadge');
+
+      if (mode === 'highDensity') {
+        btnHD.className = "px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm";
+        btnWall.className = "px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5";
+        badge.innerText = "3D高密度バラ積み充填 (BLF)";
+        showToast("「3D高密度バラ積み充填モード」を適用しました。", "info");
+      } else {
+        btnWall.className = "px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm";
+        btnHD.className = "px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5";
+        badge.innerText = "従来ウォール積み (標準・品目順)";
+        showToast("「従来ウォール積みモード」に切り替えました。積み残しの発生状況を確認できます。", "info");
+      }
+      lucide.createIcons();
+      updateDashboard();
+    }
+
+    function build3DTruckAndCargo() {
+      while(wallMeshGroup.children.length > 0) wallMeshGroup.remove(wallMeshGroup.children[0]);
+      while(cargoGroup.children.length > 0) cargoGroup.remove(cargoGroup.children[0]);
+      cargoMeshList = [];
+
+      const t = currentData.truck.customDims;
+      const halfL = t.L / 2;
+
+      // 1. 地面広域グリッド
+      const gridHelper = new THREE.GridHelper(Math.max(t.L, t.W) * 2.8, 28, 0x3b82f6, 0x1e293b);
+      gridHelper.position.set(t.L * 0.2, -0.2, 0);
+      wallMeshGroup.add(gridHelper);
+
+      // 2. 荷台床面
+      const floorGeo = new THREE.BoxGeometry(t.L, 4, t.W);
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.position.set(0, -2, 0);
+      floor.receiveShadow = true;
+      wallMeshGroup.add(floor);
+
+      // 3. トラック外形フレーム
+      const frameGeo = new THREE.BoxGeometry(t.L, t.H, t.W);
+      const frameEdges = new THREE.EdgesGeometry(frameGeo);
+      const frameLine = new THREE.LineSegments(frameEdges, new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2 }));
+      frameLine.position.set(0, t.H / 2, 0);
+      wallMeshGroup.add(frameLine);
+
+      // 4. 壁・天井パネル（半透明）
+      if (showWalls) {
+        const wallMat = new THREE.MeshPhysicalMaterial({
+          color: 0x94a3b8,
+          transparent: true,
+          opacity: 0.12,
+          roughness: 0.1,
+          transmission: 0.7,
+          thickness: 1,
+          side: THREE.DoubleSide
+        });
+        const wallMesh = new THREE.Mesh(frameGeo, wallMat);
+        wallMesh.position.set(0, t.H / 2, 0);
+        wallMeshGroup.add(wallMesh);
+      }
+
+      // 5. 運転席キャビン (Front = -X 軸方向)
+      const cabinL = Math.min(160, t.L * 0.25);
+      const cabinGeo = new THREE.BoxGeometry(cabinL, t.H * 0.95, t.W);
+      const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+      const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+      cabin.position.set(-halfL - (cabinL / 2), t.H * 0.475, 0);
+      wallMeshGroup.add(cabin);
+
+      // 6. トラック後方ゲート外：積み残し保管エリア（Overflow / Staging Area）の床面・枠線
+      const stagingStartX = halfL + 30; // 荷台後方から30cmクリアランス
+      const stagingL = Math.max(350, t.L * 0.45);
+      const stagingW = t.W + 20;
+
+      const stagingFloorGeo = new THREE.BoxGeometry(stagingL, 2, stagingW);
+      const stagingFloorMat = new THREE.MeshStandardMaterial({
+        color: 0x18181b, // zinc-900
+        roughness: 0.95
+      });
+      const stagingFloor = new THREE.Mesh(stagingFloorGeo, stagingFloorMat);
+      stagingFloor.position.set(stagingStartX + stagingL / 2, -1, 0);
+      stagingFloor.receiveShadow = true;
+      wallMeshGroup.add(stagingFloor);
+
+      // 積み残しエリアの外枠フレーム（警告色の赤線枠）
+      const stagingFrameEdges = new THREE.EdgesGeometry(stagingFloorGeo);
+      const stagingFrameLine = new THREE.LineSegments(
+        stagingFrameEdges,
+        new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 2 })
+      );
+      stagingFrameLine.position.set(stagingStartX + stagingL / 2, -1, 0);
+      wallMeshGroup.add(stagingFrameLine);
+
+      // 積み残しエリアの赤色床面グリッド
+      const stagingGrid = new THREE.GridHelper(stagingL, 12, 0xef4444, 0x581c87);
+      stagingGrid.position.set(stagingStartX + stagingL / 2, 0.05, 0);
+      wallMeshGroup.add(stagingGrid);
+
+      // --- パッキングアルゴリズムの実行 ---
+      const stage1Items = currentData.cargoItems.filter(i => i.deliveryStage === 1);
+      const stage2Items = currentData.cargoItems.filter(i => i.deliveryStage === 2);
+
+      let placedBoxes = [];
+      let overflowBoxes = [];
+
+      const startX = -halfL + 5;
+      const maxAllowedX = halfL;
+
+      if (packingMode === 'highDensity') {
+        // 【要件②】3D Bottom-Left-Fill (BLF) / 混載高密度バラ積み隙間充填
+        const res1 = packStageHighDensityBLF(stage1Items, startX, t.W, t.H, maxAllowedX);
+        placedBoxes.push(...res1.inTruck);
+        overflowBoxes.push(...res1.overflow);
+
+        const startX2 = (res1.maxEndX > startX ? res1.maxEndX : startX) + 5;
+        const res2 = packStageHighDensityBLF(stage2Items, startX2, t.W, t.H, maxAllowedX);
+        placedBoxes.push(...res2.inTruck);
+        overflowBoxes.push(...res2.overflow);
+      } else {
+        // 【従来方式】ウォール積み（品目順）
+        const res1 = packStageWallBuilding(stage1Items, startX, t.W, t.H, maxAllowedX);
+        placedBoxes.push(...res1.inTruck);
+        overflowBoxes.push(...res1.overflow);
+
+        const startX2 = res1.nextX + 5;
+        const res2 = packStageWallBuilding(stage2Items, startX2, t.W, t.H, maxAllowedX);
+        placedBoxes.push(...res2.inTruck);
+        overflowBoxes.push(...res2.overflow);
+      }
+
+      // --- 【要件①】荷台内貨物（In-Truck）の3D描画 ---
+      placedBoxes.forEach(box => {
+        renderSingleCargoMesh(box, false);
+      });
+
+      // --- 【要件①】積み残し貨物（Overflow / Staging Area）の3D描画 ---
+      // ゲート外床面上に整列配置して描画
+      packAndRenderOverflowBoxes(overflowBoxes, stagingStartX, stagingL, stagingW, t.H);
+
+      // --- KPIサマリー・ステータス連動 ---
+      let totalExpectedQty = 0;
+      currentData.cargoItems.forEach(i => totalExpectedQty += (i.qty || 0));
+      const loadedCount = placedBoxes.length;
+      const unloadedCount = overflowBoxes.length;
+
+      updateStatusAndAlerts(totalExpectedQty, loadedCount, unloadedCount, t.L);
+
+      renderer.render(scene, camera);
+    }
+
+    // 1個のカーゴメッシュを描画
+    function renderSingleCargoMesh(box, isOverflow) {
+      const boxGeo = new THREE.BoxGeometry(box.l, box.h, box.w);
+      
+      let boxMat, edgeMat;
+
+      if (isOverflow) {
+        // 積み残し貨物：赤色の半透明ハイライト＋赤色のエッジワイヤーフレーム
+        boxMat = new THREE.MeshStandardMaterial({
+          color: 0xef4444, // red-500
+          roughness: 0.35,
+          transparent: true,
+          opacity: 0.8
+        });
+        edgeMat = new THREE.LineBasicMaterial({
+          color: 0xff1e1e,
+          linewidth: 2
+        });
+      } else {
+        // 通常の荷台内貨物：品目指定カラー
+        boxMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(box.item.color || '#3b82f6'),
+          roughness: 0.45
+        });
+        edgeMat = new THREE.LineBasicMaterial({
+          color: 0x000000,
+          transparent: true,
+          opacity: 0.35
+        });
+      }
+
+      const mesh = new THREE.Mesh(boxGeo, boxMat);
+      mesh.position.set(box.x + box.l / 2, box.y + box.h / 2, box.z + box.w / 2);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
+      const edgeGeo = new THREE.EdgesGeometry(boxGeo);
+      const wire = new THREE.LineSegments(edgeGeo, edgeMat);
+      mesh.add(wire);
+
+      mesh.userData = {
+        ...box.item,
+        actualL: Math.round(box.l * 10) / 10,
+        actualW: Math.round(box.w * 10) / 10,
+        actualH: Math.round(box.h * 10) / 10,
+        isOverflow: isOverflow
+      };
+
+      cargoGroup.add(mesh);
+      cargoMeshList.push(mesh);
+    }
+
+    // 積み残し貨物をトラック後方 Staging Area に整列描画
+    function packAndRenderOverflowBoxes(overflowList, startX, stagingL, stagingW, truckH) {
+      if (!overflowList || overflowList.length === 0) return;
+
+      const minZ = -stagingW / 2 + 5;
+      const maxZ = stagingW / 2 - 5;
+      const maxH = truckH * 0.85;
+
+      let curX = startX + 15;
+      let curZ = minZ;
+      let curY = 0;
+      let colMaxW = 0;
+      let layerMaxL = 0;
+
+      overflowList.forEach(boxItem => {
+        const item = boxItem.item || boxItem;
+        const l = boxItem.l || item.L;
+        const h = boxItem.h || item.H;
+        const w = boxItem.w || item.W;
+
+        if (curY + h > maxH) {
+          curY = 0;
+          curZ += (colMaxW > 0 ? colMaxW : w) + 1.5;
+          colMaxW = 0;
+        }
+
+        if (curZ + w > maxZ) {
+          curZ = minZ;
+          curY = 0;
+          curX += (layerMaxL > 0 ? layerMaxL : l) + 2.0;
+          layerMaxL = 0;
+          colMaxW = 0;
+        }
+
+        const overflowBox = {
+          item: item,
+          x: curX,
+          y: curY,
+          z: curZ,
+          l: l,
+          h: h,
+          w: w
+        };
+
+        renderSingleCargoMesh(overflowBox, true);
+
+        curY += h + 0.5;
+        colMaxW = Math.max(colMaxW, w);
+        layerMaxL = Math.max(layerMaxL, l);
+      });
+    }
+
+    // ==========================================
+    // 【要件②】混載高密度バラ積み充填アルゴリズム (3D BLF / Extreme Point)
+    // ==========================================
+    function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX) {
+      const usableW = truckW - 4.0;
+      const usableH = truckH - 5.0;
+      const minZ = -usableW / 2;
+      const maxZ = usableW / 2;
+
+      // 1. 各箱のインスタンスに展開
+      let boxes = [];
+      stageItems.forEach(it => {
+        const count = it.qty || 0;
+        for (let q = 0; q < count; q++) {
+          boxes.push(it);
+        }
+      });
+
+      // 2. 体積降順・高さ降順ソート
+      boxes.sort((a, b) => {
+        const volA = a.L * a.W * a.H;
+        const volB = b.L * b.W * b.H;
+        if (volB !== volA) return volB - volA;
+        return b.H - a.H;
+      });
+
+      const inTruck = [];
+      const overflow = [];
+
+      let curX = startX;
+      let maxEndX = startX;
+
+      let idx = 0;
+      const totalBoxesCount = boxes.length;
+
+      while (idx < totalBoxesCount) {
+        const firstBox = boxes[idx];
+        const ors = getOrientations(firstBox);
+        // 壁の厚み（奥行き）を決定
+        const validDepths = ors
+          .filter(o => o.h <= usableH && o.w <= usableW)
+          .map(o => o.l);
+        const wallDepth = validDepths.length > 0 ? Math.min(...validDepths) : firstBox.L;
+
+        let curZ = minZ;
+
+        while (curZ < maxZ - 10 && idx < totalBoxesCount) {
+          let curY = 0;
+          let colW = 0;
+
+          // 縦カラムに下から上へ積み上げる（バラ積み隙間充填）
+          while (curY < usableH - 10 && idx < totalBoxesCount) {
+            const remH = usableH - curY;
+            const remW = maxZ - curZ;
+
+            let fitIdx = -1;
+            let fitOrient = null;
+
+            for (let i = idx; i < totalBoxesCount; i++) {
+              const b = boxes[i];
+              const bOrs = getOrientations(b);
+              for (let o of bOrs) {
+                if (o.h <= remH + 0.5 && o.w <= remW + 0.5) {
+                  fitIdx = i;
+                  fitOrient = o;
+                  break;
+                }
+              }
+              if (fitIdx !== -1) break;
+            }
+
+            if (fitIdx === -1) {
+              // 残り高さに入る箱がない場合は次の列へ
+              break;
+            }
+
+            const boxToPlace = boxes.splice(fitIdx, 1)[0];
+            const bl = fitOrient.l;
+            const bh = fitOrient.h;
+            const bw = fitOrient.w;
+
+            const boxData = {
+              item: boxToPlace,
+              x: curX,
+              y: curY,
+              z: curZ,
+              l: bl,
+              h: bh,
+              w: bw
+            };
+
+            // 荷台内（X <= maxAllowedX）か積み残しかを判定
+            if (curX + bl <= maxAllowedX) {
+              inTruck.push(boxData);
+              maxEndX = Math.max(maxEndX, curX + bl);
+            } else {
+              overflow.push(boxData);
+            }
+
+            curY += bh + 0.2;
+            colW = Math.max(colW, bw);
+          }
+
+          if (colW === 0) break;
+          curZ += colW + 0.2;
+        }
+
+        curX += wallDepth + 0.3;
+      }
+
+      return { inTruck, overflow, maxEndX };
+    }
+
+    // 6方向回転パターンの生成
+    function getOrientations(item) {
+      return [
+        { l: item.L, h: item.H, w: item.W },
+        { l: item.L, h: item.W, w: item.H },
+        { l: item.W, h: item.H, w: item.L },
+        { l: item.W, h: item.L, w: item.H },
+        { l: item.H, h: item.L, w: item.W },
+        { l: item.H, h: item.W, w: item.L }
+      ];
+    }
+
+    // ==========================================
+    // 【従来方式】ウォール積み（品目順）
+    // ==========================================
+    function packStageWallBuilding(items, startX, truckW, truckH, maxAllowedX) {
+      const halfW = truckW / 2;
+      const marginZ = 2;
+      const minZ = -halfW + marginZ;
+      const maxZ = halfW - marginZ;
+      const usableW = maxZ - minZ;
+      const maxH = truckH - 5;
+
+      let curX = startX;
+      let curY = 0;
+      let curZ = minZ;
+      let layerMaxL = 0;
+
+      const inTruck = [];
+      const overflow = [];
+
+      items.forEach(item => {
+        if (!item.qty || item.qty <= 0) return;
+
+        let bestL = item.L, bestW = item.W, bestH = item.H;
+        const orientations = getOrientations(item);
+
+        let bestScore = -1;
+        orientations.forEach(o => {
+          if (o.w <= usableW && o.h <= maxH) {
+            const cols = Math.floor(usableW / o.w);
+            const rows = Math.floor(maxH / o.h);
+            const score = (cols * o.w) * (rows * o.h) / o.l;
+            if (score > bestScore) {
+              bestScore = score;
+              bestL = o.l;
+              bestW = o.w;
+              bestH = o.h;
+            }
+          }
+        });
+
+        for (let q = 0; q < item.qty; q++) {
+          if (curY + bestH > maxH) {
+            curY = 0;
+            curZ += bestW + 0.3;
+          }
+
+          if (curZ + bestW > maxZ) {
+            curZ = minZ;
+            curY = 0;
+            curX += (layerMaxL > 0 ? layerMaxL : bestL) + 0.5;
+            layerMaxL = 0;
+          }
+
+          const boxData = {
+            item: item,
+            x: curX,
+            y: curY,
+            z: curZ,
+            l: bestL,
+            h: bestH,
+            w: bestW
+          };
+
+          // 荷台内か積み残しか
+          if (curX + bestL <= maxAllowedX) {
+            inTruck.push(boxData);
+          } else {
+            overflow.push(boxData);
+          }
+
+          curY += bestH + 0.3;
+          layerMaxL = Math.max(layerMaxL, bestL);
+        }
+      });
+
+      return { inTruck, overflow, nextX: curX + layerMaxL };
+    }
+
+    // ステータス・KPIアラート表示の更新
+    function updateStatusAndAlerts(totalQty, loadedCount, unloadedCount, truckL) {
+      const meshCounter = document.getElementById('meshCounter');
+      const unloadedBar = document.getElementById('unloadedAlertBar');
+      const unloadedTitle = document.getElementById('unloadedStatusTitle');
+      const unloadedSub = document.getElementById('unloadedStatusSub');
+      const unloadedIconBg = document.getElementById('unloadedIconBg');
+      const unloadedIcon = document.getElementById('unloadedIcon');
+
+      meshCounter.innerText = `3D積載描画数: ${loadedCount} / ${totalQty} ケース (${unloadedCount === 0 ? '完全格納完了' : unloadedCount + 'cs 積み残し発生'})`;
+
+      if (unloadedCount === 0) {
+        unloadedBar.className = 'bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-all';
+        unloadedIconBg.className = 'p-2.5 bg-emerald-500 text-white rounded-xl flex-shrink-0 shadow-sm';
+        unloadedIcon.setAttribute('data-lucide', 'check-circle-2');
+        unloadedTitle.innerHTML = `<span class="text-emerald-950 font-bold text-sm">全数格納完了 (積み残し 0ケース)</span> <span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">100% 格納</span>`;
+        unloadedSub.innerText = `全 ${totalQty} ケースがトラックの枠内(${truckL}cm)に完璧に収まっています。`;
+      } else {
+        unloadedBar.className = 'bg-red-50 border border-red-300 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-all';
+        unloadedIconBg.className = 'p-2.5 bg-red-500 text-white rounded-xl flex-shrink-0 shadow-sm';
+        unloadedIcon.setAttribute('data-lucide', 'alert-triangle');
+        unloadedTitle.innerHTML = `<span class="text-red-700 font-bold text-sm">【警告】積み残し発生: ${unloadedCount} ケースが溢れています</span> <span class="bg-red-100 text-red-800 text-[10px] px-2 py-0.5 rounded-full font-bold">要対応</span>`;
+        unloadedSub.innerText = `荷台長さを超過した段ボールを後方ゲート外の保管エリアに赤色で描画しています。「3D高密度バラ積み」をお試しください。`;
+      }
+      lucide.createIcons();
+    }
+
+    // 3D回転高密度最適化を実行
+    function optimizePacking() {
+      // 1. Stageごとの分離
+      // 2. 体積順（大→小）および底面積順へのソート
+      currentData.cargoItems.sort((a, b) => {
+        if (a.deliveryStage !== b.deliveryStage) return a.deliveryStage - b.deliveryStage;
+        return (b.L * b.W * b.H) - (a.L * a.W * a.H);
+      });
+      
+      packingMode = 'highDensity';
+      document.getElementById('btnModeHighDensity').className = "px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm";
+      document.getElementById('btnModeWall').className = "px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5";
+      document.getElementById('currentLogicBadge').innerText = "3D高密度バラ積み充填 (BLF)";
+
+      updateDashboard();
+      showToast('3D回転高密度バラ積み最適化を実行しました。デッドスペースを自動充填しました。', 'success');
+    }
+
+    function toggleTruckWalls() {
+      showWalls = !showWalls;
+      const btn = document.getElementById('wallToggleBtn');
+      btn.innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5"></i> 壁・天井: ${showWalls ? 'ON' : 'OFF'}`;
+      lucide.createIcons();
+      build3DTruckAndCargo();
+    }
+
+    // 3Dキャンバスクリック時のツールチップ表示
+    function onCanvasClick(event) {
+      const canvas = document.getElementById('threeCanvas');
+      const rect = canvas.getBoundingClientRect();
+      
+      mouse.x = ((event.clientX - rect.left) / canvas.clientWidth) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / canvas.clientHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(cargoMeshList);
+
+      const tooltip = document.getElementById('3dTooltip');
+
+      if (intersects.length > 0) {
+        const selectedObj = intersects[0].object;
+        const data = selectedObj.userData;
+
+        document.getElementById('tooltipTitle').innerText = data.name;
+        
+        const badge = document.getElementById('tooltipStatusBadge');
+        if (data.isOverflow) {
+          badge.className = 'font-bold px-2 py-0.5 rounded text-[10px] bg-red-500/20 text-red-300 border border-red-500/40';
+          badge.innerText = '状態: 積み残し（荷台外）';
+        } else {
+          badge.className = 'font-bold px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+          badge.innerText = '状態: 荷台内積載 (OK)';
+        }
+
+        document.getElementById('tooltipQty').innerText = `${data.qty} ケース`;
+        document.getElementById('tooltipSize').innerText = `${data.L} × ${data.W} × ${data.H} cm`;
+        document.getElementById('tooltipOrient').innerText = `${data.actualL} × ${data.actualW} × ${data.actualH} cm`;
+        document.getElementById('tooltipWeight').innerText = `${data.weight} kg`;
+        document.getElementById('tooltipStage').innerText = `Stage ${data.deliveryStage}`;
+
+        tooltip.classList.remove('hidden');
+      }
+    }
+
+    function closeTooltip() {
+      document.getElementById('3dTooltip').classList.add('hidden');
+    }
+
+    function changeVehiclePreset() {
+      const selected = document.getElementById('vehiclePresetSelect').value;
+      const preset = VEHICLE_PRESETS[selected];
+      if (preset) {
+        currentData.truck.selected = selected;
+        currentData.truck.customDims = {
+          L: preset.L,
+          W: preset.W,
+          H: preset.H,
+          maxWeight: preset.maxWeight
+        };
+        updateDashboard();
+        resetCameraView();
+        showToast(`車両サイズを「${preset.name}」に変更しました。`, 'info');
+      }
+    }
+
+    function updateDashboard() {
+      renderTruckInfo();
+      build3DTruckAndCargo();
+      renderTable();
+    }
+
+    function renderTruckInfo() {
+      const truck = currentData.truck.customDims;
+      const selectedPresetKey = currentData.truck.selected || 'lowFloor10t';
+      const presetName = VEHICLE_PRESETS[selectedPresetKey] ? VEHICLE_PRESETS[selectedPresetKey].name : 'カスタム車';
+      
+      document.getElementById('truckType').innerText = presetName;
+      document.getElementById('truckDims').innerText = `L ${truck.L} × W ${truck.W} × H ${truck.H} cm`;
+      document.getElementById('truckMaxWeight').innerText = truck.maxWeight.toLocaleString();
+
+      const maxVolume = (truck.L * truck.W * truck.H) / 1000000;
+      document.getElementById('truckMaxVolume').innerText = maxVolume.toFixed(2);
+
+      let totalQty = 0;
+      let totalWeight = 0;
+      let totalVolume = 0;
+
+      currentData.cargoItems.forEach(item => {
+        const qty = item.qty || 0;
+        totalQty += qty;
+        totalWeight += (item.weight || 0) * qty;
+        const itemVol = ((item.L * item.W * item.H) / 1000000) * qty;
+        totalVolume += itemVol;
+      });
+
+      document.getElementById('totalQty').innerHTML = `${totalQty.toLocaleString()} <span class="text-sm font-normal text-slate-500">ケース</span>`;
+      document.getElementById('itemTypeCount').innerText = currentData.cargoItems.length;
+
+      const weightPct = Math.min(100, ((totalWeight / truck.maxWeight) * 100)).toFixed(1);
+      document.getElementById('weightUsage').innerText = `${weightPct}%`;
+      document.getElementById('weightDetail').innerText = `${Math.round(totalWeight).toLocaleString()} / ${truck.maxWeight.toLocaleString()} kg`;
+      const weightBar = document.getElementById('weightBar');
+      weightBar.style.width = `${weightPct}%`;
+      weightBar.className = `h-2 rounded-full transition-all duration-500 ${weightPct > 100 ? 'bg-red-500' : weightPct > 85 ? 'bg-amber-500' : 'bg-emerald-500'}`;
+
+      const volumePct = Math.min(100, ((totalVolume / maxVolume) * 100)).toFixed(1);
+      document.getElementById('volumeUsage').innerText = `${volumePct}%`;
+      document.getElementById('volumeDetail').innerText = `${totalVolume.toFixed(2)} / ${maxVolume.toFixed(2)} m³`;
+      const volumeBar = document.getElementById('volumeBar');
+      volumeBar.style.width = `${volumePct}%`;
+      volumeBar.className = `h-2 rounded-full transition-all duration-500 ${volumePct > 100 ? 'bg-red-500' : volumePct > 85 ? 'bg-amber-500' : 'bg-indigo-500'}`;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('cargoTableBody');
+      tbody.innerHTML = '';
+
+      const searchKeyword = document.getElementById('searchInput').value.toLowerCase();
+      const stageFilter = document.getElementById('stageFilter').value;
+      const sortBy = document.getElementById('sortBy').value;
+
+      let items = currentData.cargoItems.filter(item => {
+        const matchesSearch = item.name.toLowerCase().includes(searchKeyword) || item.id.toLowerCase().includes(searchKeyword);
+        const matchesStage = stageFilter === 'all' || item.deliveryStage.toString() === stageFilter;
+        return matchesSearch && matchesStage;
+      });
+
+      if (sortBy === 'qty-desc') {
+        items.sort((a, b) => b.qty - a.qty);
+      } else if (sortBy === 'weight-desc') {
+        items.sort((a, b) => (b.weight * b.qty) - (a.weight * a.qty));
+      } else if (sortBy === 'volume-desc') {
+        items.sort((a, b) => ((b.L*b.W*b.H)*b.qty) - ((a.L*a.W*a.H)*a.qty));
+      } else if (sortBy === 'name') {
+        items.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+      }
+
+      document.getElementById('displayedCount').innerText = items.length;
+
+      items.forEach(item => {
+        const totalWeight = ((item.weight || 0) * item.qty).toFixed(1);
+        const totalVolume = (((item.L * item.W * item.H) / 1000000) * item.qty).toFixed(3);
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 cursor-pointer';
+        tr.innerHTML = `
+          <td class="py-2.5 px-4">
+            <div class="w-5 h-5 rounded border shadow-sm" style="background-color: ${item.color || '#3b82f6'}"></div>
+          </td>
+          <td class="py-2.5 px-4 font-semibold">
+            <span class="px-2 py-0.5 rounded ${item.deliveryStage === 1 ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'}">
+              Stage ${item.deliveryStage}
+            </span>
+          </td>
+          <td class="py-2.5 px-4 font-medium text-slate-800">
+            <div>${item.name}</div>
+            <div class="text-[10px] text-slate-400 font-mono">${item.id}</div>
+          </td>
+          <td class="py-2.5 px-4 text-slate-600">${item.L} × ${item.W} × ${item.H}</td>
+          <td class="py-2.5 px-4 text-right text-slate-600">${item.weight}</td>
+          <td class="py-2.5 px-4 text-right font-bold text-slate-900">${item.qty}</td>
+          <td class="py-2.5 px-4 text-right font-semibold text-slate-700">${totalWeight}</td>
+          <td class="py-2.5 px-4 text-right text-slate-600">${totalVolume}</td>
+          <td class="py-2.5 px-4 text-center space-x-1" onclick="event.stopPropagation()">
+            <button onclick="editItem('${item.id}')" class="p-1 hover:bg-slate-200 rounded text-slate-600 transition" title="編集">
+              <i data-lucide="edit-3" class="w-4 h-4"></i>
+            </button>
+            <button onclick="confirmDeleteItem('${item.id}')" class="p-1 hover:bg-red-100 rounded text-red-600 transition" title="削除">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </td>
+        `;
+        tr.onclick = () => editItem(item.id);
+        tbody.appendChild(tr);
+      });
+
+      lucide.createIcons();
+    }
+
+    function openModal(isEdit = false) {
+      document.getElementById('modalTitle').innerText = isEdit ? '貨物アイテムの編集' : '新規貨物アイテムの追加';
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('itemModal').classList.add('hidden');
+      document.getElementById('itemForm').reset();
+      document.getElementById('editItemId').value = '';
+    }
+
+    function editItem(id) {
+      const item = currentData.cargoItems.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('editItemId').value = item.id;
+      document.getElementById('itemName').value = item.name;
+      document.getElementById('itemStage').value = item.deliveryStage || 1;
+      document.getElementById('itemColor').value = item.color || '#3b82f6';
+      document.getElementById('itemL').value = item.L;
+      document.getElementById('itemW').value = item.W;
+      document.getElementById('itemH').value = item.H;
+      document.getElementById('itemWeight').value = item.weight;
+      document.getElementById('itemQty').value = item.qty;
+
+      openModal(true);
+    }
+
+    function confirmDeleteItem(id) {
+      const item = currentData.cargoItems.find(i => i.id === id);
+      const name = item ? item.name : 'このアイテム';
+      showConfirmModal(`「${name}」を削除しますか？この操作は取り消せません。`, () => {
+        currentData.cargoItems = currentData.cargoItems.filter(i => i.id !== id);
+        updateDashboard();
+        showToast('アイテムを削除しました。', 'info');
+      });
+    }
+
+    function saveItem(event) {
+      event.preventDefault();
+      
+      const editId = document.getElementById('editItemId').value;
+      const newItem = {
+        id: editId || `box_${Date.now()}`,
+        name: document.getElementById('itemName').value,
+        deliveryStage: parseInt(document.getElementById('itemStage').value, 10),
+        color: document.getElementById('itemColor').value,
+        L: parseFloat(document.getElementById('itemL').value),
+        W: parseFloat(document.getElementById('itemW').value),
+        H: parseFloat(document.getElementById('itemH').value),
+        weight: parseFloat(document.getElementById('itemWeight').value),
+        qty: parseInt(document.getElementById('itemQty').value, 10)
+      };
+
+      if (editId) {
+        const index = currentData.cargoItems.findIndex(i => i.id === editId);
+        if (index !== -1) currentData.cargoItems[index] = newItem;
+        showToast('貨物情報を更新しました。', 'success');
+      } else {
+        currentData.cargoItems.push(newItem);
+        showToast('新しい貨物を追加しました。', 'success');
+      }
+
+      closeModal();
+      updateDashboard();
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const json = JSON.parse(e.target.result);
+          if (json.cargoItems && Array.isArray(json.cargoItems)) {
+            currentData = json;
+            if (!currentData.truck || !currentData.truck.customDims) {
+              currentData.truck = {
+                selected: "lowFloor10t",
+                customDims: { L: 960, W: 240, H: 260, maxWeight: 13000 }
+              };
+            }
+            if (currentData.truck.selected && VEHICLE_PRESETS[currentData.truck.selected]) {
+              document.getElementById('vehiclePresetSelect').value = currentData.truck.selected;
+            }
+            updateDashboard();
+            resetCameraView();
+            showToast('JSONデータを正常に読み込みました。', 'success');
+          } else {
+            showToast('無効なJSONフォーマットです。「cargoItems」配列が不足しています。', 'error');
+          }
+        } catch (err) {
+          showToast('JSON解析エラー: ' + err.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function exportJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "トラック積載計画データ.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('JSONファイルを保存しました。', 'success');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      const bgColors = {
+        success: 'bg-slate-900 border-emerald-500 text-white',
+        error: 'bg-slate-900 border-red-500 text-white',
+        info: 'bg-slate-900 border-blue-500 text-white'
+      };
+
+      const iconMap = {
+        success: '<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>',
+        error: '<i data-lucide="alert-circle" class="w-4 h-4 text-red-400"></i>',
+        info: '<i data-lucide="info" class="w-4 h-4 text-blue-400"></i>'
+      };
+
+      toast.className = `flex items-center space-x-2 px-4 py-3 rounded-xl border shadow-xl text-xs transition-all duration-300 transform translate-y-2 opacity-0 ${bgColors[type] || bgColors.info}`;
+      toast.innerHTML = `${iconMap[type] || iconMap.info} <span>${message}</span>`;
+      
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function showConfirmModal(message, onConfirm) {
+      const modal = document.getElementById('confirmModal');
+      const msgEl = document.getElementById('confirmMessage');
+      const okBtn = document.getElementById('confirmOkBtn');
+      const cancelBtn = document.getElementById('confirmCancelBtn');
+
+      msgEl.innerText = message;
+      modal.classList.remove('hidden');
+
+      const cleanup = () => {
+        modal.classList.add('hidden');
+        okBtn.onclick = null;
+        cancelBtn.onclick = null;
+      };
+
+      okBtn.onclick = () => {
+        cleanup();
+        if (onConfirm) onConfirm();
+      };
+
+      cancelBtn.onclick = () => {
+        cleanup();
+      };
+    }
+  </script>
+</body>
+</html>

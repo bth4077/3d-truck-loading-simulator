@@ -1,0 +1,609 @@
+{
+  "version": "2.0",
+  "truck": {
+    "selected": "lowFloor10t",
+    "customDims": {
+      "L": 960,
+      "W": 240,
+      "H": 260,
+      "maxWeight": 13000
+    }
+  },
+  "cargoItems": [
+    {
+      "id": "box_3450_12129",
+      "name": "LF点わやP120cc 56枚",
+      "L": 51.5,
+      "W": 41.5,
+      "H": 44.5,
+      "weight": 10.27,
+      "qty": 32,
+      "color": "#0284c7",
+      "deliveryStage": 1,
+      "saisu": 3.42,
+      "boxDimensions": {
+        "width_mm": 515,
+        "depth_mm": 415,
+        "height_mm": 445
+      }
+    },
+    {
+      "id": "box_3450_54671",
+      "name": "LFあんしんうす型S2",
+      "L": 55.0,
+      "W": 42.0,
+      "H": 38.0,
+      "weight": 6.6,
+      "qty": 16,
+      "color": "#0f766e",
+      "deliveryStage": 1,
+      "saisu": 3.16,
+      "boxDimensions": {
+        "width_mm": 550,
+        "depth_mm": 420,
+        "height_mm": 380
+      }
+    },
+    {
+      "id": "box_3450_24381",
+      "name": "ズレずにパンツP4回夜 30",
+      "L": 54.0,
+      "W": 36.0,
+      "H": 44.0,
+      "weight": 7.22,
+      "qty": 24,
+      "color": "#6d28d9",
+      "deliveryStage": 1,
+      "saisu": 3.08,
+      "boxDimensions": {
+        "width_mm": 540,
+        "depth_mm": 360,
+        "height_mm": 440
+      }
+    },
+    {
+      "id": "box_3450_50773",
+      "name": "LFさわやかP80cc 68枚",
+      "L": 58.0,
+      "W": 41.0,
+      "H": 34.5,
+      "weight": 10.01,
+      "qty": 36,
+      "color": "#2563eb",
+      "deliveryStage": 1,
+      "saisu": 2.95,
+      "boxDimensions": {
+        "width_mm": 580,
+        "depth_mm": 410,
+        "height_mm": 345
+      }
+    },
+    {
+      "id": "box_3450_54762",
+      "name": "LFあんしんうす型L1 8",
+      "L": 52.0,
+      "W": 41.0,
+      "H": 38.5,
+      "weight": 6.0,
+      "qty": 8,
+      "color": "#c2410c",
+      "deliveryStage": 1,
+      "saisu": 2.95,
+      "boxDimensions": {
+        "width_mm": 520,
+        "depth_mm": 410,
+        "height_mm": 385
+      }
+    },
+    {
+      "id": "box_3450_37786",
+      "name": "S超熟睡G400-16",
+      "L": 42.0,
+      "W": 35.5,
+      "H": 47.0,
+      "weight": 4.6,
+      "qty": 24,
+      "color": "#581c87",
+      "deliveryStage": 1,
+      "saisu": 2.52,
+      "boxDimensions": {
+        "width_mm": 420,
+        "depth_mm": 355,
+        "height_mm": 470
+      }
+    },
+    {
+      "id": "box_3450_45883_rdc",
+      "name": "ムーニーマン汗男女L4(中国)",
+      "L": 47.0,
+      "W": 34.0,
+      "H": 42.0,
+      "weight": 5.8,
+      "qty": 12,
+      "color": "#047857",
+      "deliveryStage": 1,
+      "saisu": 2.42,
+      "boxDimensions": {
+        "width_mm": 470,
+        "depth_mm": 340,
+        "height_mm": 420
+      }
+    },
+    {
+      "id": "box_3450_79386",
+      "name": "LFうす型軽快パンツL L26",
+      "L": 44.5,
+      "W": 34.0,
+      "H": 40.5,
+      "weight": 3.99,
+      "qty": 22,
+      "color": "#4d7c0f",
+      "deliveryStage": 1,
+      "saisu": 2.21,
+      "boxDimensions": {
+        "width_mm": 445,
+        "depth_mm": 340,
+        "height_mm": 405
+      }
+    },
+    {
+      "id": "box_3450_37453",
+      "name": "ポコパンツL42枚ドラ",
+      "L": 46.5,
+      "W": 31.0,
+      "H": 41.5,
+      "weight": 5.75,
+      "qty": 16,
+      "color": "#db2777",
+      "deliveryStage": 1,
+      "saisu": 2.15,
+      "boxDimensions": {
+        "width_mm": 465,
+        "depth_mm": 310,
+        "height_mm": 415
+      }
+    },
+    {
+      "id": "box_3450_22628",
+      "name": "オヤスミマン男SB12枚",
+      "L": 49.1,
+      "W": 43.1,
+      "H": 27.2,
+      "weight": 5.7,
+      "qty": 12,
+      "color": "#047857",
+      "deliveryStage": 1,
+      "saisu": 2.07,
+      "boxDimensions": {
+        "width_mm": 491,
+        "depth_mm": 431,
+        "height_mm": 272
+      }
+    },
+    {
+      "id": "box_3450_21560",
+      "name": "LFリハビリパンツL2",
+      "L": 43.0,
+      "W": 33.0,
+      "H": 39.5,
+      "weight": 4.12,
+      "qty": 16,
+      "color": "#b45309",
+      "deliveryStage": 1,
+      "saisu": 2.02,
+      "boxDimensions": {
+        "width_mm": 430,
+        "depth_mm": 330,
+        "height_mm": 395
+      }
+    },
+    {
+      "id": "box_77931",
+      "name": "ポコパンツM50枚ドラ",
+      "L": 48.0,
+      "W": 27.0,
+      "H": 41.5,
+      "weight": 4.99,
+      "qty": 16,
+      "color": "#4338ca",
+      "deliveryStage": 1,
+      "saisu": 1.94,
+      "boxDimensions": {
+        "width_mm": 480,
+        "depth_mm": 270,
+        "height_mm": 415
+      }
+    },
+    {
+      "id": "box_3450_75741",
+      "name": "Sはだスリム260羽1 7",
+      "L": 45.5,
+      "W": 38.0,
+      "H": 31.0,
+      "weight": 4.06,
+      "qty": 12,
+      "color": "#701a75",
+      "deliveryStage": 1,
+      "saisu": 1.93,
+      "boxDimensions": {
+        "width_mm": 455,
+        "depth_mm": 380,
+        "height_mm": 310
+      }
+    },
+    {
+      "id": "box_3450_92164",
+      "name": "ポコパンツB大24枚ドラ",
+      "L": 50.5,
+      "W": 24.0,
+      "H": 42.5,
+      "weight": 3.61,
+      "qty": 11,
+      "color": "#7c2d12",
+      "deliveryStage": 1,
+      "saisu": 1.86,
+      "boxDimensions": {
+        "width_mm": 505,
+        "depth_mm": 240,
+        "height_mm": 425
+      }
+    },
+    {
+      "id": "box_3450_77892",
+      "name": "CN長時間安心用18",
+      "L": 35.0,
+      "W": 33.5,
+      "H": 39.0,
+      "weight": 4.15,
+      "qty": 5,
+      "color": "#a16207",
+      "deliveryStage": 1,
+      "saisu": 1.65,
+      "boxDimensions": {
+        "width_mm": 350,
+        "depth_mm": 335,
+        "height_mm": 390
+      }
+    },
+    {
+      "id": "box_3450_23243",
+      "name": "CN少量用66枚",
+      "L": 42.0,
+      "W": 33.0,
+      "H": 35.0,
+      "weight": 5.52,
+      "qty": 8,
+      "color": "#be123c",
+      "deliveryStage": 1,
+      "saisu": 1.75,
+      "boxDimensions": {
+        "width_mm": 420,
+        "depth_mm": 330,
+        "height_mm": 350
+      }
+    },
+    {
+      "id": "box_3450_39864",
+      "name": "MNやわ素材替76×8トミカ",
+      "L": 43.0,
+      "W": 30.0,
+      "H": 21.5,
+      "weight": 9.16,
+      "qty": 32,
+      "color": "#1d4ed8",
+      "deliveryStage": 1,
+      "saisu": 1.0,
+      "boxDimensions": {
+        "width_mm": 430,
+        "depth_mm": 300,
+        "height_mm": 215
+      }
+    },
+    {
+      "id": "box_3450_98618",
+      "name": "ムーニーおしり極上50×6",
+      "L": 43.0,
+      "W": 30.0,
+      "H": 16.5,
+      "weight": 6.68,
+      "qty": 5,
+      "color": "#451a03",
+      "deliveryStage": 1,
+      "saisu": 0.77,
+      "boxDimensions": {
+        "width_mm": 430,
+        "depth_mm": 300,
+        "height_mm": 165
+      }
+    },
+    {
+      "id": "box_3450_83410",
+      "name": "シルコットピュアW替58×3",
+      "L": 36.0,
+      "W": 33.5,
+      "H": 16.0,
+      "weight": 5.18,
+      "qty": 12,
+      "color": "#15803d",
+      "deliveryStage": 1,
+      "saisu": 0.7,
+      "boxDimensions": {
+        "width_mm": 360,
+        "depth_mm": 335,
+        "height_mm": 160
+      }
+    },
+    {
+      "id": "box_3450_48132",
+      "name": "MN手口詰替58×3",
+      "L": 36.0,
+      "W": 33.5,
+      "H": 16.0,
+      "weight": 5.18,
+      "qty": 36,
+      "color": "#0369a1",
+      "deliveryStage": 1,
+      "saisu": 0.7,
+      "boxDimensions": {
+        "width_mm": 360,
+        "depth_mm": 335,
+        "height_mm": 160
+      }
+    },
+    {
+      "id": "box_3450_59630",
+      "name": "ズレずにPP4回夜42",
+      "L": 54.0,
+      "W": 36.0,
+      "H": 44.0,
+      "weight": 7.52,
+      "qty": 2,
+      "color": "#22c55e",
+      "deliveryStage": 2,
+      "saisu": 3.08,
+      "boxDimensions": {
+        "width_mm": 540,
+        "depth_mm": 360,
+        "height_mm": 440
+      }
+    },
+    {
+      "id": "box_3450_78733",
+      "name": "LF-晩中あんしんS3",
+      "L": 61.0,
+      "W": 41.5,
+      "H": 33.5,
+      "weight": 10.13,
+      "qty": 18,
+      "color": "#d946ef",
+      "deliveryStage": 2,
+      "saisu": 3.05,
+      "boxDimensions": {
+        "width_mm": 610,
+        "depth_mm": 415,
+        "height_mm": 335
+      }
+    },
+    {
+      "id": "box_3450_96262",
+      "name": "LFうす型軽快パンツM",
+      "L": 46.0,
+      "W": 45.0,
+      "H": 38.0,
+      "weight": 5.1,
+      "qty": 4,
+      "color": "#65a30d",
+      "deliveryStage": 2,
+      "saisu": 2.83,
+      "boxDimensions": {
+        "width_mm": 460,
+        "depth_mm": 450,
+        "height_mm": 380
+      }
+    },
+    {
+      "id": "box_3450_55033",
+      "name": "LF尿とりなしパンツL",
+      "L": 51.0,
+      "W": 41.0,
+      "H": 37.5,
+      "weight": 5.4,
+      "qty": 5,
+      "color": "#a855f7",
+      "deliveryStage": 2,
+      "saisu": 2.82,
+      "boxDimensions": {
+        "width_mm": 510,
+        "depth_mm": 410,
+        "height_mm": 375
+      }
+    },
+    {
+      "id": "box_3450_21691",
+      "name": "ズレずにPP5回夜S3",
+      "L": 54.0,
+      "W": 36.0,
+      "H": 44.5,
+      "weight": 7.43,
+      "qty": 69,
+      "color": "#0ea5e9",
+      "deliveryStage": 2,
+      "saisu": 3.11,
+      "boxDimensions": {
+        "width_mm": 540,
+        "depth_mm": 360,
+        "height_mm": 445
+      }
+    },
+    {
+      "id": "box_3450_45883_fdc",
+      "name": "ムーニーマン汗男女L4(広島)",
+      "L": 47.0,
+      "W": 34.0,
+      "H": 42.0,
+      "weight": 5.8,
+      "qty": 5,
+      "color": "#10b981",
+      "deliveryStage": 2,
+      "saisu": 2.42,
+      "boxDimensions": {
+        "width_mm": 470,
+        "depth_mm": 340,
+        "height_mm": 420
+      }
+    },
+    {
+      "id": "box_3450_29899",
+      "name": "ムーニーマン低刺ビッグ",
+      "L": 44.5,
+      "W": 33.5,
+      "H": 43.5,
+      "weight": 5.42,
+      "qty": 43,
+      "color": "#f59e0b",
+      "deliveryStage": 2,
+      "saisu": 2.34,
+      "boxDimensions": {
+        "width_mm": 445,
+        "depth_mm": 335,
+        "height_mm": 435
+      }
+    },
+    {
+      "id": "box_3450_54731",
+      "name": "LFあんしんうす型M3",
+      "L": 45.0,
+      "W": 36.3,
+      "H": 39.0,
+      "weight": 4.8,
+      "qty": 64,
+      "color": "#8b5cf6",
+      "deliveryStage": 2,
+      "saisu": 2.29,
+      "boxDimensions": {
+        "width_mm": 450,
+        "depth_mm": 363,
+        "height_mm": 390
+      }
+    },
+    {
+      "id": "box_3450_57962",
+      "name": "ムーニー-L48枚",
+      "L": 49.5,
+      "W": 28.5,
+      "H": 44.5,
+      "weight": 6.91,
+      "qty": 19,
+      "color": "#06b6d4",
+      "deliveryStage": 2,
+      "saisu": 2.26,
+      "boxDimensions": {
+        "width_mm": 495,
+        "depth_mm": 285,
+        "height_mm": 445
+      }
+    },
+    {
+      "id": "box_3450_77976",
+      "name": "ムーニーマンS54+4枚",
+      "L": 53.5,
+      "W": 31.0,
+      "H": 37.5,
+      "weight": 4.99,
+      "qty": 15,
+      "color": "#eab308",
+      "deliveryStage": 2,
+      "saisu": 2.24,
+      "boxDimensions": {
+        "width_mm": 535,
+        "depth_mm": 310,
+        "height_mm": 375
+      }
+    },
+    {
+      "id": "box_3450_54867",
+      "name": "LFリハビリパンツS2",
+      "L": 44.0,
+      "W": 36.3,
+      "H": 38.0,
+      "weight": 4.3,
+      "qty": 25,
+      "color": "#f97316",
+      "deliveryStage": 2,
+      "saisu": 2.19,
+      "boxDimensions": {
+        "width_mm": 440,
+        "depth_mm": 363,
+        "height_mm": 380
+      }
+    },
+    {
+      "id": "box_3450_13538",
+      "name": "ムーニーマン汗男女M4",
+      "L": 48.0,
+      "W": 27.5,
+      "H": 43.5,
+      "weight": 5.21,
+      "qty": 3,
+      "color": "#ec4899",
+      "deliveryStage": 2,
+      "saisu": 2.07,
+      "boxDimensions": {
+        "width_mm": 480,
+        "depth_mm": 275,
+        "height_mm": 435
+      }
+    },
+    {
+      "id": "box_3450_48568",
+      "name": "ポコ夜B大22枚",
+      "L": 50.0,
+      "W": 24.0,
+      "H": 42.5,
+      "weight": 3.44,
+      "qty": 68,
+      "color": "#ef4444",
+      "deliveryStage": 2,
+      "saisu": 1.84,
+      "boxDimensions": {
+        "width_mm": 500,
+        "depth_mm": 240,
+        "height_mm": 425
+      }
+    },
+    {
+      "id": "box_3450_19649",
+      "name": "MNふきやわ素材替76",
+      "L": 43.0,
+      "W": 30.0,
+      "H": 21.5,
+      "weight": 9.16,
+      "qty": 62,
+      "color": "#3b82f6",
+      "deliveryStage": 2,
+      "saisu": 1.0,
+      "boxDimensions": {
+        "width_mm": 430,
+        "depth_mm": 300,
+        "height_mm": 215
+      }
+    },
+    {
+      "id": "box_3450_21523",
+      "name": "MN手口詰替58×8",
+      "L": 35.5,
+      "W": 31.5,
+      "H": 21.5,
+      "weight": 6.71,
+      "qty": 35,
+      "color": "#14b8a6",
+      "deliveryStage": 2,
+      "saisu": 0.87,
+      "boxDimensions": {
+        "width_mm": 355,
+        "depth_mm": 315,
+        "height_mm": 215
+      }
+    }
+  ]
+}
