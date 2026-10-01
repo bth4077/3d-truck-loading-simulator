@@ -178,6 +178,61 @@
       </div>
     </div>
 
+    <!-- 【パレット積載効率向上オプションバー】(パレット選択時のみ表示) -->
+    <div id="palletOptionsBar" class="hidden bg-gradient-to-r from-amber-50/95 via-orange-50/90 to-amber-50/95 border border-amber-300 rounded-xl p-3.5 shadow-sm transition-all flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-2.5">
+        <span class="p-2 bg-amber-500 text-white rounded-lg shadow-xs flex-shrink-0">
+          <i data-lucide="sliders" class="w-4 h-4"></i>
+        </span>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-amber-950 text-sm">パレット積載効率・改善オプション</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/80 text-amber-900 border border-amber-300">実務検証モード</span>
+          </div>
+          <div class="text-[11px] text-amber-800 mt-0.5">
+            天井余裕（高さ方向）の詰め込みやパレットからのオーバーハング（外寸はみ出し）を許容して積載率を高めます
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap w-full xl:w-auto justify-start xl:justify-end">
+        <!-- 積載高さ上限セレクター -->
+        <div class="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-amber-300 shadow-2xs">
+          <span class="text-slate-600 font-semibold text-[11px] flex items-center gap-1">
+            <i data-lucide="arrow-up-to-line" class="w-3.5 h-3.5 text-amber-600"></i> 積載高さ:
+          </span>
+          <select id="selPalletMaxHeight" onchange="onPalletOptionChanged()" class="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer">
+            <option value="215">標準 215cm (天板+215 / 余白30cm)</option>
+            <option value="235" selected>高積み 235cm (天板+235 / 余白10cm) ★推奨</option>
+            <option value="240">最大 240cm (天板+240 / 余白5cm)</option>
+          </select>
+        </div>
+
+        <!-- はみ出し（オーバーハング）セレクター -->
+        <div class="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-amber-300 shadow-2xs">
+          <span class="text-slate-600 font-semibold text-[11px] flex items-center gap-1">
+            <i data-lucide="expand" class="w-3.5 h-3.5 text-amber-600"></i> はみ出し(OH):
+          </span>
+          <select id="selPalletOverhang" onchange="onPalletOptionChanged()" class="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer">
+            <option value="0">なし 0cm (1100mm枠内)</option>
+            <option value="2.5" selected>軽微 +2.5cm (1150mm枠 / 幅余白10cm) ★推奨</option>
+            <option value="3.5">最大 +3.5cm (1170mm枠 / 幅余白6cm)</option>
+          </select>
+        </div>
+
+        <!-- 小型箱トップ積みトグル -->
+        <label class="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-amber-300 shadow-2xs cursor-pointer hover:bg-amber-50/50 transition">
+          <input type="checkbox" id="chkPalletTopFill" onchange="onPalletOptionChanged()" checked class="rounded text-amber-600 focus:ring-amber-500 h-3.5 w-3.5 cursor-pointer">
+          <span class="text-slate-700 font-semibold text-[11px] select-none">天面トップ積み (小型箱充填)</span>
+        </label>
+
+        <!-- 推奨ワンタッチ適用ボタン -->
+        <button onclick="applyRecommendedPalletPreset()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] px-2.5 py-1.5 rounded-lg transition shadow-2xs flex items-center gap-1">
+          <i data-lucide="zap" class="w-3.5 h-3.5"></i> ★おすすめ推奨設定
+        </button>
+      </div>
+    </div>
+
     <!-- 【積載運用比較サマリー】パネル -->
     <div id="palletSummaryCard" class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -489,6 +544,43 @@
       p2200: { id: "p2200", name: "2200mm パレット (4枚)", isPallet: true, width: 220, length: 220, height: 15, cols: 1, rows: 4, count: 4, maxHeight: 215, workTime: 15 }
     };
 
+    // パレット積載改善オプション（初期推奨値: 高積み235cm + OH 2.5cm + トップ積み充填）
+    const palletOptions = {
+      maxHeight: 235,
+      overhang: 2.5,
+      topFill: true
+    };
+
+    function onPalletOptionChanged() {
+      const selH = document.getElementById('selPalletMaxHeight');
+      const selOH = document.getElementById('selPalletOverhang');
+      const chkTF = document.getElementById('chkPalletTopFill');
+
+      if (selH) palletOptions.maxHeight = parseFloat(selH.value) || 215;
+      if (selOH) palletOptions.overhang = parseFloat(selOH.value) || 0;
+      if (chkTF) palletOptions.topFill = chkTF.checked;
+
+      updateDashboard();
+      showToast(`パレット条件を更新: 積載高 ${palletOptions.maxHeight}cm, OH +${palletOptions.overhang}cm, トップ積 ${palletOptions.topFill ? 'ON' : 'OFF'}`, 'info');
+    }
+
+    function applyRecommendedPalletPreset() {
+      const selH = document.getElementById('selPalletMaxHeight');
+      const selOH = document.getElementById('selPalletOverhang');
+      const chkTF = document.getElementById('chkPalletTopFill');
+
+      if (selH) selH.value = "235";
+      if (selOH) selOH.value = "2.5";
+      if (chkTF) chkTF.checked = true;
+
+      palletOptions.maxHeight = 235;
+      palletOptions.overhang = 2.5;
+      palletOptions.topFill = true;
+
+      updateDashboard();
+      showToast('★実務推奨設定（高積み235cm + OH 2.5cm + トップ積み）を適用しました！', 'success');
+    }
+
     // Three.js グローバル変数
     let scene, camera, renderer, controls;
     let truckGroup, cargoGroup, wallMeshGroup, palletGroup;
@@ -603,8 +695,17 @@
       const cfg = PALLET_CONFIGS[mode] || PALLET_CONFIGS.highDensity;
       badge.innerText = cfg.name;
 
+      const palletBar = document.getElementById('palletOptionsBar');
+      if (palletBar) {
+        if (cfg.isPallet) {
+          palletBar.classList.remove('hidden');
+        } else {
+          palletBar.classList.add('hidden');
+        }
+      }
+
       if (cfg.isPallet) {
-        showToast(`「${cfg.name}」を適用しました。木製パレット枠内へのパッキングを実行します。`, "info");
+        showToast(`「${cfg.name}」を適用しました。パレット改善オプションで積載率を高められます。`, "info");
       } else if (mode === 'highDensity') {
         showToast("「手摘み (高密度バラ積み) モード」を適用しました。全数格納を試みます。", "info");
       } else {
@@ -716,6 +817,13 @@
         const res = packPalletGridBuilding(currentCfg, pallets, t.H);
         placedBoxes = res.inTruck;
         overflowBoxes = res.overflow;
+
+        const badge = document.getElementById('currentLogicBadge');
+        if (badge) {
+          const hLbl = palletOptions.maxHeight || 215;
+          const ohLbl = palletOptions.overhang > 0 ? `+OH${palletOptions.overhang}cm` : 'OH0';
+          badge.innerText = `${currentCfg.name} [高:${hLbl}cm / ${ohLbl}]`;
+        }
       } else if (packingMode === 'highDensity') {
         // 【要件②】3D Bottom-Left-Fill (BLF) / 混載高密度バラ積み隙間充填
         const res1 = packStageHighDensityBLF(stage1Items, startX, t.W, t.H, maxAllowedX);
@@ -1225,15 +1333,43 @@
       line.position.set(0, h/2, 0);
       pMeshGroup.add(line);
 
+      // 【オーバーハング許容枠（パレット天板敷き板シート）】
+      if (palletOptions.overhang > 0) {
+        const sheetL = l + palletOptions.overhang * 2;
+        const sheetW = w + palletOptions.overhang * 2;
+        const sheetGeo = new THREE.BoxGeometry(sheetL, 0.4, sheetW);
+        const sheetMat = new THREE.MeshStandardMaterial({
+          color: 0xf59e0b, // amber-500
+          roughness: 0.5,
+          transparent: true,
+          opacity: 0.65
+        });
+        const sheetMesh = new THREE.Mesh(sheetGeo, sheetMat);
+        sheetMesh.position.set(0, h + 0.2, 0);
+        sheetMesh.receiveShadow = true;
+        pMeshGroup.add(sheetMesh);
+
+        // 敷き板の外周ハイライトライン
+        const sheetEdgeGeo = new THREE.EdgesGeometry(sheetGeo);
+        const sheetLine = new THREE.LineSegments(sheetEdgeGeo, new THREE.LineBasicMaterial({
+          color: 0xfef08a, // yellow-200
+          linewidth: 1.5
+        }));
+        sheetLine.position.set(0, h + 0.2, 0);
+        pMeshGroup.add(sheetLine);
+      }
+
       pMeshGroup.position.set(cx, 0, cz);
       palletGroup.add(pMeshGroup);
     }
 
     // ==========================================
-    // 【要件③】パレット別バウンディングパッキング処理 (はみ出し厳禁・上限215cm)
+    // 【要件③】パレット別バウンディングパッキング処理 (高さ上限・OH許容・トップ充填連動)
     // ==========================================
     function packPalletGridBuilding(palletConfig, pallets, truckH) {
-      const maxStackH = palletConfig.maxHeight || 215.0; // パレット上面からの有効高
+      const maxStackH = palletOptions.maxHeight || palletConfig.maxHeight || 215.0; // パレット上面からの有効高
+      const overhang = palletOptions.overhang || 0.0;
+      const isTopFill = palletOptions.topFill !== false;
       
       const stage1Boxes = [];
       const stage2Boxes = [];
@@ -1267,31 +1403,61 @@
       const overflow = [];
 
       function fillPallets(boxes, palList) {
+        let largeBoxes = [];
+        let smallBoxes = [];
+
+        if (isTopFill) {
+          // トップ充填用：薄型・小型ケースを分離
+          boxes.forEach(b => {
+            if (Math.min(b.L, b.W, b.H) <= 22.0 || (b.L * b.W * b.H) <= 30000) {
+              smallBoxes.push(b);
+            } else {
+              largeBoxes.push(b);
+            }
+          });
+          largeBoxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
+          smallBoxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
+        } else {
+          largeBoxes = [...boxes];
+          smallBoxes = [];
+        }
+
         let palIdx = 0;
-        while (palIdx < palList.length && boxes.length > 0) {
+        while (palIdx < palList.length && (largeBoxes.length > 0 || smallBoxes.length > 0)) {
           const pal = palList[palIdx];
-          const pMinX = pal.cx - pal.l / 2;
-          const pMaxX = pal.cx + pal.l / 2;
-          const pMinZ = pal.cz - pal.w / 2;
-          const pMaxZ = pal.cz + pal.w / 2;
-          const baseY = pal.h;
+          const effectiveL = pal.l + overhang * 2;
+          const effectiveW = pal.w + overhang * 2;
+          const pMinX = pal.cx - effectiveL / 2;
+          const pMaxX = pal.cx + effectiveL / 2;
+          const pMinZ = pal.cz - effectiveW / 2;
+          const pMaxZ = pal.cz + effectiveW / 2;
+          const baseY = pal.h + (overhang > 0 ? 0.4 : 0);
 
           let curX = pMinX;
 
-          while (curX < pMaxX - 5 && boxes.length > 0) {
-            const firstBox = boxes[0];
-            const fOrs = getOrientations(firstBox);
-            const goodOrs = fOrs.filter(o => o.l <= (pMaxX - curX + 0.5) && o.w <= pal.w && o.h <= maxStackH);
-            const targetDepth = (goodOrs.length > 0 ? goodOrs[0] : fOrs[0]).l;
+          while (curX < pMaxX - 5 && (largeBoxes.length > 0 || smallBoxes.length > 0)) {
+            let targetDepth = 50.0;
+            if (largeBoxes.length > 0) {
+              const firstBox = largeBoxes[0];
+              const fOrs = getOrientations(firstBox);
+              const goodOrs = fOrs.filter(o => o.l <= (pMaxX - curX + 0.5) && o.w <= effectiveW && o.h <= maxStackH);
+              targetDepth = (goodOrs.length > 0 ? goodOrs[0] : fOrs[0]).l;
+            } else if (smallBoxes.length > 0) {
+              const firstBox = smallBoxes[0];
+              const fOrs = getOrientations(firstBox);
+              const goodOrs = fOrs.filter(o => o.l <= (pMaxX - curX + 0.5) && o.w <= effectiveW && o.h <= maxStackH);
+              targetDepth = (goodOrs.length > 0 ? goodOrs[0] : fOrs[0]).l;
+            }
 
             let curZ = pMinZ;
             let layerMaxL = 0.0;
 
-            while (curZ < pMaxZ - 5 && boxes.length > 0) {
+            while (curZ < pMaxZ - 5 && (largeBoxes.length > 0 || smallBoxes.length > 0)) {
               let curY = 0.0;
               let colMaxW = 0.0;
 
-              while (curY < maxStackH - 5 && boxes.length > 0) {
+              // 1. 大型箱の積み上げ
+              while (curY < maxStackH - 5 && largeBoxes.length > 0) {
                 const remH = maxStackH - curY;
                 const remW = pMaxZ - curZ;
                 const remL = pMaxX - curX;
@@ -1300,8 +1466,8 @@
                 let fitO = null;
                 let bestScore = Infinity;
 
-                for (let i = 0; i < boxes.length; i++) {
-                  const b = boxes[i];
+                for (let i = 0; i < largeBoxes.length; i++) {
+                  const b = largeBoxes[i];
                   for (let o of getOrientations(b)) {
                     if (o.h <= remH + 0.5 && o.w <= remW + 0.5 && o.l <= remL + 0.5) {
                       const depthDiff = Math.abs(o.l - targetDepth);
@@ -1318,7 +1484,7 @@
 
                 if (fitI === -1) break;
 
-                const boxToPlace = boxes.splice(fitI, 1)[0];
+                const boxToPlace = largeBoxes.splice(fitI, 1)[0];
                 const bl = fitO.l, bh = fitO.h, bw = fitO.w;
 
                 inTruck.push({
@@ -1337,6 +1503,55 @@
                 layerMaxL = Math.max(layerMaxL, bl);
               }
 
+              // 2. 【小型箱トップ積み・残余隙間充填】
+              if (isTopFill) {
+                while (curY < maxStackH - 5 && smallBoxes.length > 0) {
+                  const remH = maxStackH - curY;
+                  const remW = colMaxW > 0 ? colMaxW : (pMaxZ - curZ);
+                  const remL = pMaxX - curX;
+
+                  let fitSI = -1;
+                  let fitSO = null;
+                  let bestSScore = Infinity;
+
+                  for (let si = 0; si < smallBoxes.length; si++) {
+                    const sb = smallBoxes[si];
+                    for (let o of getOrientations(sb)) {
+                      if (o.h <= remH + 0.5 && o.w <= remW + 0.5 && o.l <= remL + 0.5) {
+                        const depthDiff = Math.abs(o.l - targetDepth);
+                        const score = depthDiff * 1.5 + (remH - o.h);
+                        if (score < bestSScore) {
+                          bestSScore = score;
+                          fitSI = si;
+                          fitSO = o;
+                        }
+                      }
+                    }
+                    if (bestSScore < 5) break;
+                  }
+
+                  if (fitSI === -1) break;
+
+                  const sBoxToPlace = smallBoxes.splice(fitSI, 1)[0];
+                  const bl = fitSO.l, bh = fitSO.h, bw = fitSO.w;
+
+                  inTruck.push({
+                    item: sBoxToPlace,
+                    x: curX,
+                    y: baseY + curY,
+                    z: curZ,
+                    l: bl,
+                    h: bh,
+                    w: bw,
+                    palletId: pal.id
+                  });
+
+                  curY += bh + 0.2;
+                  colMaxW = Math.max(colMaxW, bw);
+                  layerMaxL = Math.max(layerMaxL, bl);
+                }
+              }
+
               if (colMaxW === 0) break;
               curZ += colMaxW + 0.2;
             }
@@ -1348,9 +1563,12 @@
           palIdx++;
         }
 
-        // 入り切らなかったケースは積み残し（Overflow）へ！
-        while (boxes.length > 0) {
-          overflow.push({ item: boxes.shift() });
+        // 入り切らなかった残余ケースは積み残し（Overflow）へ！
+        while (largeBoxes.length > 0) {
+          overflow.push({ item: largeBoxes.shift() });
+        }
+        while (smallBoxes.length > 0) {
+          overflow.push({ item: smallBoxes.shift() });
         }
       }
 
@@ -1386,7 +1604,9 @@
         unloadedTitle.innerHTML = `<span class="text-red-700 font-bold text-sm">${modeLabel} 積み残し発生: ${unloadedCount} ケースが溢れています</span> <span class="bg-red-100 text-red-800 text-[10px] px-2 py-0.5 rounded-full font-bold">要確認</span>`;
         
         if (cfg && cfg.isPallet) {
-          unloadedSub.innerText = `パレット枠内・上限高さ215cmに収まらなかった貨物を、後方ゲート外の保管エリアに赤色で描画しています。`;
+          const hStr = palletOptions.maxHeight || 215;
+          const ohStr = palletOptions.overhang > 0 ? `・はみ出し+${palletOptions.overhang}cm` : '';
+          unloadedSub.innerText = `パレット枠(${cfg.width}cm${ohStr})・上限高さ${hStr}cmに収まらなかった貨物を後方ゲート外に赤色で描画しています。上部の「改善オプション」で高積み・はみ出し許容をお試しください。`;
         } else {
           unloadedSub.innerText = `荷台長さを超過した段ボールを後方ゲート外の保管エリアに赤色で描画しています。「手摘み (バラ積み)」をお試しください。`;
         }
@@ -1417,9 +1637,12 @@
       
       if (config.isPallet) {
         modeBadge.className = "px-2.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800";
-        modeTitle.innerText = `${config.name}：パレット外形枠と高さ215cm制限を遵守したパレタイズ積載`;
-        diffEl.innerText = `手摘み対比 +${overflowCount} cs の減容量`;
-        diffEl.className = "text-[10px] text-red-500 font-semibold";
+        const hLabel = palletOptions.maxHeight ? `高積:${palletOptions.maxHeight}cm` : '高:215cm';
+        const ohLabel = palletOptions.overhang > 0 ? `OH:+${palletOptions.overhang}cm` : 'OH:0cm';
+        const tfLabel = palletOptions.topFill ? 'トップ充填ON' : 'トップ充填OFF';
+        modeTitle.innerText = `${config.name} [${hLabel} / ${ohLabel} / ${tfLabel}] パレタイズ積載`;
+        diffEl.innerText = overflowCount === 0 ? "手摘み比 ±0 cs (全数格納)" : `手摘み対比 +${overflowCount} cs の減容量`;
+        diffEl.className = overflowCount === 0 ? "text-[10px] text-emerald-600 font-semibold" : "text-[10px] text-red-500 font-semibold";
         workTimeEl.innerText = `約 ${config.workTime} 分`;
         const savedTime = 120 - config.workTime;
         timeSaveEl.innerText = `手摘み比 約${savedTime}分短縮`;
