@@ -140,8 +140,8 @@
     </div>
 
     <!-- 積み残しアラート & パッキングモード切替アクションバー -->
-    <div id="unloadedAlertBar" class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-all">
-      <div class="flex items-center space-x-3 w-full md:w-auto">
+    <div id="unloadedAlertBar" class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col xl:flex-row items-center justify-between gap-4 shadow-sm transition-all">
+      <div class="flex items-center space-x-3 w-full xl:w-auto">
         <div id="unloadedIconBg" class="p-2.5 bg-emerald-500 text-white rounded-xl flex-shrink-0 shadow-sm">
           <i id="unloadedIcon" data-lucide="check-circle-2" class="w-5 h-5"></i>
         </div>
@@ -155,20 +155,62 @@
         </div>
       </div>
       
-      <div class="flex items-center gap-2 flex-shrink-0 w-full md:w-auto justify-end">
-        <!-- パッキングモード切替ボタングループ -->
-        <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-white shadow-sm">
-          <button id="btnModeHighDensity" onclick="setPackingMode('highDensity')" class="px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 3D高密度バラ積み
+      <div class="flex items-center gap-2 flex-wrap xl:flex-nowrap w-full xl:w-auto justify-end">
+        <!-- パッキング／パレット積載モード切替ボタングループ -->
+        <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-white shadow-sm flex-wrap text-xs">
+          <button id="btnModeHighDensity" onclick="setPackingMode('highDensity')" class="px-2.5 py-1.5 font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 手摘み (バラ積み)
           </button>
-          <button id="btnModeWall" onclick="setPackingMode('wallBuilding')" class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5">
+          <button id="btnModeWall" onclick="setPackingMode('wallBuilding')" class="px-2.5 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5">
             <i data-lucide="layers" class="w-3.5 h-3.5"></i> 従来ウォール積み
+          </button>
+          <button id="btnModeP1100" onclick="setPackingMode('p1100')" class="px-2.5 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5">
+            <i data-lucide="grid" class="w-3.5 h-3.5 text-amber-600"></i> 1100mmパレット (16枚)
+          </button>
+          <button id="btnModeP2200" onclick="setPackingMode('p2200')" class="px-2.5 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5">
+            <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-amber-600"></i> 2200mmパレット (4枚)
           </button>
         </div>
 
-        <button onclick="optimizePacking()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3.5 py-2 rounded-lg font-semibold flex items-center transition shadow-sm">
-          <i data-lucide="refresh-cw" class="w-3.5 h-3.5 mr-1.5"></i> 再計算
+        <button onclick="optimizePacking()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold flex items-center transition shadow-sm flex-shrink-0">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5 mr-1"></i> 再計算
         </button>
+      </div>
+    </div>
+
+    <!-- 【積載運用比較サマリー】パネル -->
+    <div id="palletSummaryCard" class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800" id="summaryModeBadge">手摘み (高密度バラ積み)</span>
+            <span class="text-xs text-slate-500 font-medium">積載運用シミュレーション比較</span>
+          </div>
+          <div class="text-sm font-bold text-slate-800 mt-1" id="summaryModeTitle">手摘み：荷台全空間を活用した高密度積載</div>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+            <div class="text-[10px] text-slate-500 font-medium">荷台内格納数</div>
+            <div class="text-sm font-bold text-slate-800" id="summaryInTruck">792 / 792 cs</div>
+            <div class="text-[10px] text-emerald-600 font-semibold" id="summaryInTruckPct">積載率 100%</div>
+          </div>
+          <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+            <div class="text-[10px] text-slate-500 font-medium">積み残し数 (後方保管)</div>
+            <div class="text-sm font-bold text-slate-800" id="summaryOverflow">0 cs</div>
+            <div class="text-[10px] text-slate-500" id="summaryDiff">手摘み比 ±0 cs</div>
+          </div>
+          <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+            <div class="text-[10px] text-slate-500 font-medium">積載実容積 / 重量</div>
+            <div class="text-sm font-bold text-slate-800" id="summaryVolWeight">46.5 m³ / 5,011 kg</div>
+            <div class="text-[10px] text-slate-500" id="summaryVolPct">容積利用率 77.7%</div>
+          </div>
+          <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+            <div class="text-[10px] text-slate-500 font-medium">想定荷役作業時間</div>
+            <div class="text-sm font-bold text-blue-600" id="summaryWorkTime">約 120 分</div>
+            <div class="text-[10px] font-semibold text-emerald-600" id="summaryTimeSave">手摘み基準</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -223,6 +265,7 @@
               <span>積載状態:</span>
               <span id="tooltipStatusBadge" class="font-bold px-2 py-0.5 rounded text-[10px]">荷台内積載</span>
             </div>
+            <div id="tooltipPalletRow" class="hidden text-amber-300">積載パレット: <span id="tooltipPallet" class="font-bold font-mono"></span></div>
             <div>ケース総数: <span id="tooltipQty" class="font-semibold text-white"></span></div>
             <div>元サイズ (L×W×H): <span id="tooltipSize" class="text-white"></span></div>
             <div>配置サイズ (L×W×H): <span id="tooltipOrient" class="text-amber-300 font-mono font-bold"></span></div>
@@ -436,11 +479,19 @@
     };
 
     let currentData = JSON.parse(JSON.stringify(initialData));
-    let packingMode = 'highDensity'; // 'highDensity' (バラ積み隙間充填) または 'wallBuilding' (従来ウォール積み)
+    let packingMode = 'highDensity'; // 'highDensity', 'wallBuilding', 'p1100', 'p2200'
+
+    // パレットモード設定定義
+    const PALLET_CONFIGS = {
+      highDensity: { id: "highDensity", name: "手摘み (高密度バラ積み)", isPallet: false, count: 0, workTime: 120 },
+      wallBuilding: { id: "wallBuilding", name: "従来ウォール積み", isPallet: false, count: 0, workTime: 120 },
+      p1100: { id: "p1100", name: "1100mm パレット (16枚)", isPallet: true, width: 110, length: 110, height: 15, cols: 2, rows: 8, count: 16, maxHeight: 215, workTime: 30 },
+      p2200: { id: "p2200", name: "2200mm パレット (4枚)", isPallet: true, width: 220, length: 220, height: 15, cols: 1, rows: 4, count: 4, maxHeight: 215, workTime: 15 }
+    };
 
     // Three.js グローバル変数
     let scene, camera, renderer, controls;
-    let truckGroup, cargoGroup, wallMeshGroup;
+    let truckGroup, cargoGroup, wallMeshGroup, palletGroup;
     let showWalls = true;
     let raycaster, mouse;
     let cargoMeshList = [];
@@ -492,8 +543,10 @@
       truckGroup = new THREE.Group();
       cargoGroup = new THREE.Group();
       wallMeshGroup = new THREE.Group();
+      palletGroup = new THREE.Group();
       
       truckGroup.add(wallMeshGroup);
+      truckGroup.add(palletGroup);
       truckGroup.add(cargoGroup);
       scene.add(truckGroup);
 
@@ -533,21 +586,31 @@
     function setPackingMode(mode) {
       packingMode = mode;
       
-      const btnHD = document.getElementById('btnModeHighDensity');
-      const btnWall = document.getElementById('btnModeWall');
-      const badge = document.getElementById('currentLogicBadge');
+      const modes = ['highDensity', 'wallBuilding', 'p1100', 'p2200'];
+      modes.forEach(m => {
+        const btnId = 'btnMode' + m.charAt(0).toUpperCase() + m.slice(1);
+        const btn = document.getElementById(btnId);
+        if (btn) {
+          if (m === mode) {
+            btn.className = "px-2.5 py-1.5 font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm";
+          } else {
+            btn.className = "px-2.5 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5";
+          }
+        }
+      });
 
-      if (mode === 'highDensity') {
-        btnHD.className = "px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm";
-        btnWall.className = "px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5";
-        badge.innerText = "3D高密度バラ積み充填 (BLF)";
-        showToast("「3D高密度バラ積み充填モード」を適用しました。", "info");
+      const badge = document.getElementById('currentLogicBadge');
+      const cfg = PALLET_CONFIGS[mode] || PALLET_CONFIGS.highDensity;
+      badge.innerText = cfg.name;
+
+      if (cfg.isPallet) {
+        showToast(`「${cfg.name}」を適用しました。木製パレット枠内へのパッキングを実行します。`, "info");
+      } else if (mode === 'highDensity') {
+        showToast("「手摘み (高密度バラ積み) モード」を適用しました。全数格納を試みます。", "info");
       } else {
-        btnWall.className = "px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm";
-        btnHD.className = "px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5";
-        badge.innerText = "従来ウォール積み (標準・品目順)";
         showToast("「従来ウォール積みモード」に切り替えました。積み残しの発生状況を確認できます。", "info");
       }
+
       lucide.createIcons();
       updateDashboard();
     }
@@ -633,6 +696,9 @@
       stagingGrid.position.set(stagingStartX + stagingL / 2, 0.05, 0);
       wallMeshGroup.add(stagingGrid);
 
+      // パレットグループのクリア
+      while(palletGroup.children.length > 0) palletGroup.remove(palletGroup.children[0]);
+
       // --- パッキングアルゴリズムの実行 ---
       const stage1Items = currentData.cargoItems.filter(i => i.deliveryStage === 1);
       const stage2Items = currentData.cargoItems.filter(i => i.deliveryStage === 2);
@@ -642,8 +708,15 @@
 
       const startX = -halfL + 5;
       const maxAllowedX = halfL;
+      const currentCfg = PALLET_CONFIGS[packingMode] || PALLET_CONFIGS.highDensity;
 
-      if (packingMode === 'highDensity') {
+      if (currentCfg.isPallet) {
+        // 【要件③】パレット積み（パレタイズ）シミュレーション
+        const pallets = buildPalletMeshes(currentCfg, t.L, t.W, halfL);
+        const res = packPalletGridBuilding(currentCfg, pallets, t.H);
+        placedBoxes = res.inTruck;
+        overflowBoxes = res.overflow;
+      } else if (packingMode === 'highDensity') {
         // 【要件②】3D Bottom-Left-Fill (BLF) / 混載高密度バラ積み隙間充填
         const res1 = packStageHighDensityBLF(stage1Items, startX, t.W, t.H, maxAllowedX);
         placedBoxes.push(...res1.inTruck);
@@ -676,11 +749,19 @@
 
       // --- KPIサマリー・ステータス連動 ---
       let totalExpectedQty = 0;
-      currentData.cargoItems.forEach(i => totalExpectedQty += (i.qty || 0));
+      let totalExpectedVol = 0;
+      let totalExpectedWeight = 0;
+      currentData.cargoItems.forEach(i => {
+        const q = i.qty || 0;
+        totalExpectedQty += q;
+        totalExpectedVol += (((i.L * i.W * i.H) / 1000000) * q);
+        totalExpectedWeight += ((i.weight || 0) * q);
+      });
       const loadedCount = placedBoxes.length;
       const unloadedCount = overflowBoxes.length;
 
-      updateStatusAndAlerts(totalExpectedQty, loadedCount, unloadedCount, t.L);
+      updateStatusAndAlerts(totalExpectedQty, loadedCount, unloadedCount, t.L, currentCfg);
+      updateSummaryPanel(currentCfg, totalExpectedQty, loadedCount, unloadedCount, totalExpectedVol, totalExpectedWeight);
 
       renderer.render(scene, camera);
     }
@@ -730,7 +811,8 @@
         actualL: Math.round(box.l * 10) / 10,
         actualW: Math.round(box.w * 10) / 10,
         actualH: Math.round(box.h * 10) / 10,
-        isOverflow: isOverflow
+        isOverflow: isOverflow,
+        palletId: box.palletId || null
       };
 
       cargoGroup.add(mesh);
@@ -1050,8 +1132,236 @@
       return { inTruck, overflow, nextX: curX + layerMaxL };
     }
 
+    // ==========================================
+    // 【要件③】パレット3Dモデル描画 (木製調パレット)
+    // ==========================================
+    function buildPalletMeshes(config, truckL, truckW, halfL) {
+      while(palletGroup.children.length > 0) palletGroup.remove(palletGroup.children[0]);
+      if (!config || !config.isPallet) return [];
+
+      const pallets = [];
+      const palW = config.width;
+      const palL = config.length;
+      const palH = config.height; // 15cm
+
+      // 木製調マテリアル
+      const woodMat = new THREE.MeshStandardMaterial({
+        color: 0x92400e, // amber-800
+        roughness: 0.85
+      });
+      const topMat = new THREE.MeshStandardMaterial({
+        color: 0xb45309, // amber-700
+        roughness: 0.8
+      });
+      const edgeMat = new THREE.LineBasicMaterial({
+        color: 0xf59e0b, // amber-500
+        linewidth: 1.5
+      });
+
+      if (config.id === 'p1100') {
+        // 1100mm: 2列×8行 = 16枚
+        const rows = config.rows; // 8
+        const cols = config.cols; // 2
+        const xStart = -halfL + 12 + palL / 2;
+        const xPitch = (truckL - 24 - palL) / (rows - 1);
+        const zOffsets = [-palW / 2 - 4, palW / 2 + 4];
+
+        for (let r = 0; r < rows; r++) {
+          const cx = xStart + r * xPitch;
+          for (let c = 0; c < cols; c++) {
+            const cz = zOffsets[c];
+            const pId = `P${pallets.length + 1}`;
+            createPallet3DMesh(cx, cz, palL, palW, palH, woodMat, topMat, edgeMat, pId);
+            pallets.push({ id: pId, cx, cz, l: palL, w: palW, h: palH });
+          }
+        }
+      } else {
+        // 2200mm: 1列×4行 = 4枚
+        const rows = config.rows; // 4
+        const xStart = -halfL + 20 + palL / 2;
+        const xPitch = (truckL - 40 - palL) / (rows - 1);
+
+        for (let r = 0; r < rows; r++) {
+          const cx = xStart + r * xPitch;
+          const pId = `P${pallets.length + 1}`;
+          createPallet3DMesh(cx, 0, palL, palW, palH, woodMat, topMat, edgeMat, pId);
+          pallets.push({ id: pId, cx, cz: 0, l: palL, w: palW, h: palH });
+        }
+      }
+
+      return pallets;
+    }
+
+    function createPallet3DMesh(cx, cz, l, w, h, woodMat, topMat, edgeMat, label) {
+      const pMeshGroup = new THREE.Group();
+
+      // 天板（トップボード）
+      const topGeo = new THREE.BoxGeometry(l, 3, w);
+      const topMesh = new THREE.Mesh(topGeo, topMat);
+      topMesh.position.set(0, h - 1.5, 0);
+      topMesh.castShadow = true;
+      topMesh.receiveShadow = true;
+      pMeshGroup.add(topMesh);
+
+      // 下板（ボトムボード）
+      const botGeo = new THREE.BoxGeometry(l, 2.5, w);
+      const botMesh = new THREE.Mesh(botGeo, woodMat);
+      botMesh.position.set(0, 1.25, 0);
+      botMesh.receiveShadow = true;
+      pMeshGroup.add(botMesh);
+
+      // 桁（センターおよびサイドの角材）
+      const blockWidth = Math.min(12, w * 0.1);
+      const blockGeo = new THREE.BoxGeometry(l, h - 5.5, blockWidth);
+      [-w/2 + blockWidth/2, 0, w/2 - blockWidth/2].forEach(bz => {
+        const bMesh = new THREE.Mesh(blockGeo, woodMat);
+        bMesh.position.set(0, (h - 5.5)/2 + 2.5, bz);
+        pMeshGroup.add(bMesh);
+      });
+
+      // 外枠ライン（アンバー色）
+      const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(l, h, w));
+      const line = new THREE.LineSegments(edgeGeo, edgeMat);
+      line.position.set(0, h/2, 0);
+      pMeshGroup.add(line);
+
+      pMeshGroup.position.set(cx, 0, cz);
+      palletGroup.add(pMeshGroup);
+    }
+
+    // ==========================================
+    // 【要件③】パレット別バウンディングパッキング処理 (はみ出し厳禁・上限215cm)
+    // ==========================================
+    function packPalletGridBuilding(palletConfig, pallets, truckH) {
+      const maxStackH = palletConfig.maxHeight || 215.0; // パレット上面からの有効高
+      
+      const stage1Boxes = [];
+      const stage2Boxes = [];
+
+      currentData.cargoItems.forEach(it => {
+        const count = it.qty || 0;
+        for (let q = 0; q < count; q++) {
+          const b = { ...it };
+          if (it.deliveryStage === 1) {
+            stage1Boxes.push(b);
+          } else {
+            stage2Boxes.push(b);
+          }
+        }
+      });
+
+      // 体積降順ソート
+      stage1Boxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
+      stage2Boxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
+
+      // パレットの Stage 1 / Stage 2 への割り当て
+      const totalVol1 = stage1Boxes.reduce((sum, b) => sum + (b.L * b.W * b.H), 0);
+      const totalVol2 = stage2Boxes.reduce((sum, b) => sum + (b.L * b.W * b.H), 0);
+      const ratio1 = totalVol1 / (totalVol1 + totalVol2 || 1);
+      const s1Count = Math.max(1, Math.min(pallets.length - 1, Math.round(pallets.length * ratio1)));
+
+      const palletsS1 = pallets.slice(0, s1Count);
+      const palletsS2 = pallets.slice(s1Count);
+
+      const inTruck = [];
+      const overflow = [];
+
+      function fillPallets(boxes, palList) {
+        let palIdx = 0;
+        while (palIdx < palList.length && boxes.length > 0) {
+          const pal = palList[palIdx];
+          const pMinX = pal.cx - pal.l / 2;
+          const pMaxX = pal.cx + pal.l / 2;
+          const pMinZ = pal.cz - pal.w / 2;
+          const pMaxZ = pal.cz + pal.w / 2;
+          const baseY = pal.h;
+
+          let curX = pMinX;
+
+          while (curX < pMaxX - 5 && boxes.length > 0) {
+            const firstBox = boxes[0];
+            const fOrs = getOrientations(firstBox);
+            const goodOrs = fOrs.filter(o => o.l <= (pMaxX - curX + 0.5) && o.w <= pal.w && o.h <= maxStackH);
+            const targetDepth = (goodOrs.length > 0 ? goodOrs[0] : fOrs[0]).l;
+
+            let curZ = pMinZ;
+            let layerMaxL = 0.0;
+
+            while (curZ < pMaxZ - 5 && boxes.length > 0) {
+              let curY = 0.0;
+              let colMaxW = 0.0;
+
+              while (curY < maxStackH - 5 && boxes.length > 0) {
+                const remH = maxStackH - curY;
+                const remW = pMaxZ - curZ;
+                const remL = pMaxX - curX;
+
+                let fitI = -1;
+                let fitO = null;
+                let bestScore = Infinity;
+
+                for (let i = 0; i < boxes.length; i++) {
+                  const b = boxes[i];
+                  for (let o of getOrientations(b)) {
+                    if (o.h <= remH + 0.5 && o.w <= remW + 0.5 && o.l <= remL + 0.5) {
+                      const depthDiff = Math.abs(o.l - targetDepth);
+                      const score = depthDiff * 2 + (remH - o.h);
+                      if (score < bestScore) {
+                        bestScore = score;
+                        fitI = i;
+                        fitO = o;
+                      }
+                    }
+                  }
+                  if (bestScore < 5) break;
+                }
+
+                if (fitI === -1) break;
+
+                const boxToPlace = boxes.splice(fitI, 1)[0];
+                const bl = fitO.l, bh = fitO.h, bw = fitO.w;
+
+                inTruck.push({
+                  item: boxToPlace,
+                  x: curX,
+                  y: baseY + curY,
+                  z: curZ,
+                  l: bl,
+                  h: bh,
+                  w: bw,
+                  palletId: pal.id
+                });
+
+                curY += bh + 0.2;
+                colMaxW = Math.max(colMaxW, bw);
+                layerMaxL = Math.max(layerMaxL, bl);
+              }
+
+              if (colMaxW === 0) break;
+              curZ += colMaxW + 0.2;
+            }
+
+            if (layerMaxL === 0) break;
+            curX += layerMaxL + 0.2;
+          }
+
+          palIdx++;
+        }
+
+        // 入り切らなかったケースは積み残し（Overflow）へ！
+        while (boxes.length > 0) {
+          overflow.push({ item: boxes.shift() });
+        }
+      }
+
+      fillPallets(stage1Boxes, palletsS1);
+      fillPallets(stage2Boxes, palletsS2);
+
+      return { inTruck, overflow };
+    }
+
     // ステータス・KPIアラート表示の更新
-    function updateStatusAndAlerts(totalQty, loadedCount, unloadedCount, truckL) {
+    function updateStatusAndAlerts(totalQty, loadedCount, unloadedCount, truckL, cfg) {
       const meshCounter = document.getElementById('meshCounter');
       const unloadedBar = document.getElementById('unloadedAlertBar');
       const unloadedTitle = document.getElementById('unloadedStatusTitle');
@@ -1071,13 +1381,69 @@
         unloadedBar.className = 'bg-red-50 border border-red-300 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-all';
         unloadedIconBg.className = 'p-2.5 bg-red-500 text-white rounded-xl flex-shrink-0 shadow-sm';
         unloadedIcon.setAttribute('data-lucide', 'alert-triangle');
-        unloadedTitle.innerHTML = `<span class="text-red-700 font-bold text-sm">【警告】積み残し発生: ${unloadedCount} ケースが溢れています</span> <span class="bg-red-100 text-red-800 text-[10px] px-2 py-0.5 rounded-full font-bold">要対応</span>`;
-        unloadedSub.innerText = `荷台長さを超過した段ボールを後方ゲート外の保管エリアに赤色で描画しています。「3D高密度バラ積み」をお試しください。`;
+        
+        const modeLabel = (cfg && cfg.isPallet) ? `【${cfg.name}】` : '【警告】';
+        unloadedTitle.innerHTML = `<span class="text-red-700 font-bold text-sm">${modeLabel} 積み残し発生: ${unloadedCount} ケースが溢れています</span> <span class="bg-red-100 text-red-800 text-[10px] px-2 py-0.5 rounded-full font-bold">要確認</span>`;
+        
+        if (cfg && cfg.isPallet) {
+          unloadedSub.innerText = `パレット枠内・上限高さ215cmに収まらなかった貨物を、後方ゲート外の保管エリアに赤色で描画しています。`;
+        } else {
+          unloadedSub.innerText = `荷台長さを超過した段ボールを後方ゲート外の保管エリアに赤色で描画しています。「手摘み (バラ積み)」をお試しください。`;
+        }
       }
       lucide.createIcons();
     }
 
-    // 3D回転高密度最適化を実行
+    // 【積載運用比較サマリー】パネルの動的更新
+    function updateSummaryPanel(config, totalExpectedQty, inTruckCount, overflowCount, totalVolume, totalWeight) {
+      const modeBadge = document.getElementById('summaryModeBadge');
+      const modeTitle = document.getElementById('summaryModeTitle');
+      const inTruckEl = document.getElementById('summaryInTruck');
+      const inTruckPctEl = document.getElementById('summaryInTruckPct');
+      const overflowEl = document.getElementById('summaryOverflow');
+      const diffEl = document.getElementById('summaryDiff');
+      const volWeightEl = document.getElementById('summaryVolWeight');
+      const volPctEl = document.getElementById('summaryVolPct');
+      const workTimeEl = document.getElementById('summaryWorkTime');
+      const timeSaveEl = document.getElementById('summaryTimeSave');
+
+      modeBadge.innerText = config.name;
+      const pct = Math.round((inTruckCount / totalExpectedQty) * 1000) / 10;
+      inTruckEl.innerText = `${inTruckCount} / ${totalExpectedQty} cs`;
+      inTruckPctEl.innerText = `積載率 ${pct}%`;
+      inTruckPctEl.className = `text-[10px] font-semibold ${pct >= 95 ? 'text-emerald-600' : pct >= 65 ? 'text-amber-600' : 'text-red-600'}`;
+
+      overflowEl.innerText = `${overflowCount} cs`;
+      
+      if (config.isPallet) {
+        modeBadge.className = "px-2.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800";
+        modeTitle.innerText = `${config.name}：パレット外形枠と高さ215cm制限を遵守したパレタイズ積載`;
+        diffEl.innerText = `手摘み対比 +${overflowCount} cs の減容量`;
+        diffEl.className = "text-[10px] text-red-500 font-semibold";
+        workTimeEl.innerText = `約 ${config.workTime} 分`;
+        const savedTime = 120 - config.workTime;
+        timeSaveEl.innerText = `手摘み比 約${savedTime}分短縮`;
+        timeSaveEl.className = "text-[10px] font-semibold text-emerald-600";
+      } else {
+        modeBadge.className = "px-2.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800";
+        modeTitle.innerText = "手摘み：荷台全空間を活用した高密度バラ積み積載";
+        diffEl.innerText = overflowCount === 0 ? "手摘み比 ±0 cs (全数格納)" : `手摘み比 +${overflowCount} cs`;
+        diffEl.className = "text-[10px] text-slate-500";
+        workTimeEl.innerText = "約 120 分";
+        timeSaveEl.innerText = "手摘み基準 (所要時間 約2時間)";
+        timeSaveEl.className = "text-[10px] text-slate-500";
+      }
+
+      // 荷台内実容積・重量
+      const inTruckVol = ((totalVolume * inTruckCount) / totalExpectedQty).toFixed(1);
+      const inTruckWeight = Math.round((totalWeight * inTruckCount) / totalExpectedQty);
+      volWeightEl.innerText = `${inTruckVol} m³ / ${inTruckWeight.toLocaleString()} kg`;
+      const truck = currentData.truck.customDims;
+      const maxTruckVol = (truck.L * truck.W * truck.H) / 1000000;
+      volPctEl.innerText = `容積利用率 ${((inTruckVol / maxTruckVol) * 100).toFixed(1)}%`;
+    }
+
+    // 再計算・最適化を実行
     function optimizePacking() {
       // 1. Stageごとの分離
       // 2. 体積順（大→小）および底面積順へのソート
@@ -1085,14 +1451,10 @@
         if (a.deliveryStage !== b.deliveryStage) return a.deliveryStage - b.deliveryStage;
         return (b.L * b.W * b.H) - (a.L * a.W * a.H);
       });
-      
-      packingMode = 'highDensity';
-      document.getElementById('btnModeHighDensity').className = "px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm";
-      document.getElementById('btnModeWall').className = "px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5";
-      document.getElementById('currentLogicBadge').innerText = "3D高密度バラ積み充填 (BLF)";
 
       updateDashboard();
-      showToast('3D回転高密度バラ積み最適化を実行しました。デッドスペースを自動充填しました。', 'success');
+      const cfg = PALLET_CONFIGS[packingMode] || PALLET_CONFIGS.highDensity;
+      showToast(`「${cfg.name}」の積載再計算を実行しました。`, 'success');
     }
 
     function toggleTruckWalls() {
@@ -1123,12 +1485,22 @@
         document.getElementById('tooltipTitle').innerText = data.name;
         
         const badge = document.getElementById('tooltipStatusBadge');
+        const palletRow = document.getElementById('tooltipPalletRow');
+        const palletEl = document.getElementById('tooltipPallet');
+
         if (data.isOverflow) {
           badge.className = 'font-bold px-2 py-0.5 rounded text-[10px] bg-red-500/20 text-red-300 border border-red-500/40';
           badge.innerText = '状態: 積み残し（荷台外）';
+          if (palletRow) palletRow.classList.add('hidden');
         } else {
           badge.className = 'font-bold px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
           badge.innerText = '状態: 荷台内積載 (OK)';
+          if (data.palletId && palletRow) {
+            palletRow.classList.remove('hidden');
+            palletEl.innerText = `${data.palletId} パレット`;
+          } else if (palletRow) {
+            palletRow.classList.add('hidden');
+          }
         }
 
         document.getElementById('tooltipQty').innerText = `${data.qty} ケース`;
