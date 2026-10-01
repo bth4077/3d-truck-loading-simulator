@@ -793,27 +793,31 @@
     // 【要件②】混載高密度バラ積み充填アルゴリズム (3D BLF / Extreme Point)
     // ==========================================
     function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX) {
-      const usableW = truckW - 4.0;
-      const usableH = truckH - 5.0;
+      const usableW = truckW - 2.0;
+      const usableH = truckH - 2.0;
       const minZ = -usableW / 2;
       const maxZ = usableW / 2;
 
-      // 1. 各箱のインスタンスに展開
-      let boxes = [];
+      // 大型箱と小型箱（隙間充填用）に分類
+      const largeBoxes = [];
+      const smallBoxes = [];
+
       stageItems.forEach(it => {
         const count = it.qty || 0;
         for (let q = 0; q < count; q++) {
-          boxes.push(it);
+          const b = { ...it };
+          // 最小寸法 <= 22cm または 体積 <= 30L を小型箱（充填用）として分類
+          if (Math.min(b.L, b.W, b.H) <= 22.0 || (b.L * b.W * b.H) <= 30000) {
+            smallBoxes.push(b);
+          } else {
+            largeBoxes.push(b);
+          }
         }
       });
 
-      // 2. 体積降順・高さ降順ソート
-      boxes.sort((a, b) => {
-        const volA = a.L * a.W * a.H;
-        const volB = b.L * b.W * b.H;
-        if (volB !== volA) return volB - volA;
-        return b.H - a.H;
-      });
+      // 体積降順ソート
+      largeBoxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
+      smallBoxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
 
       const inTruck = [];
       const overflow = [];
@@ -821,66 +825,66 @@
       let curX = startX;
       let maxEndX = startX;
 
-      let idx = 0;
-      const totalBoxesCount = boxes.length;
-
-      while (idx < totalBoxesCount) {
-        const firstBox = boxes[idx];
-        const ors = getOrientations(firstBox);
-        // 壁の厚み（奥行き）を決定
-        const validDepths = ors
-          .filter(o => o.h <= usableH && o.w <= usableW)
-          .map(o => o.l);
-        const wallDepth = validDepths.length > 0 ? Math.min(...validDepths) : firstBox.L;
+      while (largeBoxes.length > 0 || smallBoxes.length > 0) {
+        // 目標とする壁の厚み（レイヤー奥行き targetDepth）を先頭の大型箱から決定
+        let targetDepth = 50.0;
+        if (largeBoxes.length > 0) {
+          const firstBox = largeBoxes[0];
+          const fOrs = getOrientations(firstBox);
+          const goodOrs = fOrs.filter(o => o.h >= 30 && o.h <= 50 && o.w <= usableW);
+          targetDepth = (goodOrs.length > 0 ? goodOrs[0] : fOrs[0]).l;
+        } else if (smallBoxes.length > 0) {
+          const firstBox = smallBoxes[0];
+          const fOrs = getOrientations(firstBox);
+          const validL = fOrs.filter(o => o.h <= usableH && o.w <= usableW).map(o => o.l);
+          targetDepth = validL.length > 0 ? Math.min(...validL) : firstBox.L;
+        }
 
         let curZ = minZ;
+        let actualLayerMaxL = 0.0;
 
-        while (curZ < maxZ - 10 && idx < totalBoxesCount) {
-          let curY = 0;
-          let colW = 0;
+        while (curZ < maxZ - 5 && (largeBoxes.length > 0 || smallBoxes.length > 0)) {
+          let curY = 0.0;
+          let colMaxW = 0.0;
 
-          // 縦カラムに下から上へ積み上げる（バラ積み隙間充填）
-          while (curY < usableH - 10 && idx < totalBoxesCount) {
+          // 1. カラムに大型箱を下から上へ積み上げる
+          while (curY < usableH - 10 && largeBoxes.length > 0) {
             const remH = usableH - curY;
             const remW = maxZ - curZ;
 
-            let fitIdx = -1;
-            let fitOrient = null;
+            let bestI = -1;
+            let bestO = null;
+            let bestScore = Infinity;
 
-            for (let i = idx; i < totalBoxesCount; i++) {
-              const b = boxes[i];
+            for (let i = 0; i < largeBoxes.length; i++) {
+              const b = largeBoxes[i];
               const bOrs = getOrientations(b);
               for (let o of bOrs) {
                 if (o.h <= remH + 0.5 && o.w <= remW + 0.5) {
-                  fitIdx = i;
-                  fitOrient = o;
-                  break;
+                  let depthDiff = Math.abs(o.l - targetDepth);
+                  if (o.l > targetDepth + 2) depthDiff += 50;
+                  const score = depthDiff * 2 + (remH - o.h) * 0.5;
+                  if (score < bestScore) {
+                    bestScore = score;
+                    bestI = i;
+                    bestO = o;
+                  }
                 }
               }
-              if (fitIdx !== -1) break;
+              if (bestScore < 5) break;
             }
 
-            if (fitIdx === -1) {
-              // 残り高さに入る箱がない場合は次の列へ
-              break;
-            }
+            if (bestI === -1) break;
 
-            const boxToPlace = boxes.splice(fitIdx, 1)[0];
-            const bl = fitOrient.l;
-            const bh = fitOrient.h;
-            const bw = fitOrient.w;
+            const boxToPlace = largeBoxes.splice(bestI, 1)[0];
+            const bl = bestO.l, bh = bestO.h, bw = bestO.w;
 
             const boxData = {
               item: boxToPlace,
-              x: curX,
-              y: curY,
-              z: curZ,
-              l: bl,
-              h: bh,
-              w: bw
+              x: curX, y: curY, z: curZ,
+              l: bl, h: bh, w: bw
             };
 
-            // 荷台内（X <= maxAllowedX）か積み残しかを判定
             if (curX + bl <= maxAllowedX) {
               inTruck.push(boxData);
               maxEndX = Math.max(maxEndX, curX + bl);
@@ -889,14 +893,68 @@
             }
 
             curY += bh + 0.2;
-            colW = Math.max(colW, bw);
+            colMaxW = Math.max(colMaxW, bw);
+            actualLayerMaxL = Math.max(actualLayerMaxL, bl);
           }
 
-          if (colW === 0) break;
-          curZ += colW + 0.2;
+          // 2. 【高密度バラ積み隙間充填】大型箱を積んだ後の天井付近の隙間に小型箱を詰める！
+          while (curY < usableH - 5 && smallBoxes.length > 0) {
+            const remH = usableH - curY;
+            const remW = (colMaxW > 0 ? colMaxW : (maxZ - curZ));
+
+            let bestSI = -1;
+            let bestSO = null;
+            let bestSScore = Infinity;
+
+            for (let i = 0; i < smallBoxes.length; i++) {
+              const sb = smallBoxes[i];
+              const sbOrs = getOrientations(sb);
+              for (let o of sbOrs) {
+                if (o.h <= remH + 0.5 && o.w <= remW + 0.5) {
+                  const depthDiff = Math.abs(o.l - targetDepth);
+                  const score = depthDiff * 1.5 + (remH - o.h);
+                  if (score < bestSScore) {
+                    bestSScore = score;
+                    bestSI = i;
+                    bestSO = o;
+                  }
+                }
+              }
+              if (bestSScore < 5) break;
+            }
+
+            if (bestSI === -1) break;
+
+            const boxToPlace = smallBoxes.splice(bestSI, 1)[0];
+            const bl = bestSO.l, bh = bestSO.h, bw = bestSO.w;
+
+            const boxData = {
+              item: boxToPlace,
+              x: curX, y: curY, z: curZ,
+              l: bl, h: bh, w: bw
+            };
+
+            if (curX + bl <= maxAllowedX) {
+              inTruck.push(boxData);
+              maxEndX = Math.max(maxEndX, curX + bl);
+            } else {
+              overflow.push(boxData);
+            }
+
+            curY += bh + 0.2;
+            colMaxW = Math.max(colMaxW, bw);
+            actualLayerMaxL = Math.max(actualLayerMaxL, bl);
+          }
+
+          if (colMaxW === 0) break;
+          curZ += colMaxW + 0.2;
         }
 
-        curX += wallDepth + 0.3;
+        if (actualLayerMaxL === 0) {
+          actualLayerMaxL = targetDepth || 40.0;
+        }
+
+        curX += actualLayerMaxL + 0.2;
       }
 
       return { inTruck, overflow, maxEndX };
