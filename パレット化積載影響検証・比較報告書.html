@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>トラック積載における手積み vs パレット積み 影響検証・比較報告書</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      body { background: white; color: black; }
+      .no-print { display: none; }
+      .page-break { page-break-before: always; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans p-4 md:p-8">
+  <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-10">
+    
+    <!-- ヘッダー -->
+    <div class="border-b border-slate-200 pb-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full mb-2">
+          物流効率化・2024年問題対策 検討資料
+        </div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+          3Dトラック積載シミュレーション<br>
+          <span class="text-blue-600">パレット化に伴う積載量影響・減容量 比較検証報告書</span>
+        </h1>
+        <p class="text-xs text-slate-500 mt-2">対象車両: 10t低床ウイング車（荷台長960cm × 幅240cm × 高260cm） / 対象貨物: 全35品目・全792ケース</p>
+      </div>
+      <div class="no-print">
+        <button onclick="window.print()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg shadow transition flex items-center gap-1.5">
+          🖨️ 印刷 / PDF保存
+        </button>
+      </div>
+    </div>
+
+    <!-- エグゼクティブサマリー -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mb-8">
+      <h2 class="text-base font-bold text-blue-950 mb-2 flex items-center gap-2">
+        📌 結論サマリー：パレット置きになることでの段ボール減少量
+      </h2>
+      <ul class="text-sm text-blue-900 space-y-1.5 leading-relaxed">
+        <li>・ <strong>手積み（バラ積み）</strong>：全 <strong>792 ケース完全格納</strong>（積み残し 0ケース、積載率 100%）。</li>
+        <li>・ <strong>1100mmパレット（標準運用: 高さ215cm）</strong>：<strong>556 ケース格納</strong> ／ <strong><span class="text-red-600 font-bold">236 ケース減少（-29.8% 減容量）</span></strong>。</li>
+        <li>・ <strong>1100mmパレット（実務改善推奨: 高積み235cm + OH 2.5cm）</strong>：<strong>629 ケース格納</strong> ／ <strong><span class="text-amber-700 font-bold">163 ケース減少（-20.6% 減容量）</span></strong>（標準比 +73ケース改善！）。</li>
+        <li>・ <strong>トレードオフ（作業時間）</strong>：積載数は約2〜3割減少する一方、積み込み時間は <strong>手積みの約120分から15〜30分へ、最大90〜105分（約75〜87%）大幅短縮</strong> されます。</li>
+      </ul>
+    </div>
+
+    <!-- 比較表 -->
+    <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-blue-600 pl-3">
+      1. 積載方式別 定量比較テーブル
+    </h2>
+    <div class="overflow-x-auto mb-8 border border-slate-200 rounded-xl">
+      <table class="w-full text-left text-xs md:text-sm border-collapse">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
+            <th class="py-3 px-3">積載モード</th>
+            <th class="py-3 px-3">格納数 (ケース)</th>
+            <th class="py-3 px-3">積載率</th>
+            <th class="py-3 px-3 text-red-600">減少数 (積み残し)</th>
+            <th class="py-3 px-3">積載容積 / 重量</th>
+            <th class="py-3 px-3">積込時間 (手荷役比)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <tr class="bg-blue-50/50 font-bold text-slate-900">
+            <td class="py-3 px-3 flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+              ① 手積み (高密度バラ積み)
+            </td>
+            <td class="py-3 px-3 text-blue-700">792 / 792 cs</td>
+            <td class="py-3 px-3 text-blue-700">100.0%</td>
+            <td class="py-3 px-3 text-emerald-600">±0 cs (満載)</td>
+            <td class="py-3 px-3">46.5 m³ / 5,011 kg</td>
+            <td class="py-3 px-3">約 120 分 (基準)</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-3 font-semibold">②-A 1100mm パレット (標準運用)<br><span class="text-[11px] text-slate-500 font-normal">高215cm / はみ出し0cm / 16枚</span></td>
+            <td class="py-3 px-3">556 cs</td>
+            <td class="py-3 px-3">70.2%</td>
+            <td class="py-3 px-3 font-bold text-red-600">-236 cs (29.8%減)</td>
+            <td class="py-3 px-3">32.4 m³ / 3,727 kg</td>
+            <td class="py-3 px-3 text-emerald-600 font-semibold">約 30 分 (90分短縮)</td>
+          </tr>
+          <tr class="bg-amber-50/40">
+            <td class="py-3 px-3 font-semibold text-amber-950">②-B 1100mm パレット (実務改善推奨) ★<br><span class="text-[11px] text-amber-700 font-normal">高積み235cm / OH+2.5cm / トップ積</span></td>
+            <td class="py-3 px-3 font-bold text-amber-900">629 cs</td>
+            <td class="py-3 px-3 font-bold text-amber-900">79.4%</td>
+            <td class="py-3 px-3 font-bold text-amber-800">-163 cs (20.6%減)</td>
+            <td class="py-3 px-3">37.8 m³ / 4,020 kg</td>
+            <td class="py-3 px-3 text-emerald-600 font-semibold">約 30 分 (90分短縮)</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-3 font-semibold">③-A 2200mm パレット (標準運用)<br><span class="text-[11px] text-slate-500 font-normal">高215cm / はみ出し0cm / 4枚</span></td>
+            <td class="py-3 px-3">585 cs</td>
+            <td class="py-3 px-3">73.9%</td>
+            <td class="py-3 px-3 font-bold text-red-600">-207 cs (26.1%減)</td>
+            <td class="py-3 px-3">33.5 m³ / 3,846 kg</td>
+            <td class="py-3 px-3 text-emerald-600 font-semibold">約 15 分 (105分短縮)</td>
+          </tr>
+          <tr class="bg-amber-50/40">
+            <td class="py-3 px-3 font-semibold text-amber-950">③-B 2200mm パレット (実務改善推奨)<br><span class="text-[11px] text-amber-700 font-normal">高積み235cm / OH+2.5cm / トップ積</span></td>
+            <td class="py-3 px-3 font-bold text-amber-900">638 cs</td>
+            <td class="py-3 px-3 font-bold text-amber-900">80.6%</td>
+            <td class="py-3 px-3 font-bold text-amber-800">-154 cs (19.4%減)</td>
+            <td class="py-3 px-3">38.5 m³ / 4,110 kg</td>
+            <td class="py-3 px-3 text-emerald-600 font-semibold">約 15 分 (105分短縮)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- なぜ段ボールが減るのか？理由の解説 -->
+    <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-blue-600 pl-3">
+      2. パレット化で段ボールが減少する 3つの構造的要因
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div class="text-blue-600 font-bold text-sm mb-1">要因① パレット自体の厚み</div>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          木製/プラパレットの厚み（高さ15cm）× 16枚分により、荷台底面の約 <strong>3.9 m³</strong> の容積がパレット自体の体積として消費されます。
+        </p>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div class="text-blue-600 font-bold text-sm mb-1">要因② 天井余白（ヘッドクリアランス）</div>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          標準高215cmの場合、トラック天井（260cm）との間に約 <strong>30cm の空間</strong> が生じます。高積み235cmへ緩和することで約半分回収可能です。
+        </p>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <div class="text-blue-600 font-bold text-sm mb-1">要因③ パレット枠外の隙間</div>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          1100mmパレットを2列並べると幅2200mmとなり、トラック内幅（2400mm）に対して <strong>左右各100mmのデッドスペース</strong> が発生します。
+        </p>
+      </div>
+    </div>
+
+    <!-- パレタイズロボットへの対応仕様 -->
+    <h2 class="text-lg font-bold text-slate-900 mb-3 border-l-4 border-blue-600 pl-3">
+      3. パレタイズロボット想定の積み付け仕様
+    </h2>
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-8 text-xs md:text-sm text-slate-700 space-y-2">
+      <p>
+        今回のシミュレーターでは、自動パレタイズロボットの実務運用を想定し、<strong>「同一品種（同一SKU）を下層から順にまとめて層積み（レイヤーパッキング）」</strong> するアルゴリズムを導入しています。
+      </p>
+      <ul class="list-disc pl-5 space-y-1 text-slate-600">
+        <li><strong>下層優先配置</strong>: パレット底面（$Y=0$）のレイヤーから同一品種を敷き詰め、安定した荷姿を形成。</li>
+        <li><strong>同一品種のブロック化</strong>: 異なる品種がサンドイッチ状に混ざるのを防ぎ、品種ごとにまとまった層として積載。</li>
+        <li><strong>天面向きの視認性</strong>: ロボットの吸着・チャックに適した上向き姿勢を優先し、横倒し時は側面側に天面フラップラインを描画。</li>
+      </ul>
+    </div>
+
+    <!-- 共有方法・閲覧案内 -->
+    <div class="border-t border-slate-200 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div>
+        <div class="text-xs text-slate-500 font-semibold">シミュレーター共有ファイル案内</div>
+        <div class="text-xs text-slate-700 mt-1">
+          社内配布用ZIPパッケージ（<code>3Dトラック積載シミュレーター_共有パッケージ.zip</code>）を解凍し、<br>
+          ブラウザで開くだけで3D画面上で各モードの積載状態を自由な視点でご確認いただけます。
+        </div>
+      </div>
+      <div class="flex-shrink-0">
+        <a href="https://bth4077.github.io/3d-truck-loading-simulator/" target="_blank" class="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow transition">
+          🌐 オンラインWeb版を開く
+        </a>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
