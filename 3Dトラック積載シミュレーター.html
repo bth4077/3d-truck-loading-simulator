@@ -920,89 +920,215 @@
       const wire = new THREE.LineSegments(edgeGeo, edgeMat);
       mesh.add(wire);
 
-      // 【段ボール天面可視化（クッキリ太い上蓋フラップスリット＆半透明テープ）】
-      const isUpright = Math.abs(box.h - (box.item.H || box.h)) < 0.2;
+      // 【段ボール天面可視化（上蓋フラップスリット＆半透明テープ）】
+      // 姿勢判定: 正置(topAxis='y')は上面、横倒し(topAxis='z')は側面、縦倒し(topAxis='x')は前後面
+      const isUpright = box.isUpright !== undefined ? box.isUpright : (Math.abs(box.h - (box.item.H || box.h)) < 0.2);
+      const topAxis = box.topAxis || (isUpright ? 'y' : (Math.abs(box.w - (box.item.H || box.h)) < 0.2 ? 'z' : 'x'));
+      const orientType = box.orientType || (topAxis === 'y' ? 'upright' : (topAxis === 'z' ? 'side' : 'front'));
+
       if (showTopSeams) {
         const halfL = box.l / 2;
         const halfW = box.w / 2;
         const halfH = box.h / 2;
-        const topY = halfH + 0.08; // 天面直上
-
         const topSeamGroup = new THREE.Group();
 
-        // 1. 天面テープ表現（クラフト／OPP半透明テープ：幅約3cm）
-        const tapeW = Math.min(3.2, Math.min(box.l, box.w) * 0.22);
-        let tapeGeo;
-        if (box.l >= box.w) {
-          tapeGeo = new THREE.PlaneGeometry(box.l - 0.2, tapeW);
-          tapeGeo.rotateX(-Math.PI / 2);
-        } else {
-          tapeGeo = new THREE.PlaneGeometry(tapeW, box.w - 0.2);
-          tapeGeo.rotateX(-Math.PI / 2);
-        }
+        // テープ・スリットのマテリアル設定
         const tapeMat = new THREE.MeshStandardMaterial({
-          color: isOverflow ? 0xfca5a5 : (isUpright ? 0xfef08a : 0xfde68a),
+          color: isOverflow ? 0xfca5a5 : (isUpright ? 0xfef08a : (orientType === 'side' ? 0xfdba74 : 0xfde68a)),
           roughness: 0.4,
           transparent: true,
-          opacity: 0.38,
+          opacity: isUpright ? 0.40 : 0.48, // 側面向きも目立ちやすく
           depthWrite: false,
           polygonOffset: true,
           polygonOffsetFactor: -1,
           polygonOffsetUnits: -1
         });
-        const tapeMesh = new THREE.Mesh(tapeGeo, tapeMat);
-        tapeMesh.position.set(0, topY, 0);
-        tapeMesh.renderOrder = 8;
-        topSeamGroup.add(tapeMesh);
 
-        // 2. クッキリ太いフラップ合わせ目スリット線（幅0.7cmのポリゴンリボン）
-        // ※ 1px LineだとGPUの解像度・角度で手前側が消失するため、実幅を持つリボンで確実に描画！
-        const seamWidth = 0.75;
-        let seamGeo;
-        if (box.l >= box.w) {
-          seamGeo = new THREE.PlaneGeometry(box.l - 0.1, seamWidth);
-          seamGeo.rotateX(-Math.PI / 2);
-        } else {
-          seamGeo = new THREE.PlaneGeometry(seamWidth, box.w - 0.1);
-          seamGeo.rotateX(-Math.PI / 2);
-        }
         const seamMat = new THREE.MeshBasicMaterial({
-          color: isOverflow ? 0x000000 : (isUpright ? 0x020617 : 0x78350f), // 漆黒スレート（手前でも奥でも絶対に消えない）
+          color: isOverflow ? 0x7f1d1d : (isUpright ? 0x020617 : (orientType === 'side' ? 0x451a03 : 0x0f172a)),
           depthWrite: false,
           polygonOffset: true,
           polygonOffsetFactor: -2,
           polygonOffsetUnits: -2
         });
-        const seamMesh = new THREE.Mesh(seamGeo, seamMat);
-        seamMesh.position.set(0, topY + 0.02, 0);
-        seamMesh.renderOrder = 9;
-        topSeamGroup.add(seamMesh);
 
-        // 3. 天面フラップ両端の合わせ目折り目ライン（H型スリット表現：段ボール感を決定づける端部ライン）
-        const notchLen = Math.min(box.l, box.w) * 0.45;
-        let notchGeo;
-        if (box.l >= box.w) {
-          notchGeo = new THREE.PlaneGeometry(seamWidth * 0.9, notchLen);
-          notchGeo.rotateX(-Math.PI / 2);
-          const n1 = new THREE.Mesh(notchGeo, seamMat);
-          const n2 = new THREE.Mesh(notchGeo, seamMat);
-          n1.position.set(-halfL + 0.1, topY + 0.02, 0);
-          n2.position.set(halfL - 0.1, topY + 0.02, 0);
-          n1.renderOrder = 9;
-          n2.renderOrder = 9;
-          topSeamGroup.add(n1);
-          topSeamGroup.add(n2);
+        const seamWidth = 0.75;
+
+        if (topAxis === 'y') {
+          // ----------------------------------------------------
+          // ① 正置：上面（+Y面）に天面フラップを描画
+          // ----------------------------------------------------
+          const topY = halfH + 0.08;
+          const tapeW = Math.min(3.2, Math.min(box.l, box.w) * 0.22);
+          let tapeGeo, seamGeo;
+
+          if (box.l >= box.w) {
+            tapeGeo = new THREE.PlaneGeometry(box.l - 0.2, tapeW);
+            tapeGeo.rotateX(-Math.PI / 2);
+            seamGeo = new THREE.PlaneGeometry(box.l - 0.1, seamWidth);
+            seamGeo.rotateX(-Math.PI / 2);
+
+            const notchLen = Math.min(box.l, box.w) * 0.45;
+            const notchGeo = new THREE.PlaneGeometry(seamWidth * 0.9, notchLen);
+            notchGeo.rotateX(-Math.PI / 2);
+
+            const n1 = new THREE.Mesh(notchGeo, seamMat);
+            const n2 = new THREE.Mesh(notchGeo, seamMat);
+            n1.position.set(-halfL + 0.1, topY + 0.02, 0);
+            n2.position.set(halfL - 0.1, topY + 0.02, 0);
+            n1.renderOrder = 9;
+            n2.renderOrder = 9;
+            topSeamGroup.add(n1);
+            topSeamGroup.add(n2);
+          } else {
+            tapeGeo = new THREE.PlaneGeometry(tapeW, box.w - 0.2);
+            tapeGeo.rotateX(-Math.PI / 2);
+            seamGeo = new THREE.PlaneGeometry(seamWidth, box.w - 0.1);
+            seamGeo.rotateX(-Math.PI / 2);
+
+            const notchLen = Math.min(box.l, box.w) * 0.45;
+            const notchGeo = new THREE.PlaneGeometry(notchLen, seamWidth * 0.9);
+            notchGeo.rotateX(-Math.PI / 2);
+
+            const n1 = new THREE.Mesh(notchGeo, seamMat);
+            const n2 = new THREE.Mesh(notchGeo, seamMat);
+            n1.position.set(0, topY + 0.02, -halfW + 0.1);
+            n2.position.set(0, topY + 0.02, halfW - 0.1);
+            n1.renderOrder = 9;
+            n2.renderOrder = 9;
+            topSeamGroup.add(n1);
+            topSeamGroup.add(n2);
+          }
+
+          const tapeMesh = new THREE.Mesh(tapeGeo, tapeMat);
+          tapeMesh.position.set(0, topY, 0);
+          tapeMesh.renderOrder = 8;
+          topSeamGroup.add(tapeMesh);
+
+          const seamMesh = new THREE.Mesh(seamGeo, seamMat);
+          seamMesh.position.set(0, topY + 0.02, 0);
+          seamMesh.renderOrder = 9;
+          topSeamGroup.add(seamMesh);
+
+        } else if (topAxis === 'z') {
+          // ----------------------------------------------------
+          // ② 横倒し：側面（Z軸方向＝トラック外側向き）に天面フラップを描画！
+          // ----------------------------------------------------
+          const signZ = (box.z >= 0) ? 1 : -1;
+          const sideZ = signZ * (halfW + 0.08);
+          const tapeW = Math.min(3.2, Math.min(box.l, box.h) * 0.22);
+          let tapeGeo, seamGeo;
+
+          if (box.l >= box.h) {
+            tapeGeo = new THREE.PlaneGeometry(box.l - 0.2, tapeW);
+            seamGeo = new THREE.PlaneGeometry(box.l - 0.1, seamWidth);
+
+            const notchLen = Math.min(box.l, box.h) * 0.45;
+            const notchGeo = new THREE.PlaneGeometry(seamWidth * 0.9, notchLen);
+
+            const n1 = new THREE.Mesh(notchGeo, seamMat);
+            const n2 = new THREE.Mesh(notchGeo, seamMat);
+            n1.position.set(-halfL + 0.1, 0, sideZ + signZ * 0.02);
+            n2.position.set(halfL - 0.1, 0, sideZ + signZ * 0.02);
+            if (signZ < 0) {
+              n1.rotateY(Math.PI);
+              n2.rotateY(Math.PI);
+            }
+            n1.renderOrder = 9;
+            n2.renderOrder = 9;
+            topSeamGroup.add(n1);
+            topSeamGroup.add(n2);
+          } else {
+            tapeGeo = new THREE.PlaneGeometry(tapeW, box.h - 0.2);
+            seamGeo = new THREE.PlaneGeometry(seamWidth, box.h - 0.1);
+
+            const notchLen = Math.min(box.l, box.h) * 0.45;
+            const notchGeo = new THREE.PlaneGeometry(notchLen, seamWidth * 0.9);
+
+            const n1 = new THREE.Mesh(notchGeo, seamMat);
+            const n2 = new THREE.Mesh(notchGeo, seamMat);
+            n1.position.set(0, -halfH + 0.1, sideZ + signZ * 0.02);
+            n2.position.set(0, halfH - 0.1, sideZ + signZ * 0.02);
+            if (signZ < 0) {
+              n1.rotateY(Math.PI);
+              n2.rotateY(Math.PI);
+            }
+            n1.renderOrder = 9;
+            n2.renderOrder = 9;
+            topSeamGroup.add(n1);
+            topSeamGroup.add(n2);
+          }
+
+          if (signZ < 0) {
+            tapeGeo.rotateY(Math.PI);
+            seamGeo.rotateY(Math.PI);
+          }
+
+          const tapeMesh = new THREE.Mesh(tapeGeo, tapeMat);
+          tapeMesh.position.set(0, 0, sideZ);
+          tapeMesh.renderOrder = 8;
+          topSeamGroup.add(tapeMesh);
+
+          const seamMesh = new THREE.Mesh(seamGeo, seamMat);
+          seamMesh.position.set(0, 0, sideZ + signZ * 0.02);
+          seamMesh.renderOrder = 9;
+          topSeamGroup.add(seamMesh);
+
         } else {
-          notchGeo = new THREE.PlaneGeometry(notchLen, seamWidth * 0.9);
-          notchGeo.rotateX(-Math.PI / 2);
-          const n1 = new THREE.Mesh(notchGeo, seamMat);
-          const n2 = new THREE.Mesh(notchGeo, seamMat);
-          n1.position.set(0, topY + 0.02, -halfW + 0.1);
-          n2.position.set(0, topY + 0.02, halfW - 0.1);
-          n1.renderOrder = 9;
-          n2.renderOrder = 9;
-          topSeamGroup.add(n1);
-          topSeamGroup.add(n2);
+          // ----------------------------------------------------
+          // ③ 縦倒し：前後面（X軸方向＝荷台後方/手前向き）に天面フラップを描画
+          // ----------------------------------------------------
+          const sideX = halfL + 0.08;
+          const tapeW = Math.min(3.2, Math.min(box.w, box.h) * 0.22);
+          let tapeGeo, seamGeo;
+
+          if (box.w >= box.h) {
+            tapeGeo = new THREE.PlaneGeometry(box.w - 0.2, tapeW);
+            tapeGeo.rotateY(Math.PI / 2);
+            seamGeo = new THREE.PlaneGeometry(box.w - 0.1, seamWidth);
+            seamGeo.rotateY(Math.PI / 2);
+
+            const notchLen = Math.min(box.w, box.h) * 0.45;
+            const notchGeo = new THREE.PlaneGeometry(seamWidth * 0.9, notchLen);
+            notchGeo.rotateY(Math.PI / 2);
+
+            const n1 = new THREE.Mesh(notchGeo, seamMat);
+            const n2 = new THREE.Mesh(notchGeo, seamMat);
+            n1.position.set(sideX + 0.02, 0, -halfW + 0.1);
+            n2.position.set(sideX + 0.02, 0, halfW - 0.1);
+            n1.renderOrder = 9;
+            n2.renderOrder = 9;
+            topSeamGroup.add(n1);
+            topSeamGroup.add(n2);
+          } else {
+            tapeGeo = new THREE.PlaneGeometry(tapeW, box.h - 0.2);
+            tapeGeo.rotateY(Math.PI / 2);
+            seamGeo = new THREE.PlaneGeometry(seamWidth, box.h - 0.1);
+            seamGeo.rotateY(Math.PI / 2);
+
+            const notchLen = Math.min(box.w, box.h) * 0.45;
+            const notchGeo = new THREE.PlaneGeometry(notchLen, seamWidth * 0.9);
+            notchGeo.rotateY(Math.PI / 2);
+
+            const n1 = new THREE.Mesh(notchGeo, seamMat);
+            const n2 = new THREE.Mesh(notchGeo, seamMat);
+            n1.position.set(sideX + 0.02, -halfH + 0.1, 0);
+            n2.position.set(sideX + 0.02, halfH - 0.1, 0);
+            n1.renderOrder = 9;
+            n2.renderOrder = 9;
+            topSeamGroup.add(n1);
+            topSeamGroup.add(n2);
+          }
+
+          const tapeMesh = new THREE.Mesh(tapeGeo, tapeMat);
+          tapeMesh.position.set(sideX, 0, 0);
+          tapeMesh.renderOrder = 8;
+          topSeamGroup.add(tapeMesh);
+
+          const seamMesh = new THREE.Mesh(seamGeo, seamMat);
+          seamMesh.position.set(sideX + 0.02, 0, 0);
+          seamMesh.renderOrder = 9;
+          topSeamGroup.add(seamMesh);
         }
 
         mesh.add(topSeamGroup);
@@ -1015,6 +1141,8 @@
         actualH: Math.round(box.h * 10) / 10,
         isOverflow: isOverflow,
         isUpright: isUpright,
+        topAxis: topAxis,
+        orientType: orientType,
         palletId: box.palletId || null
       };
 
@@ -1063,7 +1191,10 @@
           z: curZ,
           l: l,
           h: h,
-          w: w
+          w: w,
+          topAxis: boxItem.topAxis,
+          orientType: boxItem.orientType,
+          isUpright: boxItem.isUpright
         };
 
         renderSingleCargoMesh(overflowBox, true);
@@ -1148,7 +1279,12 @@
                 if (o.h <= remH + 0.5 && o.w <= remW + 0.5) {
                   let depthDiff = Math.abs(o.l - targetDepth);
                   if (o.l > targetDepth + 2) depthDiff += 50;
-                  if (!o.upright) depthDiff += 25; // 天面正常（正置）を強く優先！
+                  // 効率UPのため横倒し(天面が側面)を許可しつつ、正置を緩やかに優先
+                  if (o.orientType === 'side') {
+                    depthDiff += 0.8;
+                  } else if (o.orientType === 'front') {
+                    depthDiff += 3.0; // 縦倒し（前後向き）より横倒し（側面向き）を優先
+                  }
                   const score = depthDiff * 2 + (remH - o.h) * 0.5;
                   if (score < bestScore) {
                     bestScore = score;
@@ -1168,7 +1304,10 @@
             const boxData = {
               item: boxToPlace,
               x: curX, y: curY, z: curZ,
-              l: bl, h: bh, w: bw
+              l: bl, h: bh, w: bw,
+              topAxis: bestO.topAxis,
+              orientType: bestO.orientType,
+              isUpright: bestO.upright
             };
 
             if (curX + bl <= maxAllowedX) {
@@ -1198,7 +1337,11 @@
               for (let o of sbOrs) {
                 if (o.h <= remH + 0.5 && o.w <= remW + 0.5) {
                   let depthDiff = Math.abs(o.l - targetDepth);
-                  if (!o.upright) depthDiff += 15; // 小型箱も正置優先
+                  if (o.orientType === 'side') {
+                    depthDiff += 0.5;
+                  } else if (o.orientType === 'front') {
+                    depthDiff += 3.0;
+                  }
                   const score = depthDiff * 1.5 + (remH - o.h);
                   if (score < bestSScore) {
                     bestSScore = score;
@@ -1218,7 +1361,10 @@
             const boxData = {
               item: boxToPlace,
               x: curX, y: curY, z: curZ,
-              l: bl, h: bh, w: bw
+              l: bl, h: bh, w: bw,
+              topAxis: bestSO.topAxis,
+              orientType: bestSO.orientType,
+              isUpright: bestSO.upright
             };
 
             if (curX + bl <= maxAllowedX) {
@@ -1247,15 +1393,18 @@
       return { inTruck, overflow, maxEndX };
     }
 
-    // 6方向回転パターンの生成（本来の天面＝高さHを保持する正置姿勢を最優先）
+    // 6方向回転パターンの生成
+    // upright: 天面が上向き(+Y) ★正置
+    // side: 天面が側面向き(+Z/横倒し) ★効率UPかつ側面から視認可能
+    // front: 天面が前後向き(+X/縦倒し)
     function getOrientations(item) {
       return [
-        { l: item.L, h: item.H, w: item.W, upright: true },  // 正置（基本向き）★最優先
-        { l: item.W, h: item.H, w: item.L, upright: true },  // 正置（90度水平回転）★最優先
-        { l: item.L, h: item.W, w: item.H, upright: false }, // 横倒し
-        { l: item.W, h: item.L, w: item.H, upright: false }, // 横倒し
-        { l: item.H, h: item.L, w: item.W, upright: false }, // 縦倒し
-        { l: item.H, h: item.W, w: item.L, upright: false }  // 縦倒し
+        { l: item.L, h: item.H, w: item.W, upright: true, topAxis: 'y', orientType: 'upright' },  // 正置（基本向き）★最優先
+        { l: item.W, h: item.H, w: item.L, upright: true, topAxis: 'y', orientType: 'upright' },  // 正置（90度水平回転）★最優先
+        { l: item.L, h: item.W, w: item.H, upright: false, topAxis: 'z', orientType: 'side' },    // 横倒し（天面が側面側）★効率UP
+        { l: item.W, h: item.L, w: item.H, upright: false, topAxis: 'z', orientType: 'side' },    // 横倒し（天面が側面側）★効率UP
+        { l: item.H, h: item.L, w: item.W, upright: false, topAxis: 'x', orientType: 'front' },   // 縦倒し（天面が前後）
+        { l: item.H, h: item.W, w: item.L, upright: false, topAxis: 'x', orientType: 'front' }    // 縦倒し（天面が前後）
       ];
     }
 
@@ -1282,6 +1431,7 @@
         if (!item.qty || item.qty <= 0) return;
 
         let bestL = item.L, bestW = item.W, bestH = item.H;
+        let chosenO = null;
         const orientations = getOrientations(item);
 
         let bestScore = -1;
@@ -1296,6 +1446,7 @@
               bestL = o.l;
               bestW = o.w;
               bestH = o.h;
+              chosenO = o;
             }
           }
         });
@@ -1320,7 +1471,10 @@
             z: curZ,
             l: bestL,
             h: bestH,
-            w: bestW
+            w: bestW,
+            topAxis: chosenO ? chosenO.topAxis : (Math.abs(bestH - item.H) < 0.2 ? 'y' : 'z'),
+            orientType: chosenO ? chosenO.orientType : (Math.abs(bestH - item.H) < 0.2 ? 'upright' : 'side'),
+            isUpright: chosenO ? chosenO.upright : (Math.abs(bestH - item.H) < 0.2)
           };
 
           // 荷台内か積み残しか
@@ -1594,7 +1748,10 @@
                   l: bl,
                   h: bh,
                   w: bw,
-                  palletId: pal.id
+                  palletId: pal.id,
+                  topAxis: fitO.topAxis,
+                  orientType: fitO.orientType,
+                  isUpright: fitO.upright
                 });
 
                 curY += bh + 0.2;
@@ -1643,7 +1800,10 @@
                     l: bl,
                     h: bh,
                     w: bw,
-                    palletId: pal.id
+                    palletId: pal.id,
+                    topAxis: fitSO.topAxis,
+                    orientType: fitSO.orientType,
+                    isUpright: fitSO.upright
                   });
 
                   curY += bh + 0.2;
@@ -1848,9 +2008,12 @@
           if (data.isUpright) {
             orientStatusEl.className = 'font-bold text-emerald-400';
             orientStatusEl.innerText = '✅ 天面正常 (上向き)';
-          } else {
+          } else if (data.topAxis === 'z' || data.orientType === 'side') {
             orientStatusEl.className = 'font-bold text-amber-300';
-            orientStatusEl.innerText = '⚠️ 横倒し (天面が側面)';
+            orientStatusEl.innerText = '↔️ 側面向き (天面を横倒しして隙間充填・効率UP)';
+          } else {
+            orientStatusEl.className = 'font-bold text-orange-300';
+            orientStatusEl.innerText = '🔄 前後向き (天面を縦倒しして隙間充填・効率UP)';
           }
         }
 
