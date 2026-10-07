@@ -187,10 +187,10 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="font-bold text-amber-950 text-sm">パレット積載効率・改善オプション</span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/80 text-amber-900 border border-amber-300">実務検証モード</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/80 text-amber-900 border border-amber-300">🤖 パレタイズロボット想定 (同一品種下層優先)</span>
           </div>
           <div class="text-[11px] text-amber-800 mt-0.5">
-            天井余裕（高さ方向）の詰め込みやパレットからのオーバーハング（外寸はみ出し）を許容して積載率を高めます
+            パレタイズロボットの層積みに基づき同一品種を下から順に積載。高さ詰め込みや軽微はみ出し(OH)で積載率を最大化します
           </div>
         </div>
       </div>
@@ -1616,35 +1616,19 @@
     }
 
     // ==========================================
-    // 【要件③】パレット別バウンディングパッキング処理 (高さ上限・OH許容・トップ充填連動)
+    // 【要件③】パレタイズロボット向け同一品種下層優先パッキング (Robot Layer-by-Layer Packing)
     // ==========================================
     function packPalletGridBuilding(palletConfig, pallets, truckH) {
       const maxStackH = palletOptions.maxHeight || palletConfig.maxHeight || 215.0; // パレット上面からの有効高
       const overhang = palletOptions.overhang || 0.0;
       const isTopFill = palletOptions.topFill !== false;
-      
-      const stage1Boxes = [];
-      const stage2Boxes = [];
 
-      currentData.cargoItems.forEach(it => {
-        const count = it.qty || 0;
-        for (let q = 0; q < count; q++) {
-          const b = { ...it };
-          if (it.deliveryStage === 1) {
-            stage1Boxes.push(b);
-          } else {
-            stage2Boxes.push(b);
-          }
-        }
-      });
-
-      // 体積降順ソート
-      stage1Boxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
-      stage2Boxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
+      const stage1Items = currentData.cargoItems.filter(it => it.deliveryStage === 1 && it.qty > 0);
+      const stage2Items = currentData.cargoItems.filter(it => it.deliveryStage === 2 && it.qty > 0);
 
       // パレットの Stage 1 / Stage 2 への割り当て
-      const totalVol1 = stage1Boxes.reduce((sum, b) => sum + (b.L * b.W * b.H), 0);
-      const totalVol2 = stage2Boxes.reduce((sum, b) => sum + (b.L * b.W * b.H), 0);
+      const totalVol1 = stage1Items.reduce((sum, it) => sum + (it.L * it.W * it.H * it.qty), 0);
+      const totalVol2 = stage2Items.reduce((sum, it) => sum + (it.L * it.W * it.H * it.qty), 0);
       const ratio1 = totalVol1 / (totalVol1 + totalVol2 || 1);
       const s1Count = Math.max(1, Math.min(pallets.length - 1, Math.round(pallets.length * ratio1)));
 
@@ -1654,186 +1638,132 @@
       const inTruck = [];
       const overflow = [];
 
-      function fillPallets(boxes, palList) {
-        let largeBoxes = [];
-        let smallBoxes = [];
+      function packStageRobot(stageItems, palList) {
+        // ロボットパレタイズ仕様:
+        // 1. 同一品種ごとにまとめて下層から積載
+        // 2. 重量順・数量順にソート（重い主要品種を底面〜下層に優先配置）
+        // 3. 小型充填用ケースはトップ（上層余白）に配置
+        const largeItems = [];
+        const smallItems = [];
 
-        if (isTopFill) {
-          // トップ充填用：薄型・小型ケースを分離
-          boxes.forEach(b => {
-            if (Math.min(b.L, b.W, b.H) <= 22.0 || (b.L * b.W * b.H) <= 30000) {
-              smallBoxes.push(b);
-            } else {
-              largeBoxes.push(b);
-            }
-          });
-          largeBoxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
-          smallBoxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
-        } else {
-          largeBoxes = [...boxes];
-          smallBoxes = [];
-        }
+        stageItems.forEach(it => {
+          const vol = it.L * it.W * it.H;
+          const minDim = Math.min(it.L, it.W, it.H);
+          if (isTopFill && (minDim <= 22.0 || vol <= 30000)) {
+            smallItems.push({ ...it });
+          } else {
+            largeItems.push({ ...it });
+          }
+        });
 
-        let palIdx = 0;
-        while (palIdx < palList.length && (largeBoxes.length > 0 || smallBoxes.length > 0)) {
-          const pal = palList[palIdx];
-          const effectiveL = pal.l + overhang * 2;
-          const effectiveW = pal.w + overhang * 2;
-          const pMinX = pal.cx - effectiveL / 2;
-          const pMaxX = pal.cx + effectiveL / 2;
-          const pMinZ = pal.cz - effectiveW / 2;
-          const pMaxZ = pal.cz + effectiveW / 2;
+        // 下層優先ソート: 単重・数量の大きい順（安定基盤を形成）
+        largeItems.sort((a, b) => (b.weight * b.qty) - (a.weight * a.qty) || (b.weight - a.weight));
+        smallItems.sort((a, b) => (b.weight * b.qty) - (a.weight * a.qty) || (b.weight - a.weight));
+
+        // 同一品種が連続したキューを生成
+        const boxQueue = [];
+        largeItems.forEach(it => {
+          for (let q = 0; q < it.qty; q++) boxQueue.push({ ...it });
+        });
+        smallItems.forEach(it => {
+          for (let q = 0; q < it.qty; q++) boxQueue.push({ ...it });
+        });
+
+        for (let pIdx = 0; pIdx < palList.length; pIdx++) {
+          if (boxQueue.length === 0) break;
+          const pal = palList[pIdx];
+          const effL = pal.l + overhang * 2;
+          const effW = pal.w + overhang * 2;
+          const pMinX = pal.cx - effL / 2;
+          const pMaxX = pal.cx + effL / 2;
+          const pMinZ = pal.cz - effW / 2;
+          const pMaxZ = pal.cz + effW / 2;
           const baseY = pal.h + (overhang > 0 ? 0.4 : 0);
 
-          let curX = pMinX;
+          const palPlaced = [];
+          // 候補配置点: (y, x, z) - Y昇順（下から上へ）で処理！
+          const pts = [{ y: 0.0, x: pMinX, z: pMinZ }];
 
-          while (curX < pMaxX - 5 && (largeBoxes.length > 0 || smallBoxes.length > 0)) {
-            let targetDepth = 50.0;
-            if (largeBoxes.length > 0) {
-              const firstBox = largeBoxes[0];
-              const fOrs = getOrientations(firstBox);
-              const goodOrs = fOrs.filter(o => o.l <= (pMaxX - curX + 0.5) && o.w <= effectiveW && o.h <= maxStackH);
-              targetDepth = (goodOrs.length > 0 ? goodOrs[0] : fOrs[0]).l;
-            } else if (smallBoxes.length > 0) {
-              const firstBox = smallBoxes[0];
-              const fOrs = getOrientations(firstBox);
-              const goodOrs = fOrs.filter(o => o.l <= (pMaxX - curX + 0.5) && o.w <= effectiveW && o.h <= maxStackH);
-              targetDepth = (goodOrs.length > 0 ? goodOrs[0] : fOrs[0]).l;
+          while (pts.length > 0 && boxQueue.length > 0) {
+            // Yが最も低い（下層）点を最優先で取り出す！
+            pts.sort((a, b) => a.y - b.y || a.x - b.x || a.z - b.z);
+            const pt = pts.shift();
+            const cy = pt.y, cx = pt.x, cz = pt.z;
+
+            if (cy >= maxStackH - 5) continue;
+
+            // 近傍の重複点をスキップ
+            if (pts.some(p => Math.abs(cx - p.x) < 0.2 && Math.abs(cz - p.z) < 0.2 && Math.abs(cy - p.y) < 0.2)) {
+              continue;
             }
 
-            let curZ = pMinZ;
-            let layerMaxL = 0.0;
+            // キュー先頭（同一品種）を優先して探索
+            let placed = false;
+            const searchLimit = Math.min(boxQueue.length, 60);
 
-            while (curZ < pMaxZ - 5 && (largeBoxes.length > 0 || smallBoxes.length > 0)) {
-              let curY = 0.0;
-              let colMaxW = 0.0;
+            for (let i = 0; i < searchLimit; i++) {
+              const b = boxQueue[i];
+              let bestO = null;
+              const ors = getOrientations(b);
 
-              // 1. 大型箱の積み上げ
-              while (curY < maxStackH - 5 && largeBoxes.length > 0) {
-                const remH = maxStackH - curY;
-                const remW = pMaxZ - curZ;
-                const remL = pMaxX - curX;
-
-                let fitI = -1;
-                let fitO = null;
-                let bestScore = Infinity;
-
-                for (let i = 0; i < largeBoxes.length; i++) {
-                  const b = largeBoxes[i];
-                  for (let o of getOrientations(b)) {
-                    if (o.h <= remH + 0.5 && o.w <= remW + 0.5 && o.l <= remL + 0.5) {
-                      let depthDiff = Math.abs(o.l - targetDepth);
-                      if (!o.upright) depthDiff += 20; // 正置優先
-                      const score = depthDiff * 2 + (remH - o.h);
-                      if (score < bestScore) {
-                        bestScore = score;
-                        fitI = i;
-                        fitO = o;
-                      }
+              for (let o of ors) {
+                if (cx + o.l <= pMaxX + 0.5 && cz + o.w <= pMaxZ + 0.5 && cy + o.h <= maxStackH + 0.5) {
+                  // 干渉チェック
+                  let ol = false;
+                  for (let pb of palPlaced) {
+                    if (!(cx + o.l <= pb.x + 0.1 || cx >= pb.x + pb.l - 0.1 ||
+                          cz + o.w <= pb.z + 0.1 || cz >= pb.z + pb.w - 0.1 ||
+                          cy + o.h <= pb.y + 0.1 || cy >= pb.y + pb.h - 0.1)) {
+                      ol = true;
+                      break;
                     }
                   }
-                  if (bestScore < 5) break;
+                  if (!ol) {
+                    bestO = o;
+                    break;
+                  }
                 }
+              }
 
-                if (fitI === -1) break;
-
-                const boxToPlace = largeBoxes.splice(fitI, 1)[0];
-                const bl = fitO.l, bh = fitO.h, bw = fitO.w;
-
-                inTruck.push({
-                  item: boxToPlace,
-                  x: curX,
-                  y: baseY + curY,
-                  z: curZ,
-                  l: bl,
-                  h: bh,
-                  w: bw,
+              if (bestO) {
+                const box = boxQueue.splice(i, 1)[0];
+                const placedBox = {
+                  item: box,
                   palletId: pal.id,
-                  topAxis: fitO.topAxis,
-                  orientType: fitO.orientType,
-                  isUpright: fitO.upright
+                  x: cx,
+                  y: cy,
+                  z: cz,
+                  l: bestO.l,
+                  h: bestO.h,
+                  w: bestO.w,
+                  topAxis: bestO.topAxis,
+                  orientType: bestO.orientType,
+                  isUpright: bestO.upright
+                };
+                palPlaced.push(placedBox);
+                inTruck.push({
+                  ...placedBox,
+                  y: baseY + cy
                 });
 
-                curY += bh + 0.2;
-                colMaxW = Math.max(colMaxW, bw);
-                layerMaxL = Math.max(layerMaxL, bl);
+                // 新たな候補点（同一水平層のX方向・Z方向、および上部Y方向）
+                pts.push({ y: cy, x: cx + bestO.l + 0.2, z: cz });
+                pts.push({ y: cy, x: cx, z: cz + bestO.w + 0.2 });
+                pts.push({ y: cy + bestO.h + 0.2, x: cx, z: cz });
+                placed = true;
+                break;
               }
-
-              // 2. 【小型箱トップ積み・残余隙間充填】
-              if (isTopFill) {
-                while (curY < maxStackH - 5 && smallBoxes.length > 0) {
-                  const remH = maxStackH - curY;
-                  const remW = colMaxW > 0 ? colMaxW : (pMaxZ - curZ);
-                  const remL = pMaxX - curX;
-
-                  let fitSI = -1;
-                  let fitSO = null;
-                  let bestSScore = Infinity;
-
-                  for (let si = 0; si < smallBoxes.length; si++) {
-                    const sb = smallBoxes[si];
-                    for (let o of getOrientations(sb)) {
-                      if (o.h <= remH + 0.5 && o.w <= remW + 0.5 && o.l <= remL + 0.5) {
-                        let depthDiff = Math.abs(o.l - targetDepth);
-                        if (!o.upright) depthDiff += 15; // 小型箱も正置優先
-                        const score = depthDiff * 1.5 + (remH - o.h);
-                        if (score < bestSScore) {
-                          bestSScore = score;
-                          fitSI = si;
-                          fitSO = o;
-                        }
-                      }
-                    }
-                    if (bestSScore < 5) break;
-                  }
-
-                  if (fitSI === -1) break;
-
-                  const sBoxToPlace = smallBoxes.splice(fitSI, 1)[0];
-                  const bl = fitSO.l, bh = fitSO.h, bw = fitSO.w;
-
-                  inTruck.push({
-                    item: sBoxToPlace,
-                    x: curX,
-                    y: baseY + curY,
-                    z: curZ,
-                    l: bl,
-                    h: bh,
-                    w: bw,
-                    palletId: pal.id,
-                    topAxis: fitSO.topAxis,
-                    orientType: fitSO.orientType,
-                    isUpright: fitSO.upright
-                  });
-
-                  curY += bh + 0.2;
-                  colMaxW = Math.max(colMaxW, bw);
-                  layerMaxL = Math.max(layerMaxL, bl);
-                }
-              }
-
-              if (colMaxW === 0) break;
-              curZ += colMaxW + 0.2;
             }
-
-            if (layerMaxL === 0) break;
-            curX += layerMaxL + 0.2;
           }
-
-          palIdx++;
         }
 
-        // 入り切らなかった残余ケースは積み残し（Overflow）へ！
-        while (largeBoxes.length > 0) {
-          overflow.push({ item: largeBoxes.shift() });
-        }
-        while (smallBoxes.length > 0) {
-          overflow.push({ item: smallBoxes.shift() });
+        while (boxQueue.length > 0) {
+          overflow.push({ item: boxQueue.shift() });
         }
       }
 
-      fillPallets(stage1Boxes, palletsS1);
-      fillPallets(stage2Boxes, palletsS2);
+      packStageRobot(stage1Items, palletsS1);
+      packStageRobot(stage2Items, palletsS2);
 
       return { inTruck, overflow };
     }
