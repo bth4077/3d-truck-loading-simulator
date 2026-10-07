@@ -920,54 +920,92 @@
       const wire = new THREE.LineSegments(edgeGeo, edgeMat);
       mesh.add(wire);
 
-      // 【段ボール天面可視化（上蓋フラップ合わせ目スリット線＆テープ）】
+      // 【段ボール天面可視化（クッキリ太い上蓋フラップスリット＆半透明テープ）】
       const isUpright = Math.abs(box.h - (box.item.H || box.h)) < 0.2;
       if (showTopSeams) {
         const halfL = box.l / 2;
         const halfW = box.w / 2;
         const halfH = box.h / 2;
-        const topY = halfH + 0.05; // z-fighting防止微小オフセット
+        const topY = halfH + 0.08; // 天面直上
 
-        // 1. 天面フラップ合わせ目スリット線（長手方向の中央線）
-        const seamPositions = [];
-        if (box.l >= box.w) {
-          seamPositions.push(-halfL + 0.1, topY, 0,  halfL - 0.1, topY, 0);
-        } else {
-          seamPositions.push(0, topY, -halfW + 0.1,  0, topY, halfW - 0.1);
-        }
+        const topSeamGroup = new THREE.Group();
 
-        const seamGeo = new THREE.BufferGeometry();
-        seamGeo.setAttribute('position', new THREE.Float32BufferAttribute(seamPositions, 3));
-        const seamMat = new THREE.LineBasicMaterial({
-          color: isOverflow ? 0x7f1d1d : (isUpright ? 0x0f172a : 0xb45309),
-          linewidth: 2,
-          transparent: true,
-          opacity: isOverflow ? 0.95 : 0.9
-        });
-        const seamLine = new THREE.LineSegments(seamGeo, seamMat);
-        mesh.add(seamLine);
-
-        // 2. 天面テープ表現（クラフト／透明OPPテープの半透明帯）
-        const tapeWidth = Math.min(2.6, Math.min(box.l, box.w) * 0.16);
+        // 1. 天面テープ表現（クラフト／OPP半透明テープ：幅約3cm）
+        const tapeW = Math.min(3.2, Math.min(box.l, box.w) * 0.22);
         let tapeGeo;
         if (box.l >= box.w) {
-          tapeGeo = new THREE.PlaneGeometry(box.l - 0.2, tapeWidth);
+          tapeGeo = new THREE.PlaneGeometry(box.l - 0.2, tapeW);
           tapeGeo.rotateX(-Math.PI / 2);
         } else {
-          tapeGeo = new THREE.PlaneGeometry(tapeWidth, box.w - 0.2);
+          tapeGeo = new THREE.PlaneGeometry(tapeW, box.w - 0.2);
           tapeGeo.rotateX(-Math.PI / 2);
         }
         const tapeMat = new THREE.MeshStandardMaterial({
-          color: isOverflow ? 0xfecaca : (isUpright ? 0xfef08a : 0xfde68a),
-          roughness: 0.5,
+          color: isOverflow ? 0xfca5a5 : (isUpright ? 0xfef08a : 0xfde68a),
+          roughness: 0.4,
           transparent: true,
-          opacity: 0.32,
-          side: THREE.DoubleSide,
-          depthWrite: false
+          opacity: 0.38,
+          depthWrite: false,
+          polygonOffset: true,
+          polygonOffsetFactor: -1,
+          polygonOffsetUnits: -1
         });
         const tapeMesh = new THREE.Mesh(tapeGeo, tapeMat);
-        tapeMesh.position.set(0, topY - 0.02, 0);
-        mesh.add(tapeMesh);
+        tapeMesh.position.set(0, topY, 0);
+        tapeMesh.renderOrder = 8;
+        topSeamGroup.add(tapeMesh);
+
+        // 2. クッキリ太いフラップ合わせ目スリット線（幅0.7cmのポリゴンリボン）
+        // ※ 1px LineだとGPUの解像度・角度で手前側が消失するため、実幅を持つリボンで確実に描画！
+        const seamWidth = 0.75;
+        let seamGeo;
+        if (box.l >= box.w) {
+          seamGeo = new THREE.PlaneGeometry(box.l - 0.1, seamWidth);
+          seamGeo.rotateX(-Math.PI / 2);
+        } else {
+          seamGeo = new THREE.PlaneGeometry(seamWidth, box.w - 0.1);
+          seamGeo.rotateX(-Math.PI / 2);
+        }
+        const seamMat = new THREE.MeshBasicMaterial({
+          color: isOverflow ? 0x000000 : (isUpright ? 0x020617 : 0x78350f), // 漆黒スレート（手前でも奥でも絶対に消えない）
+          depthWrite: false,
+          polygonOffset: true,
+          polygonOffsetFactor: -2,
+          polygonOffsetUnits: -2
+        });
+        const seamMesh = new THREE.Mesh(seamGeo, seamMat);
+        seamMesh.position.set(0, topY + 0.02, 0);
+        seamMesh.renderOrder = 9;
+        topSeamGroup.add(seamMesh);
+
+        // 3. 天面フラップ両端の合わせ目折り目ライン（H型スリット表現：段ボール感を決定づける端部ライン）
+        const notchLen = Math.min(box.l, box.w) * 0.45;
+        let notchGeo;
+        if (box.l >= box.w) {
+          notchGeo = new THREE.PlaneGeometry(seamWidth * 0.9, notchLen);
+          notchGeo.rotateX(-Math.PI / 2);
+          const n1 = new THREE.Mesh(notchGeo, seamMat);
+          const n2 = new THREE.Mesh(notchGeo, seamMat);
+          n1.position.set(-halfL + 0.1, topY + 0.02, 0);
+          n2.position.set(halfL - 0.1, topY + 0.02, 0);
+          n1.renderOrder = 9;
+          n2.renderOrder = 9;
+          topSeamGroup.add(n1);
+          topSeamGroup.add(n2);
+        } else {
+          notchGeo = new THREE.PlaneGeometry(notchLen, seamWidth * 0.9);
+          notchGeo.rotateX(-Math.PI / 2);
+          const n1 = new THREE.Mesh(notchGeo, seamMat);
+          const n2 = new THREE.Mesh(notchGeo, seamMat);
+          n1.position.set(0, topY + 0.02, -halfW + 0.1);
+          n2.position.set(0, topY + 0.02, halfW - 0.1);
+          n1.renderOrder = 9;
+          n2.renderOrder = 9;
+          topSeamGroup.add(n1);
+          topSeamGroup.add(n2);
+        }
+
+        mesh.add(topSeamGroup);
       }
 
       mesh.userData = {
