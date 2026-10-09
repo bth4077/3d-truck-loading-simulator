@@ -35,6 +35,7 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+  <div id="debugBanner" style="display:none;background:#ef4444;color:white;padding:12px;font-weight:bold;font-size:14px;text-align:center;position:sticky;top:0;z-index:99999;"></div>
 
   <!-- ヘッダー -->
   <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
@@ -702,6 +703,16 @@
   <div id="toastContainer" class="fixed top-20 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
   <script>
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+      console.error("GLOBAL ERROR:", msg, lineNo, columnNo, error);
+      const b = document.getElementById('debugBanner');
+      if (b) {
+        b.style.display = 'block';
+        b.innerText = `JSエラー (${lineNo}行): ${msg}`;
+      }
+      return false;
+    };
+
     // 車両プリセット定義
     const VEHICLE_PRESETS = {
       lowFloor10t: { name: "低床10tウイング", L: 960, W: 240, H: 260, maxWeight: 13000 },
@@ -802,6 +813,14 @@
 
     let currentData = JSON.parse(JSON.stringify(initialData));
     let packingMode = 'highDensity'; // 'highDensity', 'wallBuilding', 'p1100', 'p2200'
+
+    // パレットモード設定定義
+    const PALLET_CONFIGS = {
+      highDensity: { id: "highDensity", name: "手摘み (高密度バラ積み)", isPallet: false, count: 0, workTime: 120 },
+      wallBuilding: { id: "wallBuilding", name: "従来ウォール積み", isPallet: false, count: 0, workTime: 120 },
+      p1100: { id: "p1100", name: "1100mm パレット (16枚)", isPallet: true, width: 110, length: 110, height: 15, cols: 2, rows: 8, count: 16, maxHeight: 215, workTime: 30 },
+      p2200: { id: "p2200", name: "2200mm パレット (4枚)", isPallet: true, width: 220, length: 220, height: 15, cols: 1, rows: 4, count: 4, maxHeight: 215, workTime: 15 }
+    };
 
     // --- OH 0cm (現場品質・荷傷み防止・受取拒否回避) を原則初期値とする ---
     const palletOptions = {
@@ -1483,161 +1502,170 @@
     }
 
     function build3DTruckAndCargo() {
-      while(wallMeshGroup.children.length > 0) wallMeshGroup.remove(wallMeshGroup.children[0]);
-      while(cargoGroup.children.length > 0) cargoGroup.remove(cargoGroup.children[0]);
-      cargoMeshList = [];
+      try {
+        while(wallMeshGroup.children.length > 0) wallMeshGroup.remove(wallMeshGroup.children[0]);
+        while(cargoGroup.children.length > 0) cargoGroup.remove(cargoGroup.children[0]);
+        cargoMeshList = [];
 
-      const t = currentData.truck.customDims;
-      const halfL = t.L / 2;
+        const t = currentData.truck.customDims;
+        const halfL = t.L / 2;
 
-      // 1. 地面広域グリッド
-      const gridHelper = new THREE.GridHelper(Math.max(t.L, t.W) * 2.8, 28, 0x3b82f6, 0x1e293b);
-      gridHelper.position.set(t.L * 0.2, -0.2, 0);
-      wallMeshGroup.add(gridHelper);
+        // 1. 地面広域グリッド
+        const gridHelper = new THREE.GridHelper(Math.max(t.L, t.W) * 2.8, 28, 0x3b82f6, 0x1e293b);
+        gridHelper.position.set(t.L * 0.2, -0.2, 0);
+        wallMeshGroup.add(gridHelper);
 
-      // 2. 荷台床面
-      const floorGeo = new THREE.BoxGeometry(t.L, 4, t.W);
-      const floorMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
-      const floor = new THREE.Mesh(floorGeo, floorMat);
-      floor.position.set(0, -2, 0);
-      floor.receiveShadow = true;
-      wallMeshGroup.add(floor);
+        // 2. 荷台床面
+        const floorGeo = new THREE.BoxGeometry(t.L, 4, t.W);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.position.set(0, -2, 0);
+        floor.receiveShadow = true;
+        wallMeshGroup.add(floor);
 
-      // 3. トラック外形フレーム
-      const frameGeo = new THREE.BoxGeometry(t.L, t.H, t.W);
-      const frameEdges = new THREE.EdgesGeometry(frameGeo);
-      const frameLine = new THREE.LineSegments(frameEdges, new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2 }));
-      frameLine.position.set(0, t.H / 2, 0);
-      wallMeshGroup.add(frameLine);
+        // 3. トラック外形フレーム
+        const frameGeo = new THREE.BoxGeometry(t.L, t.H, t.W);
+        const frameEdges = new THREE.EdgesGeometry(frameGeo);
+        const frameLine = new THREE.LineSegments(frameEdges, new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2 }));
+        frameLine.position.set(0, t.H / 2, 0);
+        wallMeshGroup.add(frameLine);
 
-      // 4. 壁・天井パネル（半透明）
-      if (showWalls) {
-        const wallMat = new THREE.MeshPhysicalMaterial({
-          color: 0x94a3b8,
-          transparent: true,
-          opacity: 0.12,
-          roughness: 0.1,
-          transmission: 0.7,
-          thickness: 1,
-          side: THREE.DoubleSide
-        });
-        const wallMesh = new THREE.Mesh(frameGeo, wallMat);
-        wallMesh.position.set(0, t.H / 2, 0);
-        wallMeshGroup.add(wallMesh);
-      }
-
-      // 5. 運転席キャビン (Front = -X 軸方向)
-      const cabinL = Math.min(160, t.L * 0.25);
-      const cabinGeo = new THREE.BoxGeometry(cabinL, t.H * 0.95, t.W);
-      const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
-      const cabin = new THREE.Mesh(cabinGeo, cabinMat);
-      cabin.position.set(-halfL - (cabinL / 2), t.H * 0.475, 0);
-      wallMeshGroup.add(cabin);
-
-      // 6. トラック後方ゲート外：積み残し保管エリア（Overflow / Staging Area）の床面・枠線
-      const stagingStartX = halfL + 30; // 荷台後方から30cmクリアランス
-      const stagingL = Math.max(350, t.L * 0.45);
-      const stagingW = t.W + 20;
-
-      const stagingFloorGeo = new THREE.BoxGeometry(stagingL, 2, stagingW);
-      const stagingFloorMat = new THREE.MeshStandardMaterial({
-        color: 0x18181b, // zinc-900
-        roughness: 0.95
-      });
-      const stagingFloor = new THREE.Mesh(stagingFloorGeo, stagingFloorMat);
-      stagingFloor.position.set(stagingStartX + stagingL / 2, -1, 0);
-      stagingFloor.receiveShadow = true;
-      wallMeshGroup.add(stagingFloor);
-
-      // 積み残しエリアの外枠フレーム（警告色の赤線枠）
-      const stagingFrameEdges = new THREE.EdgesGeometry(stagingFloorGeo);
-      const stagingFrameLine = new THREE.LineSegments(
-        stagingFrameEdges,
-        new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 2 })
-      );
-      stagingFrameLine.position.set(stagingStartX + stagingL / 2, -1, 0);
-      wallMeshGroup.add(stagingFrameLine);
-
-      // 積み残しエリアの赤色床面グリッド
-      const stagingGrid = new THREE.GridHelper(stagingL, 12, 0xef4444, 0x581c87);
-      stagingGrid.position.set(stagingStartX + stagingL / 2, 0.05, 0);
-      wallMeshGroup.add(stagingGrid);
-
-      // パレットグループのクリア
-      while(palletGroup.children.length > 0) palletGroup.remove(palletGroup.children[0]);
-
-      // --- パッキングアルゴリズムの実行 ---
-      const stage1Items = currentData.cargoItems.filter(i => i.deliveryStage === 1);
-      const stage2Items = currentData.cargoItems.filter(i => i.deliveryStage === 2);
-
-      let placedBoxes = [];
-      let overflowBoxes = [];
-
-      const startX = -halfL + 5;
-      const maxAllowedX = halfL;
-      const currentCfg = PALLET_CONFIGS[packingMode] || PALLET_CONFIGS.highDensity;
-
-      if (currentCfg.isPallet) {
-        // 【要件③】パレット積み（パレタイズ）シミュレーション
-        const pallets = buildPalletMeshes(currentCfg, t.L, t.W, halfL);
-        const res = packPalletGridBuilding(currentCfg, pallets, t.H);
-        placedBoxes = res.inTruck;
-        overflowBoxes = res.overflow;
-
-        const badge = document.getElementById('currentLogicBadge');
-        if (badge) {
-          const hLbl = palletOptions.maxHeight || 215;
-          const ohLbl = palletOptions.overhang > 0 ? `+OH${palletOptions.overhang}cm` : 'OH0';
-          badge.innerText = `${currentCfg.name} [高:${hLbl}cm / ${ohLbl}]`;
+        // 4. 壁・天井パネル（半透明）
+        if (showWalls) {
+          const wallMat = new THREE.MeshPhysicalMaterial({
+            color: 0x94a3b8,
+            transparent: true,
+            opacity: 0.12,
+            roughness: 0.1,
+            transmission: 0.7,
+            thickness: 1,
+            side: THREE.DoubleSide
+          });
+          const wallMesh = new THREE.Mesh(frameGeo, wallMat);
+          wallMesh.position.set(0, t.H / 2, 0);
+          wallMeshGroup.add(wallMesh);
         }
-      } else if (packingMode === 'highDensity') {
-        // 【要件②】3D Bottom-Left-Fill (BLF) / 混載高密度バラ積み隙間充填
-        const res1 = packStageHighDensityBLF(stage1Items, startX, t.W, t.H, maxAllowedX);
-        placedBoxes.push(...res1.inTruck);
-        overflowBoxes.push(...res1.overflow);
 
-        const startX2 = (res1.maxEndX > startX ? res1.maxEndX : startX) + 5;
-        const res2 = packStageHighDensityBLF(stage2Items, startX2, t.W, t.H, maxAllowedX);
-        placedBoxes.push(...res2.inTruck);
-        overflowBoxes.push(...res2.overflow);
-      } else {
-        // 【従来方式】ウォール積み（品目順）
-        const res1 = packStageWallBuilding(stage1Items, startX, t.W, t.H, maxAllowedX);
-        placedBoxes.push(...res1.inTruck);
-        overflowBoxes.push(...res1.overflow);
+        // 5. 運転席キャビン (Front = -X 軸方向)
+        const cabinL = Math.min(160, t.L * 0.25);
+        const cabinGeo = new THREE.BoxGeometry(cabinL, t.H * 0.95, t.W);
+        const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+        const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+        cabin.position.set(-halfL - (cabinL / 2), t.H * 0.475, 0);
+        wallMeshGroup.add(cabin);
 
-        const startX2 = res1.nextX + 5;
-        const res2 = packStageWallBuilding(stage2Items, startX2, t.W, t.H, maxAllowedX);
-        placedBoxes.push(...res2.inTruck);
-        overflowBoxes.push(...res2.overflow);
+        // 6. トラック後方ゲート外：積み残し保管エリア（Overflow / Staging Area）の床面・枠線
+        const stagingStartX = halfL + 30; // 荷台後方から30cmクリアランス
+        const stagingL = Math.max(350, t.L * 0.45);
+        const stagingW = t.W + 20;
+
+        const stagingFloorGeo = new THREE.BoxGeometry(stagingL, 2, stagingW);
+        const stagingFloorMat = new THREE.MeshStandardMaterial({
+          color: 0x18181b, // zinc-900
+          roughness: 0.95
+        });
+        const stagingFloor = new THREE.Mesh(stagingFloorGeo, stagingFloorMat);
+        stagingFloor.position.set(stagingStartX + stagingL / 2, -1, 0);
+        stagingFloor.receiveShadow = true;
+        wallMeshGroup.add(stagingFloor);
+
+        // 積み残しエリアの外枠フレーム（警告色の赤線枠）
+        const stagingFrameEdges = new THREE.EdgesGeometry(stagingFloorGeo);
+        const stagingFrameLine = new THREE.LineSegments(
+          stagingFrameEdges,
+          new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 2 })
+        );
+        stagingFrameLine.position.set(stagingStartX + stagingL / 2, -1, 0);
+        wallMeshGroup.add(stagingFrameLine);
+
+        // 積み残しエリアの赤色床面グリッド
+        const stagingGrid = new THREE.GridHelper(stagingL, 12, 0xef4444, 0x581c87);
+        stagingGrid.position.set(stagingStartX + stagingL / 2, 0.05, 0);
+        wallMeshGroup.add(stagingGrid);
+
+        // パレットグループのクリア
+        while(palletGroup.children.length > 0) palletGroup.remove(palletGroup.children[0]);
+
+        // --- パッキングアルゴリズムの実行 ---
+        const stage1Items = currentData.cargoItems.filter(i => i.deliveryStage === 1);
+        const stage2Items = currentData.cargoItems.filter(i => i.deliveryStage === 2);
+
+        let placedBoxes = [];
+        let overflowBoxes = [];
+
+        const startX = -halfL + 5;
+        const maxAllowedX = halfL;
+        const currentCfg = PALLET_CONFIGS[packingMode] || PALLET_CONFIGS.highDensity;
+
+        if (currentCfg.isPallet) {
+          // 【要件③】パレット積み（パレタイズ）シミュレーション
+          const pallets = buildPalletMeshes(currentCfg, t.L, t.W, halfL);
+          const res = packPalletGridBuilding(currentCfg, pallets, t.H);
+          placedBoxes = res.inTruck;
+          overflowBoxes = res.overflow;
+
+          const badge = document.getElementById('currentLogicBadge');
+          if (badge) {
+            const hLbl = palletOptions.maxHeight || 215;
+            const ohLbl = palletOptions.overhang > 0 ? `+OH${palletOptions.overhang}cm` : 'OH0';
+            badge.innerText = `${currentCfg.name} [高:${hLbl}cm / ${ohLbl}]`;
+          }
+        } else if (packingMode === 'highDensity') {
+          // 【要件②】3D Bottom-Left-Fill (BLF) / 混載高密度バラ積み隙間充填
+          const res1 = packStageHighDensityBLF(stage1Items, startX, t.W, t.H, maxAllowedX);
+          placedBoxes.push(...res1.inTruck);
+          overflowBoxes.push(...res1.overflow);
+
+          const startX2 = (res1.maxEndX > startX ? res1.maxEndX : startX) + 5;
+          const res2 = packStageHighDensityBLF(stage2Items, startX2, t.W, t.H, maxAllowedX);
+          placedBoxes.push(...res2.inTruck);
+          overflowBoxes.push(...res2.overflow);
+        } else {
+          // 【従来方式】ウォール積み（品目順）
+          const res1 = packStageWallBuilding(stage1Items, startX, t.W, t.H, maxAllowedX);
+          placedBoxes.push(...res1.inTruck);
+          overflowBoxes.push(...res1.overflow);
+
+          const startX2 = res1.nextX + 5;
+          const res2 = packStageWallBuilding(stage2Items, startX2, t.W, t.H, maxAllowedX);
+          placedBoxes.push(...res2.inTruck);
+          overflowBoxes.push(...res2.overflow);
+        }
+
+        // --- 【要件①】荷台内貨物（In-Truck）の3D描画 ---
+        placedBoxes.forEach(box => {
+          renderSingleCargoMesh(box, false);
+        });
+
+        // --- 【要件①】積み残し貨物（Overflow / Staging Area）の3D描画 ---
+        // ゲート外床面上に整列配置して描画
+        packAndRenderOverflowBoxes(overflowBoxes, stagingStartX, stagingL, stagingW, t.H);
+
+        // --- KPIサマリー・ステータス連動 ---
+        let totalExpectedQty = 0;
+        let totalExpectedVol = 0;
+        let totalExpectedWeight = 0;
+        currentData.cargoItems.forEach(i => {
+          const q = i.qty || 0;
+          totalExpectedQty += q;
+          totalExpectedVol += (((i.L * i.W * i.H) / 1000000) * q);
+          totalExpectedWeight += ((i.weight || 0) * q);
+        });
+        const loadedCount = placedBoxes.length;
+        const unloadedCount = overflowBoxes.length;
+
+        updateStatusAndAlerts(totalExpectedQty, loadedCount, unloadedCount, t.L, currentCfg);
+        updateSummaryPanel(currentCfg, totalExpectedQty, loadedCount, unloadedCount, totalExpectedVol, totalExpectedWeight);
+
+        renderer.render(scene, camera);
+      } catch (err) {
+        console.error("build3DTruckAndCargo ERROR:", err);
+        const b = document.getElementById('debugBanner');
+        if (b) {
+          b.style.display = 'block';
+          b.innerText = `3D描画エラー: ${err.message} (${err.stack})`;
+        }
       }
-
-      // --- 【要件①】荷台内貨物（In-Truck）の3D描画 ---
-      placedBoxes.forEach(box => {
-        renderSingleCargoMesh(box, false);
-      });
-
-      // --- 【要件①】積み残し貨物（Overflow / Staging Area）の3D描画 ---
-      // ゲート外床面上に整列配置して描画
-      packAndRenderOverflowBoxes(overflowBoxes, stagingStartX, stagingL, stagingW, t.H);
-
-      // --- KPIサマリー・ステータス連動 ---
-      let totalExpectedQty = 0;
-      let totalExpectedVol = 0;
-      let totalExpectedWeight = 0;
-      currentData.cargoItems.forEach(i => {
-        const q = i.qty || 0;
-        totalExpectedQty += q;
-        totalExpectedVol += (((i.L * i.W * i.H) / 1000000) * q);
-        totalExpectedWeight += ((i.weight || 0) * q);
-      });
-      const loadedCount = placedBoxes.length;
-      const unloadedCount = overflowBoxes.length;
-
-      updateStatusAndAlerts(totalExpectedQty, loadedCount, unloadedCount, t.L, currentCfg);
-      updateSummaryPanel(currentCfg, totalExpectedQty, loadedCount, unloadedCount, totalExpectedVol, totalExpectedWeight);
-
-      renderer.render(scene, camera);
     }
 
     // 1個のカーゴメッシュを描画
@@ -2389,8 +2417,13 @@
       // パレットの Stage 1 / Stage 2 への割り当て
       const totalVol1 = stage1Items.reduce((sum, it) => sum + (it.L * it.W * it.H * it.qty), 0);
       const totalVol2 = stage2Items.reduce((sum, it) => sum + (it.L * it.W * it.H * it.qty), 0);
-      const ratio1 = totalVol1 / (totalVol1 + totalVol2 || 1);
-      const s1Count = Math.max(1, Math.min(pallets.length - 1, Math.round(pallets.length * ratio1)));
+      const ratio1 = (totalVol1 + totalVol2 > 0) ? (totalVol1 / (totalVol1 + totalVol2)) : 1.0;
+      let s1Count = pallets.length;
+      if (stage1Items.length > 0 && stage2Items.length > 0) {
+        s1Count = Math.max(1, Math.min(pallets.length - 1, Math.round(pallets.length * ratio1)));
+      } else if (stage1Items.length === 0) {
+        s1Count = 0;
+      }
 
       const palletsS1 = pallets.slice(0, s1Count);
       const palletsS2 = pallets.slice(s1Count);
