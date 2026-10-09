@@ -69,6 +69,52 @@
   <!-- メインコンテンツ -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
+    <!-- 【複数便（マルチ便）タブセレクター & 全便集計バー】 -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3.5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5 pb-2.5 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="p-1.5 bg-blue-600 text-white rounded-lg shadow-2xs">
+            <i data-lucide="layers" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-slate-800 text-sm">出荷便セレクター</span>
+              <span id="batchCountBadge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200">5 便管理中</span>
+            </div>
+            <div class="text-[11px] text-slate-500">クリックで便の3D積載状況・KPIを瞬時切り替え（日次100便規模対応）</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- 便検索インプット -->
+          <div class="relative">
+            <input type="text" id="tabSearchInput" oninput="filterBatchTabs()" placeholder="便番号・出荷先検索..." class="text-xs pl-7 pr-2.5 py-1.5 rounded-lg border border-slate-200 focus:border-blue-500 outline-none w-36 sm:focus:w-48 transition-all bg-slate-50 focus:bg-white">
+            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2"></i>
+          </div>
+
+          <!-- 全便集計サマリーボタン -->
+          <button onclick="openBatchSummaryModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-2xs flex items-center gap-1.5 transition cursor-pointer">
+            <i data-lucide="layout-list" class="w-3.5 h-3.5 text-amber-400"></i> 全便集計サマリー
+          </button>
+
+          <!-- 便追加ボタン -->
+          <button onclick="openNewBatchModal()" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow-2xs flex items-center gap-1 transition cursor-pointer">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> 便追加
+          </button>
+
+          <!-- 100便デモデータ生成ボタン -->
+          <button onclick="generate100BatchesDemo()" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1 transition cursor-pointer" title="日次約100便規模の現場実務データを自動生成">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-600"></i> 100便一括生成
+          </button>
+        </div>
+      </div>
+
+      <!-- 横スクロール タブコンテナ -->
+      <div id="batchTabContainer" class="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+        <!-- 動的にタブボタンが挿入されます -->
+      </div>
+    </div>
+
     <!-- KPI & トラック情報サマリー -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       
@@ -185,12 +231,15 @@
           <i data-lucide="sliders" class="w-4 h-4"></i>
         </span>
         <div>
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-amber-950 text-sm">パレット積載効率・改善オプション</span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/80 text-amber-900 border border-amber-300">🤖 パレタイズロボット想定 (同一品種下層優先)</span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-bold text-amber-950 text-sm">パレット積載条件設定</span>
+            <span id="palletRiskBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+              ✅ 安全基準遵守 (OH: 0cm / パレット枠内完全格納)
+            </span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/80 text-amber-900 border border-amber-300">🤖 パレタイズロボット層積み</span>
           </div>
           <div class="text-[11px] text-amber-800 mt-0.5">
-            パレタイズロボットの層積みに基づき同一品種を下から順に積載。高さ詰め込みや軽微はみ出し(OH)で積載率を最大化します
+            物流現場の安全品質基準（OH 0cm・荷傷み防止）を原則とし、必要に応じた限界検証テストが可能です
           </div>
         </div>
       </div>
@@ -202,8 +251,8 @@
             <i data-lucide="arrow-up-to-line" class="w-3.5 h-3.5 text-amber-600"></i> 積載高さ:
           </span>
           <select id="selPalletMaxHeight" onchange="onPalletOptionChanged()" class="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer">
-            <option value="215">標準 215cm (天板+215 / 余白30cm)</option>
-            <option value="235" selected>高積み 235cm (天板+235 / 余白10cm) ★推奨</option>
+            <option value="215" selected>標準 215cm (天板+215 / 余白30cm) ★安全基準</option>
+            <option value="235">高積み 235cm (天板+235 / 余白10cm)</option>
             <option value="240">最大 240cm (天板+240 / 余白5cm)</option>
           </select>
         </div>
@@ -214,21 +263,24 @@
             <i data-lucide="expand" class="w-3.5 h-3.5 text-amber-600"></i> はみ出し(OH):
           </span>
           <select id="selPalletOverhang" onchange="onPalletOptionChanged()" class="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer">
-            <option value="0">なし 0cm (1100mm枠内)</option>
-            <option value="2.5" selected>軽微 +2.5cm (1150mm枠 / 幅余白10cm) ★推奨</option>
-            <option value="3.5">最大 +3.5cm (1170mm枠 / 幅余白6cm)</option>
+            <option value="0" selected>なし 0cm (パレット枠内完全厳守) ★原則</option>
+            <option value="2.5">軽微 +2.5cm (⚠️ 荷傷み・受取拒否リスクあり)</option>
+            <option value="3.5">最大 +3.5cm (⚠️ 高リスク: 側壁干渉)</option>
           </select>
         </div>
 
         <!-- 小型箱トップ積みトグル -->
         <label class="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-amber-300 shadow-2xs cursor-pointer hover:bg-amber-50/50 transition">
-          <input type="checkbox" id="chkPalletTopFill" onchange="onPalletOptionChanged()" checked class="rounded text-amber-600 focus:ring-amber-500 h-3.5 w-3.5 cursor-pointer">
+          <input type="checkbox" id="chkPalletTopFill" onchange="onPalletOptionChanged()" class="rounded text-amber-600 focus:ring-amber-500 h-3.5 w-3.5 cursor-pointer">
           <span class="text-slate-700 font-semibold text-[11px] select-none">天面トップ積み (小型箱充填)</span>
         </label>
 
-        <!-- 推奨ワンタッチ適用ボタン -->
-        <button onclick="applyRecommendedPalletPreset()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] px-2.5 py-1.5 rounded-lg transition shadow-2xs flex items-center gap-1">
-          <i data-lucide="zap" class="w-3.5 h-3.5"></i> ★おすすめ推奨設定
+        <!-- プリセットボタン -->
+        <button onclick="applySafePalletPreset()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] px-2.5 py-1.5 rounded-lg transition shadow-2xs flex items-center gap-1 cursor-pointer" title="現場実務の安全基準(OH 0cm / 高215cm)をワンタッチ適用">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> ★現場安全基準
+        </button>
+        <button onclick="applyLimitTestPalletPreset()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] px-2 py-1.5 rounded-lg transition shadow-2xs flex items-center gap-1 cursor-pointer text-slate-100" title="高積み235cm+OH 2.5cmの限界容積テストを適用">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> 限界検証
         </button>
       </div>
     </div>
@@ -475,9 +527,174 @@
       </div>
       <p id="confirmMessage" class="text-xs text-slate-600 mb-5 leading-relaxed">処理を実行しますか？</p>
       <div class="flex justify-end space-x-2">
-        <button id="confirmCancelBtn" class="px-3.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-600 hover:bg-slate-50 transition">キャンセル</button>
-        <button id="confirmOkBtn" class="px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-medium transition">実行する</button>
+        <button id="confirmCancelBtn" class="px-3.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer">キャンセル</button>
+        <button id="confirmOkBtn" class="px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-medium transition cursor-pointer">実行する</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 【全便集計サマリーモーダル】(日次100便の一括俯瞰テーブル) -->
+  <div id="batchSummaryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col m-4 border border-slate-200 overflow-hidden">
+      <!-- ヘッダー -->
+      <div class="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-slate-900 text-white rounded-xl shadow-sm">
+            <i data-lucide="layout-list" class="w-5 h-5 text-amber-400"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">日次全出荷便 積載集計ダッシュボード</h3>
+            <p class="text-xs text-slate-500">全便の積載効率・積み残し有無を一括可視化（行クリックで該当便の3Dビューへジャンプ）</p>
+          </div>
+        </div>
+        <button onclick="closeBatchSummaryModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200 transition cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- KPI統計バッジ & フィルターバー -->
+      <div class="p-4 bg-white border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <!-- KPI集計 -->
+        <div class="flex items-center gap-3 flex-wrap text-xs">
+          <div class="bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+            <span class="text-slate-500">総便数:</span> <span id="summaryModalTotalBatches" class="font-bold text-slate-800 text-sm">0</span> 便
+          </div>
+          <div class="bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 text-emerald-800">
+            <span class="text-emerald-600 font-semibold">✅ 完全格納:</span> <span id="summaryModalOkBatches" class="font-extrabold text-sm">0</span> 便
+          </div>
+          <div class="bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 text-red-800">
+            <span class="text-red-600 font-semibold">⚠️ 積み残し発生:</span> <span id="summaryModalWarnBatches" class="font-extrabold text-sm">0</span> 便
+          </div>
+          <div class="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-800">
+            <span class="text-blue-600 font-semibold">総貨物量:</span> <span id="summaryModalTotalCases" class="font-extrabold text-sm">0</span> cs
+          </div>
+        </div>
+
+        <!-- フィルターボタン -->
+        <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-xs">
+          <button id="filterBtnAll" onclick="setBatchSummaryFilter('all')" class="px-2.5 py-1 font-bold rounded-md bg-white text-blue-600 shadow-2xs">すべて</button>
+          <button id="filterBtnWarn" onclick="setBatchSummaryFilter('warn')" class="px-2.5 py-1 font-semibold rounded-md text-red-600 hover:text-red-700">⚠️ 積み残し便のみ</button>
+          <button id="filterBtnOk" onclick="setBatchSummaryFilter('ok')" class="px-2.5 py-1 font-semibold rounded-md text-slate-600 hover:text-slate-900">✅ OK便のみ</button>
+        </div>
+      </div>
+
+      <!-- テーブル一覧 -->
+      <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10">
+              <th class="py-2.5 px-3">便番号 / 便名</th>
+              <th class="py-2.5 px-3">出荷先</th>
+              <th class="py-2.5 px-3">車種</th>
+              <th class="py-2.5 px-3 text-right">総ケース</th>
+              <th class="py-2.5 px-3 text-right">荷台格納</th>
+              <th class="py-2.5 px-3 text-right">積み残し</th>
+              <th class="py-2.5 px-3 text-right">積載率</th>
+              <th class="py-2.5 px-3 text-center">判定状態</th>
+              <th class="py-2.5 px-3 text-center">アクション</th>
+            </tr>
+          </thead>
+          <tbody id="batchSummaryTableBody" class="divide-y divide-slate-100">
+            <!-- JSで動的生成 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- フッター -->
+      <div class="p-3.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+        <div>💡 行をクリックするか「この便を表示」ボタンを押すと、3D積載モデルに切り替わります。</div>
+        <button onclick="closeBatchSummaryModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg transition cursor-pointer">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 【新規便追加モーダル】 -->
+  <div id="newBatchModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4 border border-slate-200">
+      <div class="flex justify-between items-center mb-4">
+        <h4 class="font-bold text-slate-900 text-base flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-5 h-5 text-blue-600"></i> 新規出荷便の追加
+        </h4>
+        <button onclick="closeNewBatchModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form onsubmit="saveNewBatch(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">便番号 / WMS便コード</label>
+          <input type="text" id="newBatchCode" required placeholder="例: 幹線6520" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">出荷先名称 (DC/納品先)</label>
+          <input type="text" id="newBatchDest" required placeholder="例: 中部物流センター" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">車両タイプ</label>
+            <select id="newBatchTruck" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
+              <option value="lowFloor10t">低床10tウイング</option>
+              <option value="standard4t">4t中型ウイング</option>
+              <option value="compact2t">2t小型ドライバン</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">出発予定時刻</label>
+            <input type="time" id="newBatchDepTime" value="09:00" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
+          </div>
+        </div>
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeNewBatchModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition cursor-pointer">キャンセル</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition cursor-pointer">便を作成</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 【便間商品回送・手修正モーダル】 -->
+  <div id="cargoTransferModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4 border border-slate-200">
+      <div class="flex justify-between items-center mb-4">
+        <h4 class="font-bold text-slate-900 text-base flex items-center gap-2">
+          <i data-lucide="arrow-right-left" class="w-5 h-5 text-amber-500"></i> 便間商品回送 (他便への振替)
+        </h4>
+        <button onclick="closeCargoTransferModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form onsubmit="executeCargoTransfer(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">回送元便 (現在の便)</label>
+          <input type="text" id="transferFromBatchName" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-600 font-semibold outline-none">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">対象商品アイテム</label>
+          <select id="transferItemSelect" onchange="onTransferItemSelectChanged()" required class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
+            <!-- JSで動的生成 -->
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">現在庫数</label>
+            <input type="text" id="transferItemCurrentQty" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-600 font-bold outline-none">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">回送ケース数</label>
+            <input type="number" id="transferQtyInput" required min="1" value="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 font-bold text-blue-600">
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">回送先便 (移動先の便)</label>
+          <select id="transferToBatchSelect" required class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500 font-semibold text-slate-800">
+            <!-- JSで動的生成 -->
+          </select>
+        </div>
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeCargoTransferModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition cursor-pointer">キャンセル</button>
+          <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold transition cursor-pointer">商品を回送実行</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -541,19 +758,11 @@
     let currentData = JSON.parse(JSON.stringify(initialData));
     let packingMode = 'highDensity'; // 'highDensity', 'wallBuilding', 'p1100', 'p2200'
 
-    // パレットモード設定定義
-    const PALLET_CONFIGS = {
-      highDensity: { id: "highDensity", name: "手摘み (高密度バラ積み)", isPallet: false, count: 0, workTime: 120 },
-      wallBuilding: { id: "wallBuilding", name: "従来ウォール積み", isPallet: false, count: 0, workTime: 120 },
-      p1100: { id: "p1100", name: "1100mm パレット (16枚)", isPallet: true, width: 110, length: 110, height: 15, cols: 2, rows: 8, count: 16, maxHeight: 215, workTime: 30 },
-      p2200: { id: "p2200", name: "2200mm パレット (4枚)", isPallet: true, width: 220, length: 220, height: 15, cols: 1, rows: 4, count: 4, maxHeight: 215, workTime: 15 }
-    };
-
-    // パレット積載改善オプション（初期推奨値: 高積み235cm + OH 2.5cm + トップ積み充填）
+    // --- OH 0cm (現場品質・荷傷み防止・受取拒否回避) を原則初期値とする ---
     const palletOptions = {
-      maxHeight: 235,
-      overhang: 2.5,
-      topFill: true
+      maxHeight: 215, // 標準安全高さ (天井余白30cm・荷崩れ防止)
+      overhang: 0.0,  // ★はみ出し完全ゼロ (0cm) を原則とする
+      topFill: false  // 標準時はトップ積みなし
     };
 
     function onPalletOptionChanged() {
@@ -565,11 +774,45 @@
       if (selOH) palletOptions.overhang = parseFloat(selOH.value) || 0;
       if (chkTF) palletOptions.topFill = chkTF.checked;
 
+      // リスク警告バッジ・トーストの動的更新
+      const riskBadge = document.getElementById('palletRiskBadge');
+      if (palletOptions.overhang > 0) {
+        if (riskBadge) {
+          riskBadge.className = 'px-2 py-0.5 rounded text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-300 animate-pulse';
+          riskBadge.innerHTML = `⚠️ 品質リスク警告 (OH:+${palletOptions.overhang}cm / 荷傷み・受取拒否リスクあり)`;
+        }
+        showToast(`⚠️ 警告: OH +${palletOptions.overhang}cm は側壁接触による荷傷みリスクおよびドライバー荷役拒否の品質リスクがあります。`, 'error');
+      } else {
+        if (riskBadge) {
+          riskBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
+          riskBadge.innerHTML = `✅ 安全基準遵守 (OH: 0cm / パレット枠内完全格納)`;
+        }
+        showToast(`✅ 安全基準適用: OH 0cm (パレット枠内完全格納・現場安全品質) に設定されました。`, 'success');
+      }
+
       updateDashboard();
-      showToast(`パレット条件を更新: 積載高 ${palletOptions.maxHeight}cm, OH +${palletOptions.overhang}cm, トップ積 ${palletOptions.topFill ? 'ON' : 'OFF'}`, 'info');
+      renderBatchTabs();
     }
 
-    function applyRecommendedPalletPreset() {
+    // ★現場安全基準プリセット適用
+    function applySafePalletPreset() {
+      const selH = document.getElementById('selPalletMaxHeight');
+      const selOH = document.getElementById('selPalletOverhang');
+      const chkTF = document.getElementById('chkPalletTopFill');
+
+      if (selH) selH.value = "215";
+      if (selOH) selOH.value = "0";
+      if (chkTF) chkTF.checked = false;
+
+      palletOptions.maxHeight = 215;
+      palletOptions.overhang = 0.0;
+      palletOptions.topFill = false;
+
+      onPalletOptionChanged();
+    }
+
+    // ⚠️ 限界検証モードプリセット適用
+    function applyLimitTestPalletPreset() {
       const selH = document.getElementById('selPalletMaxHeight');
       const selOH = document.getElementById('selPalletOverhang');
       const chkTF = document.getElementById('chkPalletTopFill');
@@ -582,8 +825,477 @@
       palletOptions.overhang = 2.5;
       palletOptions.topFill = true;
 
+      onPalletOptionChanged();
+    }
+
+    // ==========================================
+    // 【要件②】複数便データ構造（日次約100便対応）＆マネージャー
+    // ==========================================
+    function generateSampleBatchItems(areaName, targetCount, seed) {
+      const baseItems = JSON.parse(JSON.stringify(initialData.cargoItems));
+      let curSum = 0;
+      baseItems.forEach((it, idx) => {
+        const factor = 0.55 + (((seed * 19 + idx * 29) % 90) / 100);
+        it.qty = Math.max(1, Math.round(it.qty * factor));
+        curSum += it.qty;
+      });
+      const scale = targetCount / (curSum || 1);
+      baseItems.forEach(it => {
+        it.qty = Math.max(1, Math.round(it.qty * scale));
+      });
+      return baseItems;
+    }
+
+    let multiBatchData = {
+      activeBatchIndex: 0,
+      filterSearch: "",
+      summaryFilter: "all",
+      batches: [
+        {
+          id: "便6511 (愛知行き)",
+          code: "幹線6511",
+          dest: "愛知RDC (小牧)",
+          depTime: "08:30",
+          truckType: "lowFloor10t",
+          cargoItems: JSON.parse(JSON.stringify(initialData.cargoItems))
+        },
+        {
+          id: "便6512 (大阪行き)",
+          code: "幹線6512",
+          dest: "大阪メディカルDC (此花)",
+          depTime: "09:15",
+          truckType: "lowFloor10t",
+          cargoItems: generateSampleBatchItems("大阪", 760, 1)
+        },
+        {
+          id: "便6513 (福岡行き)",
+          code: "幹線6513",
+          dest: "福岡ロジセンター (鳥栖)",
+          depTime: "10:00",
+          truckType: "lowFloor10t",
+          cargoItems: generateSampleBatchItems("福岡", 620, 2)
+        },
+        {
+          id: "便6514 (仙台行き)",
+          code: "幹線6514",
+          dest: "東北仙台DC (宮城野)",
+          depTime: "11:30",
+          truckType: "lowFloor10t",
+          cargoItems: generateSampleBatchItems("仙台", 540, 3)
+        },
+        {
+          id: "便6515 (広島行き)",
+          code: "幹線6515",
+          dest: "中四国広島RDC (西条)",
+          depTime: "13:00",
+          truckType: "lowFloor10t",
+          cargoItems: generateSampleBatchItems("広島", 480, 4)
+        }
+      ]
+    };
+
+    // 指定便の積載メトリクス計算（高速集計）
+    function calculateBatchMetrics(batch) {
+      const t = VEHICLE_PRESETS[batch.truckType || 'lowFloor10t'] || VEHICLE_PRESETS.lowFloor10t;
+      const totalQty = (batch.cargoItems || []).reduce((sum, i) => sum + (i.qty || 0), 0);
+      const totalVol = (batch.cargoItems || []).reduce((sum, i) => sum + (i.L * i.W * i.H * (i.qty || 0)), 0) / 1000000;
+      const totalWeight = (batch.cargoItems || []).reduce((sum, i) => sum + ((i.weight || 0) * (i.qty || 0)), 0);
+      const maxTruckVol = (t.L * t.W * t.H) / 1000000;
+
+      let loaded = totalQty;
+      let overflow = 0;
+
+      if (packingMode === 'highDensity') {
+        // バラ積み：792csまで100%全数格納可能
+        const maxCapacity = Math.floor(maxTruckVol / 0.058); // 約800cs
+        if (totalQty > maxCapacity) {
+          overflow = totalQty - maxCapacity;
+          loaded = maxCapacity;
+        } else {
+          overflow = 0;
+          loaded = totalQty;
+        }
+      } else if (packingMode === 'p1100') {
+        // 1100mmパレット (16枚)
+        // 安全基準(OH0/215cm)時は約556cs、高積(OH2.5/235cm)時は約629cs
+        let palCapacity = 556;
+        if (palletOptions.maxHeight >= 235 && palletOptions.overhang >= 2.5) {
+          palCapacity = 629;
+        } else if (palletOptions.maxHeight >= 235 || palletOptions.overhang >= 2.5) {
+          palCapacity = 590;
+        }
+        if (totalQty > palCapacity) {
+          overflow = totalQty - palCapacity;
+          loaded = palCapacity;
+        } else {
+          overflow = 0;
+          loaded = totalQty;
+        }
+      } else if (packingMode === 'p2200') {
+        // 2200mmパレット (4枚)
+        let palCapacity = 585;
+        if (palletOptions.maxHeight >= 235 && palletOptions.overhang >= 2.5) {
+          palCapacity = 638;
+        } else if (palletOptions.maxHeight >= 235 || palletOptions.overhang >= 2.5) {
+          palCapacity = 610;
+        }
+        if (totalQty > palCapacity) {
+          overflow = totalQty - palCapacity;
+          loaded = palCapacity;
+        } else {
+          overflow = 0;
+          loaded = totalQty;
+        }
+      } else {
+        // 従来ウォール積み
+        const maxCapacity = 690;
+        if (totalQty > maxCapacity) {
+          overflow = totalQty - maxCapacity;
+          loaded = maxCapacity;
+        } else {
+          overflow = 0;
+          loaded = totalQty;
+        }
+      }
+
+      const loadRate = totalQty > 0 ? Math.round((loaded / totalQty) * 1000) / 10 : 0;
+      const volRate = maxTruckVol > 0 ? Math.round(((totalVol * (loaded / (totalQty || 1))) / maxTruckVol) * 1000) / 10 : 0;
+      const weightRate = t.maxWeight > 0 ? Math.round(((totalWeight * (loaded / (totalQty || 1))) / t.maxWeight) * 1000) / 10 : 0;
+
+      return {
+        totalQty,
+        loaded,
+        overflow,
+        loadRate,
+        totalVol: totalVol.toFixed(1),
+        volRate,
+        totalWeight: Math.round(totalWeight),
+        weightRate,
+        isOk: overflow === 0
+      };
+    }
+
+    // タブ描画
+    function renderBatchTabs() {
+      const container = document.getElementById('batchTabContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const query = (multiBatchData.filterSearch || '').toLowerCase();
+      let matchCount = 0;
+
+      multiBatchData.batches.forEach((batch, idx) => {
+        const match = !query ||
+          (batch.id && batch.id.toLowerCase().includes(query)) ||
+          (batch.code && batch.code.toLowerCase().includes(query)) ||
+          (batch.dest && batch.dest.toLowerCase().includes(query));
+
+        if (!match) return;
+        matchCount++;
+
+        const isActive = idx === multiBatchData.activeBatchIndex;
+        const metrics = calculateBatchMetrics(batch);
+
+        const tabBtn = document.createElement('button');
+        tabBtn.className = `px-3.5 py-2 text-xs font-bold rounded-xl transition flex items-center gap-2 flex-shrink-0 cursor-pointer shadow-2xs ${
+          isActive
+            ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400/50'
+            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+        }`;
+
+        let badgeHtml = '';
+        if (metrics.overflow === 0) {
+          badgeHtml = `<span class="px-1.5 py-0.5 text-[10px] rounded-full font-extrabold ${isActive ? 'bg-emerald-400 text-slate-900' : 'bg-emerald-100 text-emerald-800'}">✅ OK</span>`;
+        } else {
+          badgeHtml = `<span class="px-1.5 py-0.5 text-[10px] rounded-full font-extrabold ${isActive ? 'bg-red-400 text-slate-900' : 'bg-red-100 text-red-700'} animate-pulse">⚠️ 残${metrics.overflow}cs</span>`;
+        }
+
+        const dispTitle = batch.code ? `${batch.code} [${batch.dest || ''}]` : batch.id;
+        tabBtn.innerHTML = `<span>${dispTitle}</span> ${badgeHtml}`;
+        tabBtn.onclick = () => switchBatch(idx);
+        container.appendChild(tabBtn);
+      });
+
+      const badge = document.getElementById('batchCountBadge');
+      if (badge) badge.innerText = `${multiBatchData.batches.length} 便管理中`;
+    }
+
+    function filterBatchTabs() {
+      const input = document.getElementById('tabSearchInput');
+      multiBatchData.filterSearch = input ? input.value : '';
+      renderBatchTabs();
+    }
+
+    function switchBatch(idx) {
+      if (idx < 0 || idx >= multiBatchData.batches.length) return;
+      multiBatchData.activeBatchIndex = idx;
+      const batch = multiBatchData.batches[idx];
+
+      currentData.cargoItems = batch.cargoItems;
+      currentData.truck.selected = batch.truckType || 'lowFloor10t';
+      currentData.truck.customDims = { ...(VEHICLE_PRESETS[currentData.truck.selected] || VEHICLE_PRESETS.lowFloor10t) };
+
+      const vSelect = document.getElementById('vehiclePresetSelect');
+      if (vSelect) vSelect.value = currentData.truck.selected;
+
+      renderBatchTabs();
       updateDashboard();
-      showToast('★実務推奨設定（高積み235cm + OH 2.5cm + トップ積み）を適用しました！', 'success');
+      showToast(`便を切り替えました: ${batch.code || batch.id} (${batch.dest || ''})`, 'info');
+    }
+
+    // 100便一括デモ生成
+    function generate100BatchesDemo() {
+      const regions = [
+        "愛知RDC", "大阪メディカルDC", "福岡ロジ", "東北仙台DC", "広島RDC",
+        "北海道札幌DC", "北陸金沢DC", "新潟中央DC", "静岡掛川DC", "四国坂出DC",
+        "北関東群馬DC", "南関東八王子DC", "千葉湾岸DC", "京浜川崎DC", "京都南部DC"
+      ];
+      const trucks = ["lowFloor10t", "lowFloor10t", "lowFloor10t", "standard4t"];
+
+      multiBatchData.batches = [];
+      for (let i = 1; i <= 100; i++) {
+        const codeNum = 6500 + i;
+        const reg = regions[(i - 1) % regions.length];
+        const trk = trucks[(i - 1) % trucks.length];
+        const h = 7 + Math.floor(i / 10);
+        const m = (i * 12) % 60;
+        const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        const targetQty = 380 + ((i * 37) % 460); // 380〜840cs
+
+        multiBatchData.batches.push({
+          id: `便${codeNum} (${reg})`,
+          code: `幹線${codeNum}`,
+          dest: reg,
+          depTime: timeStr,
+          truckType: trk,
+          cargoItems: generateSampleBatchItems(reg, targetQty, i)
+        });
+      }
+
+      multiBatchData.activeBatchIndex = 0;
+      switchBatch(0);
+      showToast('🎉 日次100便の現場実務データを一括生成しました！タブまたは「全便集計サマリー」から全便を確認できます。', 'success');
+    }
+
+    // 全便集計サマリーモーダル
+    function openBatchSummaryModal() {
+      const modal = document.getElementById('batchSummaryModal');
+      if (modal) modal.classList.remove('hidden');
+      renderBatchSummaryTable(multiBatchData.summaryFilter || 'all');
+    }
+
+    function closeBatchSummaryModal() {
+      const modal = document.getElementById('batchSummaryModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function setBatchSummaryFilter(f) {
+      multiBatchData.summaryFilter = f;
+      const bAll = document.getElementById('filterBtnAll');
+      const bWarn = document.getElementById('filterBtnWarn');
+      const bOk = document.getElementById('filterBtnOk');
+      if (bAll) bAll.className = f === 'all' ? "px-2.5 py-1 font-bold rounded-md bg-white text-blue-600 shadow-2xs" : "px-2.5 py-1 font-semibold rounded-md text-slate-600 hover:text-slate-900";
+      if (bWarn) bWarn.className = f === 'warn' ? "px-2.5 py-1 font-bold rounded-md bg-white text-red-600 shadow-2xs" : "px-2.5 py-1 font-semibold rounded-md text-red-600 hover:text-red-700";
+      if (bOk) bOk.className = f === 'ok' ? "px-2.5 py-1 font-bold rounded-md bg-white text-emerald-600 shadow-2xs" : "px-2.5 py-1 font-semibold rounded-md text-slate-600 hover:text-slate-900";
+      renderBatchSummaryTable(f);
+    }
+
+    function renderBatchSummaryTable(filter) {
+      const tbody = document.getElementById('batchSummaryTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let totalB = multiBatchData.batches.length;
+      let okCount = 0;
+      let warnCount = 0;
+      let totalCases = 0;
+
+      multiBatchData.batches.forEach((batch, idx) => {
+        const m = calculateBatchMetrics(batch);
+        totalCases += m.totalQty;
+        if (m.isOk) okCount++; else warnCount++;
+
+        if (filter === 'warn' && m.isOk) return;
+        if (filter === 'ok' && !m.isOk) return;
+
+        const isCur = idx === multiBatchData.activeBatchIndex;
+        const tr = document.createElement('tr');
+        tr.className = `hover:bg-slate-50 transition border-b border-slate-100 cursor-pointer ${isCur ? 'bg-blue-50/60 font-semibold' : ''}`;
+        
+        tr.innerHTML = `
+          <td class="py-2.5 px-3">
+            <div class="font-bold text-slate-800">${batch.code || batch.id}</div>
+            <div class="text-[10px] text-slate-400">${batch.depTime || '--:--'} 発</div>
+          </td>
+          <td class="py-2.5 px-3 font-semibold text-slate-700">${batch.dest || '-'}</td>
+          <td class="py-2.5 px-3 text-slate-500">${(VEHICLE_PRESETS[batch.truckType] || {}).name || batch.truckType}</td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">${m.totalQty.toLocaleString()}</td>
+          <td class="py-2.5 px-3 text-right font-mono text-emerald-600 font-bold">${m.loaded.toLocaleString()}</td>
+          <td class="py-2.5 px-3 text-right font-mono ${m.overflow > 0 ? 'text-red-600 font-extrabold' : 'text-slate-400'}">${m.overflow > 0 ? `+${m.overflow}` : '0'}</td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold ${m.loadRate >= 90 ? 'text-emerald-600' : 'text-amber-600'}">${m.loadRate}%</td>
+          <td class="py-2.5 px-3 text-center">
+            ${m.isOk 
+              ? '<span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">✅ 完全格納</span>'
+              : `<span class="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded-full font-extrabold animate-pulse">⚠️ 残${m.overflow}cs</span>`
+            }
+          </td>
+          <td class="py-2.5 px-3 text-center space-x-1" onclick="event.stopPropagation()">
+            <button onclick="switchBatch(${idx}); closeBatchSummaryModal();" class="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[11px] font-bold transition">表示</button>
+            ${m.overflow > 0 ? `<button onclick="openCargoTransferModalFromBatch(${idx});" class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[11px] font-bold transition">回送</button>` : ''}
+          </td>
+        `;
+        tr.onclick = () => {
+          switchBatch(idx);
+          closeBatchSummaryModal();
+        };
+        tbody.appendChild(tr);
+      });
+
+      const elTot = document.getElementById('summaryModalTotalBatches');
+      const elOk = document.getElementById('summaryModalOkBatches');
+      const elWarn = document.getElementById('summaryModalWarnBatches');
+      const elCs = document.getElementById('summaryModalTotalCases');
+      if (elTot) elTot.innerText = totalB;
+      if (elOk) elOk.innerText = okCount;
+      if (elWarn) elWarn.innerText = warnCount;
+      if (elCs) elCs.innerText = totalCases.toLocaleString();
+    }
+
+    // 新規便追加
+    function openNewBatchModal() {
+      const modal = document.getElementById('newBatchModal');
+      if (modal) modal.classList.remove('hidden');
+      const codeInput = document.getElementById('newBatchCode');
+      if (codeInput) codeInput.value = `幹線${6510 + multiBatchData.batches.length + 1}`;
+    }
+
+    function closeNewBatchModal() {
+      const modal = document.getElementById('newBatchModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function saveNewBatch(e) {
+      e.preventDefault();
+      const code = document.getElementById('newBatchCode').value.trim();
+      const dest = document.getElementById('newBatchDest').value.trim();
+      const truckType = document.getElementById('newBatchTruck').value;
+      const depTime = document.getElementById('newBatchDepTime').value;
+
+      const newBatch = {
+        id: `便${code} (${dest})`,
+        code: code,
+        dest: dest,
+        depTime: depTime,
+        truckType: truckType,
+        cargoItems: generateSampleBatchItems(dest, 600, multiBatchData.batches.length + 1)
+      };
+
+      multiBatchData.batches.push(newBatch);
+      closeNewBatchModal();
+      switchBatch(multiBatchData.batches.length - 1);
+      showToast(`新規便 [${code} - ${dest}] を作成・追加しました！`, 'success');
+    }
+
+    // 便間商品回送モーダル
+    let transferSourceBatchIdx = 0;
+    function openCargoTransferModal(itemId) {
+      openCargoTransferModalFromBatch(multiBatchData.activeBatchIndex, itemId);
+    }
+
+    function openCargoTransferModalFromBatch(batchIdx, itemId) {
+      closeBatchSummaryModal();
+      transferSourceBatchIdx = batchIdx;
+      const modal = document.getElementById('cargoTransferModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+
+      const sourceBatch = multiBatchData.batches[batchIdx];
+      const fromInput = document.getElementById('transferFromBatchName');
+      if (fromInput) fromInput.value = `${sourceBatch.code || sourceBatch.id} (${sourceBatch.dest || ''})`;
+
+      // 対象商品セレクター
+      const itemSelect = document.getElementById('transferItemSelect');
+      itemSelect.innerHTML = '';
+      (sourceBatch.cargoItems || []).forEach(it => {
+        const opt = document.createElement('option');
+        opt.value = it.id;
+        opt.innerText = `${it.name} (在庫: ${it.qty}cs / ${it.weight}kg)`;
+        itemSelect.appendChild(opt);
+      });
+      if (itemId) itemSelect.value = itemId;
+
+      onTransferItemSelectChanged();
+
+      // 回送先便セレクター（自身以外）
+      const toSelect = document.getElementById('transferToBatchSelect');
+      toSelect.innerHTML = '';
+      multiBatchData.batches.forEach((b, bIdx) => {
+        if (bIdx === batchIdx) return;
+        const opt = document.createElement('option');
+        opt.value = bIdx;
+        const bm = calculateBatchMetrics(b);
+        opt.innerText = `${b.code || b.id} - ${b.dest || ''} (現在積載: ${bm.loaded}cs / 積載率:${bm.loadRate}%)`;
+        toSelect.appendChild(opt);
+      });
+    }
+
+    function closeCargoTransferModal() {
+      const modal = document.getElementById('cargoTransferModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function onTransferItemSelectChanged() {
+      const itemSelect = document.getElementById('transferItemSelect');
+      const curQtyInput = document.getElementById('transferItemCurrentQty');
+      const qtyInput = document.getElementById('transferQtyInput');
+      const sourceBatch = multiBatchData.batches[transferSourceBatchIdx];
+      const it = (sourceBatch.cargoItems || []).find(i => i.id === itemSelect.value);
+      if (it && curQtyInput) {
+        curQtyInput.value = `${it.qty} ケース`;
+        if (qtyInput) {
+          qtyInput.max = it.qty;
+          qtyInput.value = Math.min(it.qty, Math.max(1, Math.min(10, Math.floor(it.qty / 2))));
+        }
+      }
+    }
+
+    function executeCargoTransfer(e) {
+      e.preventDefault();
+      const itemSelect = document.getElementById('transferItemSelect');
+      const qtyInput = document.getElementById('transferQtyInput');
+      const toSelect = document.getElementById('transferToBatchSelect');
+
+      const itemId = itemSelect.value;
+      const transferQty = parseInt(qtyInput.value, 10);
+      const toBatchIdx = parseInt(toSelect.value, 10);
+
+      const fromBatch = multiBatchData.batches[transferSourceBatchIdx];
+      const toBatch = multiBatchData.batches[toBatchIdx];
+
+      const fromItem = fromBatch.cargoItems.find(i => i.id === itemId);
+      if (!fromItem || fromItem.qty < transferQty) {
+        showToast('回送数量が在庫数を超過しています。', 'error');
+        return;
+      }
+
+      // 回送元から減算
+      fromItem.qty -= transferQty;
+
+      // 回送先へ加算
+      let toItem = toBatch.cargoItems.find(i => i.id === itemId);
+      if (toItem) {
+        toItem.qty += transferQty;
+      } else {
+        toBatch.cargoItems.push({
+          ...fromItem,
+          qty: transferQty
+        });
+      }
+
+      closeCargoTransferModal();
+      renderBatchTabs();
+      updateDashboard();
+      showToast(`商品 [${fromItem.name}] を ${transferQty}cs 回送しました！ (${fromBatch.code} ➔ ${toBatch.code})`, 'success');
     }
 
     // Three.js グローバル変数
@@ -597,6 +1309,7 @@
     window.onload = function() {
       lucide.createIcons();
       initThreeJS();
+      renderBatchTabs();
       updateDashboard();
       
       window.addEventListener('resize', onWindowResize);
@@ -1972,6 +2685,10 @@
           H: preset.H,
           maxWeight: preset.maxWeight
         };
+        if (multiBatchData && multiBatchData.batches && multiBatchData.batches[multiBatchData.activeBatchIndex]) {
+          multiBatchData.batches[multiBatchData.activeBatchIndex].truckType = selected;
+          renderBatchTabs();
+        }
         updateDashboard();
         resetCameraView();
         showToast(`車両サイズを「${preset.name}」に変更しました。`, 'info');
@@ -2125,7 +2842,11 @@
       const name = item ? item.name : 'このアイテム';
       showConfirmModal(`「${name}」を削除しますか？この操作は取り消せません。`, () => {
         currentData.cargoItems = currentData.cargoItems.filter(i => i.id !== id);
+        if (multiBatchData && multiBatchData.batches && multiBatchData.batches[multiBatchData.activeBatchIndex]) {
+          multiBatchData.batches[multiBatchData.activeBatchIndex].cargoItems = currentData.cargoItems;
+        }
         updateDashboard();
+        renderBatchTabs();
         showToast('アイテムを削除しました。', 'info');
       });
     }
@@ -2155,8 +2876,13 @@
         showToast('新しい貨物を追加しました。', 'success');
       }
 
+      if (multiBatchData && multiBatchData.batches && multiBatchData.batches[multiBatchData.activeBatchIndex]) {
+        multiBatchData.batches[multiBatchData.activeBatchIndex].cargoItems = currentData.cargoItems;
+      }
+
       closeModal();
       updateDashboard();
+      renderBatchTabs();
     }
 
     function handleFileUpload(event) {
@@ -2167,7 +2893,15 @@
       reader.onload = function(e) {
         try {
           const json = JSON.parse(e.target.result);
-          if (json.cargoItems && Array.isArray(json.cargoItems)) {
+          if (json.batches && Array.isArray(json.batches)) {
+            // マルチ便統合データ
+            multiBatchData = json;
+            if (!multiBatchData.filterSearch) multiBatchData.filterSearch = "";
+            if (!multiBatchData.summaryFilter) multiBatchData.summaryFilter = "all";
+            switchBatch(multiBatchData.activeBatchIndex || 0);
+            showToast(`全便データ(${multiBatchData.batches.length}便)を正常に読み込みました。`, 'success');
+          } else if (json.cargoItems && Array.isArray(json.cargoItems)) {
+            // 単一便データ
             currentData = json;
             if (!currentData.truck || !currentData.truck.customDims) {
               currentData.truck = {
@@ -2178,11 +2912,16 @@
             if (currentData.truck.selected && VEHICLE_PRESETS[currentData.truck.selected]) {
               document.getElementById('vehiclePresetSelect').value = currentData.truck.selected;
             }
+            if (multiBatchData && multiBatchData.batches && multiBatchData.batches[multiBatchData.activeBatchIndex]) {
+              multiBatchData.batches[multiBatchData.activeBatchIndex].cargoItems = currentData.cargoItems;
+              multiBatchData.batches[multiBatchData.activeBatchIndex].truckType = currentData.truck.selected;
+            }
+            renderBatchTabs();
             updateDashboard();
             resetCameraView();
-            showToast('JSONデータを正常に読み込みました。', 'success');
+            showToast('便データを正常に読み込みました。', 'success');
           } else {
-            showToast('無効なJSONフォーマットです。「cargoItems」配列が不足しています。', 'error');
+            showToast('無効なJSONフォーマットです。「batches」または「cargoItems」配列が必要です。', 'error');
           }
         } catch (err) {
           showToast('JSON解析エラー: ' + err.message, 'error');
@@ -2192,14 +2931,23 @@
     }
 
     function exportJSON() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentData, null, 2));
+      const curBatch = (multiBatchData && multiBatchData.batches) ? multiBatchData.batches[multiBatchData.activeBatchIndex] : null;
+      const exportPayload = {
+        exportedAt: new Date().toISOString(),
+        activeBatchIndex: multiBatchData ? multiBatchData.activeBatchIndex : 0,
+        truck: currentData.truck,
+        cargoItems: currentData.cargoItems,
+        batches: multiBatchData ? multiBatchData.batches : undefined
+      };
+      const fileName = curBatch && curBatch.code ? `積載計画_${curBatch.code}_全便統合.json` : `トラック積載計画データ.json`;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportPayload, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", "トラック積載計画データ.json");
+      downloadAnchor.setAttribute("download", fileName);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-      showToast('JSONファイルを保存しました。', 'success');
+      showToast(`JSONファイル(${fileName})を保存しました。`, 'success');
     }
 
     function showToast(message, type = 'info') {
