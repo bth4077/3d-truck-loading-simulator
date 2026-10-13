@@ -2422,12 +2422,13 @@
     }
 
     // ==========================================
-    // 【要件③】パレタイズロボット向け同一品種下層優先パッキング (Robot Layer-by-Layer Packing)
+    // 【要件③】パレタイズロボット向け 5ブロック・ピンホール（風車）外周密着レイヤー構築＋4隅アンカー充填
     // ==========================================
     function packPalletGridBuilding(palletConfig, pallets, truckH) {
       const maxStackH = palletOptions.maxHeight || palletConfig.maxHeight || 215.0; // パレット上面からの有効高
       const overhang = palletOptions.overhang || 0.0;
-      const isTopFill = palletOptions.topFill !== false;
+      const SUP_MIN = 0.88; // 底面支持率88%以上（宙浮き・荷崩れ防止）
+      const EPS = 1e-6;
 
       const stage1Items = currentData.cargoItems.filter(it => it.deliveryStage === 1 && it.qty > 0);
       const stage2Items = currentData.cargoItems.filter(it => it.deliveryStage === 2 && it.qty > 0);
@@ -2449,232 +2450,441 @@
       const inTruck = [];
       const overflow = [];
 
-      function packStageRobot(stageItems, palList) {
-        // ロボットパレタイズ仕様:
-        // 1. 同一品種ごとにまとめて下層から積載
-        // 2. 重量順・数量順にソート（重い主要品種を底面〜下層に優先配置）
-        // 3. 小型充填用ケースはトップ（上層余白）に配置
-        const largeItems = [];
-        const smallItems = [];
+      function boxOverlapArea(a, b) {
+        const ix = Math.min(a.x + a.l, b.x + b.l) - Math.max(a.x, b.x);
+        const iz = Math.min(a.z + a.w, b.z + b.w) - Math.max(a.z, b.z);
+        return (ix > 0 && iz > 0) ? (ix * iz) : 0.0;
+      }
 
-        stageItems.forEach(it => {
-          const vol = it.L * it.W * it.H;
-          const minDim = Math.min(it.L, it.W, it.H);
-          if (isTopFill && (minDim <= 22.0 || vol <= 30000)) {
-            smallItems.push({ ...it });
-          } else {
-            largeItems.push({ ...it });
-          }
-        });
+      function calcSupport(bx, belowList) {
+        let sum = 0.0;
+        for (let i = 0; i < belowList.length; i++) {
+          sum += boxOverlapArea(bx, belowList[i]);
+        }
+        return sum / (bx.l * bx.w);
+      }
 
-        // 下層優先ソート: 単重・数量の大きい順（安定基盤を形成）
-        largeItems.sort((a, b) => (b.weight * b.qty) - (a.weight * a.qty) || (b.weight - a.weight));
-        smallItems.sort((a, b) => (b.weight * b.qty) - (a.weight * a.qty) || (b.weight - a.weight));
-
-        // 同一品種が連続したキューを生成
-        const boxQueue = [];
-        largeItems.forEach(it => {
-          for (let q = 0; q < it.qty; q++) boxQueue.push({ ...it });
-        });
-        smallItems.forEach(it => {
-          for (let q = 0; q < it.qty; q++) boxQueue.push({ ...it });
-        });
-
-        for (let pIdx = 0; pIdx < palList.length; pIdx++) {
-          if (boxQueue.length === 0) break;
-          const pal = palList[pIdx];
-          const effL = pal.l + overhang * 2;
-          const effW = pal.w + overhang * 2;
-          const pMinX = pal.cx - effL / 2;
-          const pMaxX = pal.cx + effL / 2;
-          const pMinZ = pal.cz - effW / 2;
-          const pMaxZ = pal.cz + effW / 2;
-          const baseY = pal.h + (overhang > 0 ? 0.4 : 0);
-
-          const palPlaced = [];
-          
-          // 【要件】ピンホール積み（風車積み・外周密着＆中心空隙形成エンジン）
-          // パレット底面手前側や外周に隙間を残さず、外周4辺（南・東・北・西）にピッタリ密着配置！
-          // 余りをすべて真ん中（中心部）に集めることで、中央に綺麗なピンホール（隙間）を形成し、
-          // 下段の底面積をパレット全幅(110x110cm)いっぱいに広げて荷崩れ・宙浮きを完全撲滅する！
-          const sampleBox = boxQueue[0] || (stageItems.length > 0 ? stageItems[0] : { L: 40, W: 30 });
-
-          const pts = [];
-
-          function addPinwheelPerimeterPoints(targetY, lIdx, sBox) {
-            const bL = sBox.L || 40.0;
-            const bW = sBox.W || 30.0;
-            if (lIdx % 2 === 0) {
-              // 時計回り風車: パレット外周4辺にピッタリ密着！
-              // ① 南辺（手前端 z = pMinZ に完全密着！手前の余白をゼロ化）
-              pts.push({ y: targetY, x: pMaxX - bL, z: pMinZ, prio: 1, edge: "S" });
-              pts.push({ y: targetY, x: pMinX, z: pMinZ, prio: 1, edge: "S" });
-              // ② 東辺（右端 x = pMaxX に完全密着！）
-              pts.push({ y: targetY, x: pMaxX - bW, z: pMinZ, prio: 1, edge: "E" });
-              pts.push({ y: targetY, x: pMaxX - bW, z: pMaxZ - bL, prio: 1, edge: "E" });
-              // ③ 北辺（奥端 z = pMaxZ に完全密着！）
-              pts.push({ y: targetY, x: pMinX, z: pMaxZ - bW, prio: 1, edge: "N" });
-              pts.push({ y: targetY, x: pMaxX - bL, z: pMaxZ - bW, prio: 1, edge: "N" });
-              // ④ 西辺（左端 x = pMinX に完全密着！）
-              pts.push({ y: targetY, x: pMinX, z: pMaxZ - bL, prio: 1, edge: "W" });
-              pts.push({ y: targetY, x: pMinX, z: pMinZ, prio: 1, edge: "W" });
-            } else {
-              // 反時計回り風車（インターロック噛み合わせ）
-              pts.push({ y: targetY, x: pMinX, z: pMinZ, prio: 1, edge: "S" });
-              pts.push({ y: targetY, x: pMaxX - bL, z: pMinZ, prio: 1, edge: "S" });
-              pts.push({ y: targetY, x: pMinX, z: pMinZ, prio: 1, edge: "W" });
-              pts.push({ y: targetY, x: pMinX, z: pMaxZ - bL, prio: 1, edge: "W" });
-              pts.push({ y: targetY, x: pMaxX - bL, z: pMaxZ - bW, prio: 1, edge: "N" });
-              pts.push({ y: targetY, x: pMinX, z: pMaxZ - bW, prio: 1, edge: "N" });
-              pts.push({ y: targetY, x: pMaxX - bW, z: pMaxZ - bL, prio: 1, edge: "E" });
-              pts.push({ y: targetY, x: pMaxX - bW, z: pMinZ, prio: 1, edge: "E" });
-            }
-          }
-
-          // 最下層（1段目）の外周密着ピンホール点群を生成
-          addPinwheelPerimeterPoints(0.0, 0, sampleBox);
-
-          while (pts.length > 0 && boxQueue.length > 0) {
-            // Yが最も低い（下層）点を最優先！同一Yなら外周密着点(prio:1)を最優先！
-            pts.sort((a, b) => (Math.round(a.y * 10) - Math.round(b.y * 10)) || ((a.prio || 2) - (b.prio || 2)) || a.x - b.x || a.z - b.z);
-            const pt = pts.shift();
-            const cy = pt.y, cx = pt.x, cz = pt.z;
-
-            if (cy >= maxStackH - 5) continue;
-
-            // 近傍の重複点をスキップ
-            if (pts.some(p => Math.abs(cx - p.x) < 0.2 && Math.abs(cz - p.z) < 0.2 && Math.abs(cy - p.y) < 0.2)) {
-              continue;
-            }
-
-            let bestIdx = -1;
-            let bestO = null;
-            let bestSupport = 0.0;
-
-            // 直下にある箱のSKUを特定（ブロック積み・耐圧角支持のため同一SKUを最優先）
-            let underlyingSku = null;
-            if (cy > 0.5) {
-              for (const pb of palPlaced) {
-                if (Math.abs((pb.y + pb.h) - cy) <= 0.8) {
-                  if (getRectOverlapArea(cx, cx + 30, cz, cz + 30, pb.x, pb.x + pb.l, pb.z, pb.z + pb.w) > 0) {
-                    underlyingSku = pb.item.name;
-                    break;
-                  }
-                }
+      function packSubGrid(W, D, a, b) {
+        let best = [];
+        const pairs = [[a, b], [b, a]];
+        for (const [p, q] of pairs) {
+          const nx = Math.floor((W + EPS) / p);
+          const nz = Math.floor((D + EPS) / q);
+          if (nx * nz > best.length) {
+            const cur = [];
+            for (let i = 0; i < nx; i++) {
+              for (let j = 0; j < nz; j++) {
+                cur.push([i * p, j * q, p, q]);
               }
             }
+            best = cur;
+          }
+        }
+        return best;
+      }
 
-            const searchLimit = Math.min(boxQueue.length, 100);
-            const passes = underlyingSku ? [true, false] : [false];
+      // 純粋グリッド時の外周4辺密着＆中央ピンホール分割配置
+      function spreadPinholeGrid(nx, nz, a, b, P, parity) {
+        const xs = [];
+        if (nx === 1) {
+          xs.push(parity % 2 === 0 ? 0.0 : P - a);
+        } else {
+          const leftN = (parity % 2 === 0) ? Math.floor((nx + 1) / 2) : Math.floor(nx / 2);
+          const rightN = nx - leftN;
+          for (let i = 0; i < leftN; i++) xs.push(i * a);
+          for (let i = 0; i < rightN; i++) xs.push(P - (rightN - i) * a);
+        }
+        const zs = [];
+        const p2 = Math.floor(parity / 2);
+        if (nz === 1) {
+          zs.push(p2 % 2 === 0 ? 0.0 : P - b);
+        } else {
+          const botN = (p2 % 2 === 0) ? Math.floor((nz + 1) / 2) : Math.floor(nz / 2);
+          const topN = nz - botN;
+          for (let j = 0; j < botN; j++) zs.push(j * b);
+          for (let j = 0; j < topN; j++) zs.push(P - (topN - j) * b);
+        }
+        const rects = [];
+        for (const x of xs) {
+          for (const z of zs) {
+            rects.push([x, z, a, b]);
+          }
+        }
+        return rects;
+      }
 
-            for (const matchSame of passes) {
-              for (let i = 0; i < searchLimit; i++) {
-                const b = boxQueue[i];
-                if (matchSame && b.name !== underlyingSku) continue;
+      // 5ブロック・ピンホール（風車）外周密着レイヤーパターン探索
+      function bestPinwheelPattern(a, b, P) {
+        let bestCount = -1;
+        let bestEdges = -1;
+        let bestRects = [];
 
-                const ors = getOrientations(b);
-                for (const o of ors) {
-                  const boxL = o.l, boxW = o.w, boxH = o.h;
+        const maxMa = Math.floor((P + EPS) / a);
+        const maxMb = Math.floor((P + EPS) / b);
+        const maList = [];
+        const mbList = [];
+        for (let i = 0; i <= maxMa; i++) maList.push(i * a);
+        for (let i = 0; i <= maxMb; i++) mbList.push(i * b);
 
-                  // パレット境界チェック（OH 0cm厳格）
-                  if (cx + boxL > pMaxX + 0.1 || cz + boxW > pMaxZ + 0.1 || cy + boxH > maxStackH + 0.1) {
-                    continue;
-                  }
+        for (const wA of maList) {
+          for (const dA of mbList) {
+            for (const dB of maList) {
+              for (const wC of maList) {
+                if (wA > P - wC + EPS && dA > dB + EPS) continue;
+                if (wA < P - wC - EPS && dA < dB - EPS) continue;
 
-                  // 既存箱との干渉（衝突）チェック
-                  let ol = false;
-                  for (const pb of palPlaced) {
-                    if (!(cx + boxL <= pb.x + 0.1 || cx >= pb.x + pb.l - 0.1 ||
-                          cz + boxW <= pb.z + 0.1 || cz >= pb.z + pb.w - 0.1 ||
-                          cy + boxH <= pb.y + 0.1 || cy >= pb.y + pb.h - 0.1)) {
-                      ol = true;
-                      break;
+                const nAx = Math.floor(wA / a + EPS);
+                const nAz = Math.floor(dA / b + EPS);
+                const nBx = Math.floor((P - wA + EPS) / b);
+                const nBz = Math.floor(dB / a + EPS);
+                const nCx = Math.floor(wC / a + EPS);
+                const nCz = Math.floor((P - dB + EPS) / b);
+                const nDx = Math.floor((P - wC + EPS) / b);
+                const nDz = Math.floor((P - dA + EPS) / a);
+
+                let rects = [];
+                if (nAx * nAz > 0 && (nBx * nBz + nCx * nCz + nDx * nDz === 0)) {
+                  rects = spreadPinholeGrid(nAx, nAz, a, b, P, 0);
+                } else if (nBx * nBz > 0 && (nAx * nAz + nCx * nCz + nDx * nDz === 0)) {
+                  rects = spreadPinholeGrid(nBx, nBz, b, a, P, 0);
+                } else {
+                  // A: 左手前 (0, 0) 外周密着
+                  for (let i = 0; i < nAx; i++) {
+                    for (let j = 0; j < nAz; j++) {
+                      rects.push([i * a, j * b, a, b]);
                     }
                   }
-                  if (ol) continue;
+                  // B: 右手前 (P, 0) 外周密着 (90度回転)
+                  for (let i = 0; i < nBx; i++) {
+                    for (let j = 0; j < nBz; j++) {
+                      rects.push([P - (i + 1) * b, j * a, b, a]);
+                    }
+                  }
+                  // C: 右奥 (P, P) 外周密着
+                  for (let i = 0; i < nCx; i++) {
+                    for (let j = 0; j < nCz; j++) {
+                      rects.push([P - (i + 1) * a, P - (j + 1) * b, a, b]);
+                    }
+                  }
+                  // D: 左奥 (0, P) 外周密着 (90度回転)
+                  for (let i = 0; i < nDx; i++) {
+                    for (let j = 0; j < nDz; j++) {
+                      rects.push([i * b, P - (j + 1) * a, b, a]);
+                    }
+                  }
 
-                  // 【底面支持率 判定（ピンホール積み・荷崩れ防止）】
-                  let supportRatio = 0.0;
-                  if (cy <= 0.5) {
-                    // 最下層: パレット天板との重なり面積
-                    const overlap = getRectOverlapArea(cx, cx + boxL, cz, cz + boxW, pMinX, pMaxX, pMinZ, pMaxZ);
-                    supportRatio = overlap / (boxL * boxW);
-                  } else {
-                    // 上層: 直下の箱群天面との重なり面積の合計
-                    let overlap = 0.0;
-                    for (const pb of palPlaced) {
-                      if (Math.abs((pb.y + pb.h) - cy) <= 0.8) {
-                        overlap += getRectOverlapArea(cx, cx + boxL, cz, cz + boxW, pb.x, pb.x + pb.l, pb.z, pb.z + pb.w);
+                  // 中央ピンホール領域にさらに箱が入る場合は第5ブロックとして充填
+                  const Dbot = P - nDz * a;
+                  const Dright = nDx * b;
+                  const Bleft = P - nBx * b;
+                  let hx0 = 0, hx1 = 0, hz0 = 0, hz1 = 0;
+                  if (wA < P - wC - EPS && dB < dA + EPS) {
+                    hx0 = wA; hx1 = P - wC; hz0 = dB; hz1 = Dbot;
+                  } else if (wA > P - wC + EPS && dA <= dB + EPS) {
+                    hx0 = Dright; hx1 = Bleft; hz0 = dA; hz1 = dB;
+                  }
+                  if (hx1 - hx0 > EPS && hz1 - hz0 > EPS) {
+                    const g = packSubGrid(hx1 - hx0, hz1 - hz0, a, b);
+                    if (g.length > 0) {
+                      let gw = 0, gd = 0;
+                      for (const r of g) {
+                        if (r[0] + r[2] > gw) gw = r[0] + r[2];
+                        if (r[1] + r[3] > gd) gd = r[1] + r[3];
+                      }
+                      const ox = hx0 + (hx1 - hx0 - gw) / 2;
+                      const oz = hz0 + (hz1 - hz0 - gd) / 2;
+                      for (const r of g) {
+                        rects.push([ox + r[0], oz + r[1], r[2], r[3]]);
                       }
                     }
-                    supportRatio = overlap / (boxL * boxW);
-                  }
-
-                  // 支持率 >= 90% 基準
-                  if (supportRatio >= 0.90) {
-                    bestIdx = i;
-                    bestO = o;
-                    bestSupport = supportRatio;
-                    break;
                   }
                 }
 
-                if (bestIdx !== -1) break;
-              }
-              if (bestIdx !== -1) break;
-            }
-
-            if (bestIdx !== -1) {
-              const box = boxQueue.splice(bestIdx, 1)[0];
-              const isPerimeter = (Math.abs(cx - pMinX) < 1.0 || Math.abs(cx + bestO.l - pMaxX) < 1.0 || Math.abs(cz - pMinZ) < 1.0 || Math.abs(cz + bestO.w - pMaxZ) < 1.0);
-              const placedBox = {
-                item: box,
-                palletId: pal.id,
-                x: cx,
-                y: cy,
-                z: cz,
-                l: bestO.l,
-                h: bestO.h,
-                w: bestO.w,
-                topAxis: bestO.topAxis,
-                orientType: bestO.orientType,
-                isUpright: bestO.upright,
-                supportRatio: bestSupport,
-                stackingPattern: isPerimeter ? 'pinwheel' : 'block'
-              };
-              palPlaced.push(placedBox);
-              inTruck.push({
-                ...placedBox,
-                y: baseY + cy
-              });
-
-              const topY = cy + bestO.h + 0.2;
-
-              // 外周に配置した際、上段用の外周密着点群も追加
-              if (boxQueue.length > 0 && topY < maxStackH - 10) {
-                addPinwheelPerimeterPoints(topY, Math.floor(topY / 30) + 1, boxQueue[0]);
-              }
-
-              // 1. 同一水平層の隣接候補点（横方向・奥行方向）
-              pts.push({ y: cy, x: cx + bestO.l + 0.2, z: cz, prio: 1 });
-              pts.push({ y: cy, x: cx, z: cz + bestO.w + 0.2, prio: 1 });
-
-              // 2. 直上候補点（ブロック積み・同一SKU垂直柱）
-              pts.push({ y: topY, x: cx, z: cz, prio: 2 });
-
-              // 3. 周囲の同一天面高さの箱に合わせた候補点（インターロック噛み合わせ）
-              for (const pb of palPlaced) {
-                if (Math.abs((pb.y + pb.h) - (cy + bestO.h)) <= 0.5) {
-                  pts.push({ y: topY, x: pb.x, z: cz, prio: 2 });
-                  pts.push({ y: topY, x: cx, z: pb.z, prio: 2 });
+                if (rects.length === 0) continue;
+                let f = 0, bk = 0, lf = 0, rt = 0;
+                for (const r of rects) {
+                  if (Math.abs(r[1]) < 0.1) f = 1;
+                  if (Math.abs(r[1] + r[3] - P) < 0.1) bk = 1;
+                  if (Math.abs(r[0]) < 0.1) lf = 1;
+                  if (Math.abs(r[0] + r[2] - P) < 0.1) rt = 1;
+                }
+                const edges = f + bk + lf + rt;
+                if (rects.length > bestCount || (rects.length === bestCount && edges > bestEdges)) {
+                  bestCount = rects.length;
+                  bestEdges = edges;
+                  bestRects = rects;
                 }
               }
             }
           }
         }
+        return bestRects;
+      }
 
-        while (boxQueue.length > 0) {
-          overflow.push({ item: boxQueue.shift() });
+      const patternCache = new Map();
+      function getLayerOptionsFor(L, W, H, P) {
+        const key = `${L}_${W}_${H}_${P}`;
+        if (patternCache.has(key)) return patternCache.get(key);
+        const rawOrients = [
+          { a: L, b: W, h: H, ot: 'upright', ta: 'y', up: true },
+          { a: L, b: H, h: W, ot: 'side', ta: 'z', up: false },
+          { a: W, b: H, h: L, ot: 'side', ta: 'z', up: false }
+        ];
+        const opts = [];
+        for (const o of rawOrients) {
+          if (o.h > maxStackH) continue;
+          const rects = bestPinwheelPattern(o.a, o.b, P);
+          if (rects.length === 0) continue;
+          const cov = (rects.length * o.a * o.b) / (P * P);
+          const score = cov * (o.up ? 1.08 : 1.0);
+          opts.push({ score, rects, h: o.h, ot: o.ot, ta: o.ta, up: o.up, cov });
+        }
+        opts.sort((x, y) => y.score - x.score);
+        patternCache.set(key, opts);
+        return opts;
+      }
+
+      function packStageRobot(stageItems, palList) {
+        if (stageItems.length === 0 || palList.length === 0) {
+          stageItems.forEach(it => {
+            for (let q = 0; q < it.qty; q++) overflow.push({ item: { ...it } });
+          });
+          return;
+        }
+
+        const P = palList[0].l + overhang * 2;
+
+        // 同一寸法 (L, W, H) ごとにグループ化（重い順、同一SKUが連続するようにソート）
+        const sortedItems = [...stageItems].sort((a, b) => (b.weight * b.qty) - (a.weight * a.qty) || (b.weight - a.weight));
+        const dimMap = new Map();
+        for (const it of sortedItems) {
+          const k = `${it.L}_${it.W}_${it.H}`;
+          if (!dimMap.has(k)) dimMap.set(k, { L: it.L, W: it.W, H: it.H, items: [] });
+          dimMap.get(k).items.push(it);
+        }
+
+        const groups = [];
+        for (const [k, entry] of dimMap.entries()) {
+          const q = [];
+          let totalW = 0;
+          for (const it of entry.items) {
+            for (let c = 0; c < it.qty; c++) {
+              q.push({ ...it });
+              totalW += it.weight;
+            }
+          }
+          const opts = getLayerOptionsFor(entry.L, entry.W, entry.H, P);
+          groups.push({
+            key: k,
+            queue: q,
+            opts,
+            wt: totalW,
+            avgW: q.length > 0 ? totalW / q.length : 0
+          });
+        }
+        groups.sort((a, b) => b.wt - a.wt);
+
+        // Phase 1: 5ブロック・ピンホール外周密着フルレイヤーの積層
+        const palletStates = [];
+        for (let pIdx = 0; pIdx < palList.length; pIdx++) {
+          const pal = palList[pIdx];
+          const effL = pal.l + overhang * 2;
+          const effW = pal.w + overhang * 2;
+          const placed = [];
+          let top = 0.0;
+          let below = null;
+          let lastKey = null;
+          let li = 0;
+
+          while (true) {
+            const candMoves = [];
+            for (const g of groups) {
+              for (const opt of g.opts) {
+                if (g.queue.length >= opt.rects.length && top + opt.h <= maxStackH + 0.01) {
+                  const remH = maxStackH - (top + opt.h);
+                  const heightFitBonus = remH < 25.0 ? 0.2 : 0.0;
+                  const moveScore = (g.key === lastKey ? 10.0 : 0.0) + opt.score + heightFitBonus + (g.avgW * 0.02);
+                  candMoves.push({ moveScore, g, opt });
+                }
+              }
+            }
+            if (candMoves.length === 0) break;
+            candMoves.sort((a, b) => b.moveScore - a.moveScore);
+
+            let chosen = null;
+            const mirrorOrders = (li % 2 === 0)
+              ? [[false, false], [true, false], [false, true], [true, true]]
+              : [[true, true], [true, false], [false, true], [false, false]];
+
+            for (const cand of candMoves) {
+              const { g, opt } = cand;
+              for (const [mxFlag, mzFlag] of mirrorOrders) {
+                const boxes = [];
+                for (const [rx, rz, rl, rw] of opt.rects) {
+                  const mx = mxFlag ? (effL - rx - rl) : rx;
+                  const mz = mzFlag ? (effW - rz - rw) : rz;
+                  boxes.push({
+                    x: mx, z: mz, l: rl, w: rw, h: opt.h, y: top,
+                    ot: opt.ot, ta: opt.ta, up: opt.up
+                  });
+                }
+                let minSup = 1.0;
+                const sups = [];
+                for (const b of boxes) {
+                  const s = (below === null) ? 1.0 : calcSupport(b, below);
+                  sups.push(s);
+                  if (s < minSup) minSup = s;
+                }
+                if (minSup >= SUP_MIN) {
+                  for (let i = 0; i < boxes.length; i++) {
+                    boxes[i].sup = sups[i];
+                    boxes[i].item = g.queue.shift();
+                  }
+                  chosen = { g, boxes, h: opt.h };
+                  break;
+                }
+              }
+              if (chosen) break;
+            }
+            if (!chosen) break;
+
+            for (const b of chosen.boxes) placed.push(b);
+            below = chosen.boxes;
+            top += chosen.h;
+            lastKey = chosen.g.key;
+            li++;
+          }
+
+          palletStates.push({ pal, placed, top, effL, effW });
+        }
+
+        // Phase 2: 端数ケース（フルレイヤー未満）の4隅コーナーアンカー外周充填
+        const rest = [];
+        for (const g of groups) {
+          while (g.queue.length > 0) rest.push(g.queue.shift());
+        }
+        rest.sort((a, b) => (b.L * b.W) - (a.L * a.W) || (b.weight - a.weight));
+
+        for (const st of palletStates) {
+          const allp = st.placed;
+          const t = st.top;
+          const effL = st.effL;
+          const effW = st.effW;
+
+          const pts = [
+            { y: t, px: 0.0, pz: 0.0, sx: 1, sz: 1 },
+            { y: t, px: effL, pz: 0.0, sx: -1, sz: 1 },
+            { y: t, px: 0.0, pz: effW, sx: 1, sz: -1 },
+            { y: t, px: effL, pz: effW, sx: -1, sz: -1 }
+          ];
+          const seen = new Set();
+
+          while (pts.length > 0 && rest.length > 0) {
+            pts.sort((a, b) => {
+              const dy = Math.round(a.y * 10) - Math.round(b.y * 10);
+              if (dy !== 0) return dy;
+              const da = Math.min(a.px, effL - a.px) + Math.min(a.pz, effW - a.pz);
+              const db = Math.min(b.px, effL - b.px) + Math.min(b.pz, effW - b.pz);
+              return da - db;
+            });
+            const pt = pts.shift();
+            const { y, px, pz, sx, sz } = pt;
+            const k = `${Math.round(y * 10)}_${Math.round(px * 10)}_${Math.round(pz * 10)}_${sx}_${sz}`;
+            if (seen.has(k)) continue;
+            seen.add(k);
+
+            const belowBoxes = allp.filter(q => Math.abs((q.y + q.h) - y) < 0.8);
+            if (y > 0.05 && belowBoxes.length === 0) continue;
+
+            let best = null;
+            const testedDims = new Set();
+            for (let i = 0; i < rest.length; i++) {
+              const it = rest[i];
+              const dk = `${it.L}_${it.W}_${it.H}`;
+              if (testedDims.has(dk)) continue;
+              testedDims.add(dk);
+
+              const cands = [
+                { l: it.L, w: it.W, h: it.H, ot: 'upright', ta: 'y', up: true },
+                { l: it.W, w: it.L, h: it.H, ot: 'upright', ta: 'y', up: true },
+                { l: it.L, w: it.H, h: it.W, ot: 'side', ta: 'z', up: false },
+                { l: it.W, w: it.H, h: it.L, ot: 'side', ta: 'z', up: false }
+              ];
+              for (const c of cands) {
+                const x = sx > 0 ? px : px - c.l;
+                const z = sz > 0 ? pz : pz - c.w;
+                if (x < -0.01 || z < -0.01 || x + c.l > effL + 0.01 || z + c.w > effW + 0.01 || y + c.h > maxStackH + 0.01) {
+                  continue;
+                }
+                const bx = { x, z, l: c.l, w: c.w, h: c.h, y };
+                let col = false;
+                for (const q of allp) {
+                  if (boxOverlapArea(bx, q) > 0.01 && y < q.y + q.h - 0.01 && y + c.h > q.y + 0.01) {
+                    col = true;
+                    break;
+                  }
+                }
+                if (col) continue;
+
+                const s = (y < 0.05) ? 1.0 : calcSupport(bx, belowBoxes);
+                if (s < SUP_MIN) continue;
+
+                const outerTouch = ((x < 0.1 || x + c.l > effL - 0.1) ? 1 : 0) + ((z < 0.1 || z + c.w > effW - 0.1) ? 1 : 0);
+                const sc = (c.l * c.w) * (c.up ? 1.15 : 1.0) + outerTouch * 200.0 + s * 100.0;
+                if (best === null || sc > best.sc) {
+                  best = { sc, idx: i, bx, ot: c.ot, ta: c.ta, up: c.up, sup: s };
+                }
+              }
+            }
+
+            if (!best) continue;
+            const it = rest.splice(best.idx, 1)[0];
+            const bx = best.bx;
+            bx.item = it;
+            bx.ot = best.ot;
+            bx.ta = best.ta;
+            bx.up = best.up;
+            bx.sup = best.sup;
+            allp.push(bx);
+
+            pts.push({ y, px: sx > 0 ? bx.x + bx.l : bx.x, pz, sx, sz });
+            pts.push({ y, px, pz: sz > 0 ? bx.z + bx.w : bx.z, sx, sz });
+            pts.push({ y: y + bx.h, px: sx > 0 ? bx.x : bx.x + bx.l, pz: sz > 0 ? bx.z : bx.z + bx.w, sx, sz });
+            pts.push({ y: y + bx.h, px: 0.0, pz: 0.0, sx: 1, sz: 1 });
+            pts.push({ y: y + bx.h, px: effL, pz: 0.0, sx: -1, sz: 1 });
+            pts.push({ y: y + bx.h, px: 0.0, pz: effW, sx: 1, sz: -1 });
+            pts.push({ y: y + bx.h, px: effL, pz: effW, sx: -1, sz: -1 });
+            seen.delete(k);
+          }
+
+          // ローカル座標 -> ワールド座標へ変換し inTruck へ登録
+          const pal = st.pal;
+          const pMinX = pal.cx - effL / 2;
+          const pMinZ = pal.cz - effW / 2;
+          const baseY = pal.h + (overhang > 0 ? 0.4 : 0);
+
+          for (const b of allp) {
+            const isPerimeter = (b.x < 0.5 || b.x + b.l > effL - 0.5 || b.z < 0.5 || b.z + b.w > effW - 0.5);
+            inTruck.push({
+              item: b.item,
+              palletId: pal.id,
+              x: pMinX + b.x,
+              y: baseY + b.y,
+              z: pMinZ + b.z,
+              l: b.l,
+              h: b.h,
+              w: b.w,
+              topAxis: b.ta,
+              orientType: b.ot,
+              isUpright: b.up,
+              supportRatio: b.sup,
+              stackingPattern: isPerimeter ? 'pinwheel' : 'block'
+            });
+          }
+        }
+
+        while (rest.length > 0) {
+          overflow.push({ item: rest.shift() });
         }
       }
 
