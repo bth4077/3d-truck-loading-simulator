@@ -2422,13 +2422,43 @@
     }
 
     // ==========================================
-    // 【要件③】パレタイズロボット向け 5ブロック・ピンホール（風車）外周密着レイヤー構築＋4隅アンカー充填
+    // 【要件③】パレタイズロボット向け 外周密着レイヤー構築（下部のみピンホール・上部高密度密着）＆ 2200mmパレット4象限ブロック化
     // ==========================================
     function packPalletGridBuilding(palletConfig, pallets, truckH) {
       const maxStackH = palletOptions.maxHeight || palletConfig.maxHeight || 215.0; // パレット上面からの有効高
       const overhang = palletOptions.overhang || 0.0;
       const SUP_MIN = 0.88; // 底面支持率88%以上（宙浮き・荷崩れ防止）
       const EPS = 1e-6;
+
+      // 2200mmパレット（220×220cm）は荷役実務に準拠し4象限（110×110cm×4ブロック）として構成
+      const expandedPallets = [];
+      pallets.forEach(pal => {
+        if (pal.l > 150) {
+          const halfL = pal.l / 4; // 55cm
+          const halfW = pal.w / 4; // 55cm
+          const subL = pal.l / 2; // 110cm
+          const subW = pal.w / 2; // 110cm
+          const quadOffsets = [
+            { id: `${pal.id}_Q1`, cx: pal.cx - halfL, cz: pal.cz - halfW },
+            { id: `${pal.id}_Q2`, cx: pal.cx + halfL, cz: pal.cz - halfW },
+            { id: `${pal.id}_Q3`, cx: pal.cx - halfL, cz: pal.cz + halfW },
+            { id: `${pal.id}_Q4`, cx: pal.cx + halfL, cz: pal.cz + halfW }
+          ];
+          quadOffsets.forEach(q => {
+            expandedPallets.push({
+              id: q.id,
+              cx: q.cx,
+              cz: q.cz,
+              l: subL,
+              w: subW,
+              h: pal.h,
+              parentPalId: pal.id
+            });
+          });
+        } else {
+          expandedPallets.push({ ...pal, parentPalId: pal.id });
+        }
+      });
 
       const stage1Items = currentData.cargoItems.filter(it => it.deliveryStage === 1 && it.qty > 0);
       const stage2Items = currentData.cargoItems.filter(it => it.deliveryStage === 2 && it.qty > 0);
@@ -2437,15 +2467,15 @@
       const totalVol1 = stage1Items.reduce((sum, it) => sum + (it.L * it.W * it.H * it.qty), 0);
       const totalVol2 = stage2Items.reduce((sum, it) => sum + (it.L * it.W * it.H * it.qty), 0);
       const ratio1 = (totalVol1 + totalVol2 > 0) ? (totalVol1 / (totalVol1 + totalVol2)) : 1.0;
-      let s1Count = pallets.length;
+      let s1Count = expandedPallets.length;
       if (stage1Items.length > 0 && stage2Items.length > 0) {
-        s1Count = Math.max(1, Math.min(pallets.length - 1, Math.round(pallets.length * ratio1)));
+        s1Count = Math.max(1, Math.min(expandedPallets.length - 1, Math.round(expandedPallets.length * ratio1)));
       } else if (stage1Items.length === 0) {
         s1Count = 0;
       }
 
-      const palletsS1 = pallets.slice(0, s1Count);
-      const palletsS2 = pallets.slice(s1Count);
+      const palletsS1 = expandedPallets.slice(0, s1Count);
+      const palletsS2 = expandedPallets.slice(s1Count);
 
       const inTruck = [];
       const overflow = [];
@@ -2483,7 +2513,7 @@
         return best;
       }
 
-      // 純粋グリッド時の外周4辺密着＆中央ピンホール分割配置
+      // 純粋グリッド時の外周4辺密着＆中央ピンホール分割配置（最下段のみ使用）
       function spreadPinholeGrid(nx, nz, a, b, P, parity) {
         const xs = [];
         if (nx === 1) {
@@ -2513,8 +2543,8 @@
         return rects;
       }
 
-      // 5ブロック・ピンホール（風車）外周密着レイヤーパターン探索
-      function bestPinwheelPattern(a, b, P) {
+      // 5ブロック・レイヤーパターン探索（isBottom: trueの場合は下部ピンホール外周密着、falseの場合は上部高密度密着）
+      function bestPinwheelPattern(a, b, P, isBottom) {
         let bestCount = -1;
         let bestEdges = -1;
         let bestRects = [];
@@ -2544,29 +2574,47 @@
 
                 let rects = [];
                 if (nAx * nAz > 0 && (nBx * nBz + nCx * nCz + nDx * nDz === 0)) {
-                  rects = spreadPinholeGrid(nAx, nAz, a, b, P, 0);
+                  if (isBottom) {
+                    rects = spreadPinholeGrid(nAx, nAz, a, b, P, 0);
+                  } else {
+                    // 上段: 隙間を広げず、箱同士を密着（隙間ゼロ・コンパクト積載）
+                    for (let i = 0; i < nAx; i++) {
+                      for (let j = 0; j < nAz; j++) {
+                        rects.push([i * a, j * b, a, b]);
+                      }
+                    }
+                  }
                 } else if (nBx * nBz > 0 && (nAx * nAz + nCx * nCz + nDx * nDz === 0)) {
-                  rects = spreadPinholeGrid(nBx, nBz, b, a, P, 0);
+                  if (isBottom) {
+                    rects = spreadPinholeGrid(nBx, nBz, b, a, P, 0);
+                  } else {
+                    // 上段: 隙間を広げず、箱同士を密着（隙間ゼロ・コンパクト積載）
+                    for (let i = 0; i < nBx; i++) {
+                      for (let j = 0; j < nBz; j++) {
+                        rects.push([i * b, j * a, b, a]);
+                      }
+                    }
+                  }
                 } else {
-                  // A: 左手前 (0, 0) 外周密着
+                  // A: 左手前 (0, 0)
                   for (let i = 0; i < nAx; i++) {
                     for (let j = 0; j < nAz; j++) {
                       rects.push([i * a, j * b, a, b]);
                     }
                   }
-                  // B: 右手前 (P, 0) 外周密着 (90度回転)
+                  // B: 右手前 (P, 0)
                   for (let i = 0; i < nBx; i++) {
                     for (let j = 0; j < nBz; j++) {
                       rects.push([P - (i + 1) * b, j * a, b, a]);
                     }
                   }
-                  // C: 右奥 (P, P) 外周密着
+                  // C: 右奥 (P, P)
                   for (let i = 0; i < nCx; i++) {
                     for (let j = 0; j < nCz; j++) {
                       rects.push([P - (i + 1) * a, P - (j + 1) * b, a, b]);
                     }
                   }
-                  // D: 左奥 (0, P) 外周密着 (90度回転)
+                  // D: 左奥 (0, P)
                   for (let i = 0; i < nDx; i++) {
                     for (let j = 0; j < nDz; j++) {
                       rects.push([i * b, P - (j + 1) * a, b, a]);
@@ -2609,9 +2657,10 @@
                   if (Math.abs(r[0] + r[2] - P) < 0.1) rt = 1;
                 }
                 const edges = f + bk + lf + rt;
-                if (rects.length > bestCount || (rects.length === bestCount && edges > bestEdges)) {
+                const edgePrio = isBottom ? edges : 0;
+                if (rects.length > bestCount || (rects.length === bestCount && edgePrio > bestEdges)) {
                   bestCount = rects.length;
-                  bestEdges = edges;
+                  bestEdges = edgePrio;
                   bestRects = rects;
                 }
               }
@@ -2621,10 +2670,13 @@
         return bestRects;
       }
 
-      const patternCache = new Map();
-      function getLayerOptionsFor(L, W, H, P) {
+      const botPatternCache = new Map();
+      const upPatternCache = new Map();
+
+      function getLayerOptionsFor(L, W, H, P, isBottom) {
+        const cache = isBottom ? botPatternCache : upPatternCache;
         const key = `${L}_${W}_${H}_${P}`;
-        if (patternCache.has(key)) return patternCache.get(key);
+        if (cache.has(key)) return cache.get(key);
         const rawOrients = [
           { a: L, b: W, h: H, ot: 'upright', ta: 'y', up: true },
           { a: L, b: H, h: W, ot: 'side', ta: 'z', up: false },
@@ -2633,14 +2685,14 @@
         const opts = [];
         for (const o of rawOrients) {
           if (o.h > maxStackH) continue;
-          const rects = bestPinwheelPattern(o.a, o.b, P);
+          const rects = bestPinwheelPattern(o.a, o.b, P, isBottom);
           if (rects.length === 0) continue;
           const cov = (rects.length * o.a * o.b) / (P * P);
           const score = cov * (o.up ? 1.08 : 1.0);
           opts.push({ score, rects, h: o.h, ot: o.ot, ta: o.ta, up: o.up, cov });
         }
         opts.sort((x, y) => y.score - x.score);
-        patternCache.set(key, opts);
+        cache.set(key, opts);
         return opts;
       }
 
@@ -2673,18 +2725,22 @@
               totalW += it.weight;
             }
           }
-          const opts = getLayerOptionsFor(entry.L, entry.W, entry.H, P);
+          const botOpts = getLayerOptionsFor(entry.L, entry.W, entry.H, P, true);
+          const upOpts = getLayerOptionsFor(entry.L, entry.W, entry.H, P, false);
+          // 上段は隙間を作らない密着レイヤーを最優先し、支えられない場合は下段パターン（インターロック）も試行
+          const combinedUpOpts = [...upOpts, ...botOpts];
           groups.push({
             key: k,
             queue: q,
-            opts,
+            botOpts,
+            upOpts: combinedUpOpts,
             wt: totalW,
             avgW: q.length > 0 ? totalW / q.length : 0
           });
         }
         groups.sort((a, b) => b.wt - a.wt);
 
-        // Phase 1: 5ブロック・ピンホール外周密着フルレイヤーの積層
+        // Phase 1: レイヤー積層（下部のみピンホール外周密着、上部は高密度密着）
         const palletStates = [];
         for (let pIdx = 0; pIdx < palList.length; pIdx++) {
           const pal = palList[pIdx];
@@ -2697,9 +2753,11 @@
           let li = 0;
 
           while (true) {
+            const isBottom = (top < 0.1);
             const candMoves = [];
             for (const g of groups) {
-              for (const opt of g.opts) {
+              const opts = isBottom ? g.botOpts : g.upOpts;
+              for (const opt of opts) {
                 if (g.queue.length >= opt.rects.length && top + opt.h <= maxStackH + 0.01) {
                   const remH = maxStackH - (top + opt.h);
                   const heightFitBonus = remH < 25.0 ? 0.2 : 0.0;
@@ -2735,7 +2793,8 @@
                   sups.push(s);
                   if (s < minSup) minSup = s;
                 }
-                if (minSup >= SUP_MIN) {
+                const reqSup = isBottom ? 1.0 : SUP_MIN;
+                if (minSup >= reqSup) {
                   for (let i = 0; i < boxes.length; i++) {
                     boxes[i].sup = sups[i];
                     boxes[i].item = g.queue.shift();
@@ -2867,7 +2926,7 @@
             const isPerimeter = (b.x < 0.5 || b.x + b.l > effL - 0.5 || b.z < 0.5 || b.z + b.w > effW - 0.5);
             inTruck.push({
               item: b.item,
-              palletId: pal.id,
+              palletId: pal.parentPalId || pal.id,
               x: pMinX + b.x,
               y: baseY + b.y,
               z: pMinZ + b.z,
