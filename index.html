@@ -2493,31 +2493,50 @@
 
           const palPlaced = [];
           
-          // 【要件】ピンホール積み（風車積み・外周支持＆中心空隙形成）
-          // 下段の段ボールをパレット外周4辺・四隅（北・東・南・西）に沿って展開し、
-          // 中央部に意図的に隙間（ピンホール）を設けることで、パレット全幅（110x110cm）に底面積を拡大！
-          // これにより上段の箱を支える下段底面積が最大化され、中空へのはみ出し・宙浮き（20%浮き）を撲滅する！
+          // 【要件】ピンホール積み（風車積み・外周密着＆中心空隙形成エンジン）
+          // パレット底面手前側や外周に隙間を残さず、外周4辺（南・東・北・西）にピッタリ密着配置！
+          // 余りをすべて真ん中（中心部）に集めることで、中央に綺麗なピンホール（隙間）を形成し、
+          // 下段の底面積をパレット全幅(110x110cm)いっぱいに広げて荷崩れ・宙浮きを完全撲滅する！
           const sampleBox = boxQueue[0] || (stageItems.length > 0 ? stageItems[0] : { L: 40, W: 30 });
-          const sL = sampleBox.L || 40.0;
-          const sW = sampleBox.W || 30.0;
 
-          // 候補配置点: ピンホール積み（外周4辺・4角）を初期点群として生成
-          const pts = [
-            // パレット4角（角部固定・耐圧角支持）
-            { y: 0.0, x: pMinX, z: pMinZ },
-            { y: 0.0, x: pMaxX - sL, z: pMinZ },
-            { y: 0.0, x: pMinX, z: pMaxZ - sW },
-            { y: 0.0, x: pMaxX - sL, z: pMaxZ - sW },
-            // 風車（ピンホイール）4辺展開点
-            { y: 0.0, x: pMinX, z: pMaxZ - sW },
-            { y: 0.0, x: pMaxX - sW, z: pMinZ },
-            { y: 0.0, x: pMaxX - sL, z: pMinZ },
-            { y: 0.0, x: pMinX, z: pMaxZ - sL }
-          ];
+          const pts = [];
+
+          function addPinwheelPerimeterPoints(targetY, lIdx, sBox) {
+            const bL = sBox.L || 40.0;
+            const bW = sBox.W || 30.0;
+            if (lIdx % 2 === 0) {
+              // 時計回り風車: パレット外周4辺にピッタリ密着！
+              // ① 南辺（手前端 z = pMinZ に完全密着！手前の余白をゼロ化）
+              pts.push({ y: targetY, x: pMaxX - bL, z: pMinZ, prio: 1, edge: "S" });
+              pts.push({ y: targetY, x: pMinX, z: pMinZ, prio: 1, edge: "S" });
+              // ② 東辺（右端 x = pMaxX に完全密着！）
+              pts.push({ y: targetY, x: pMaxX - bW, z: pMinZ, prio: 1, edge: "E" });
+              pts.push({ y: targetY, x: pMaxX - bW, z: pMaxZ - bL, prio: 1, edge: "E" });
+              // ③ 北辺（奥端 z = pMaxZ に完全密着！）
+              pts.push({ y: targetY, x: pMinX, z: pMaxZ - bW, prio: 1, edge: "N" });
+              pts.push({ y: targetY, x: pMaxX - bL, z: pMaxZ - bW, prio: 1, edge: "N" });
+              // ④ 西辺（左端 x = pMinX に完全密着！）
+              pts.push({ y: targetY, x: pMinX, z: pMaxZ - bL, prio: 1, edge: "W" });
+              pts.push({ y: targetY, x: pMinX, z: pMinZ, prio: 1, edge: "W" });
+            } else {
+              // 反時計回り風車（インターロック噛み合わせ）
+              pts.push({ y: targetY, x: pMinX, z: pMinZ, prio: 1, edge: "S" });
+              pts.push({ y: targetY, x: pMaxX - bL, z: pMinZ, prio: 1, edge: "S" });
+              pts.push({ y: targetY, x: pMinX, z: pMinZ, prio: 1, edge: "W" });
+              pts.push({ y: targetY, x: pMinX, z: pMaxZ - bL, prio: 1, edge: "W" });
+              pts.push({ y: targetY, x: pMaxX - bL, z: pMaxZ - bW, prio: 1, edge: "N" });
+              pts.push({ y: targetY, x: pMinX, z: pMaxZ - bW, prio: 1, edge: "N" });
+              pts.push({ y: targetY, x: pMaxX - bW, z: pMaxZ - bL, prio: 1, edge: "E" });
+              pts.push({ y: targetY, x: pMaxX - bW, z: pMinZ, prio: 1, edge: "E" });
+            }
+          }
+
+          // 最下層（1段目）の外周密着ピンホール点群を生成
+          addPinwheelPerimeterPoints(0.0, 0, sampleBox);
 
           while (pts.length > 0 && boxQueue.length > 0) {
-            // Yが最も低い（下層）点を最優先で取り出す
-            pts.sort((a, b) => (Math.round(a.y * 10) - Math.round(b.y * 10)) || a.x - b.x || a.z - b.z);
+            // Yが最も低い（下層）点を最優先！同一Yなら外周密着点(prio:1)を最優先！
+            pts.sort((a, b) => (Math.round(a.y * 10) - Math.round(b.y * 10)) || ((a.prio || 2) - (b.prio || 2)) || a.x - b.x || a.z - b.z);
             const pt = pts.shift();
             const cy = pt.y, cx = pt.x, cz = pt.z;
 
@@ -2574,7 +2593,7 @@
                   }
                   if (ol) continue;
 
-                  // 【底面支持率 厳格判定（ピンホール積み・荷崩れ防止）】
+                  // 【底面支持率 判定（ピンホール積み・荷崩れ防止）】
                   let supportRatio = 0.0;
                   if (cy <= 0.5) {
                     // 最下層: パレット天板との重なり面積
@@ -2591,8 +2610,8 @@
                     supportRatio = overlap / (boxL * boxW);
                   }
 
-                  // 支持率 >= 92% 厳格化（ピンホール積みで下段底面積を広げたため20%浮きを物理的に撲滅！）
-                  if (supportRatio >= 0.92) {
+                  // 支持率 >= 90% 基準
+                  if (supportRatio >= 0.90) {
                     bestIdx = i;
                     bestO = o;
                     bestSupport = supportRatio;
@@ -2621,7 +2640,7 @@
                 orientType: bestO.orientType,
                 isUpright: bestO.upright,
                 supportRatio: bestSupport,
-                stackingPattern: (cy <= 0.5 && isPerimeter) ? 'pinwheel' : 'block'
+                stackingPattern: isPerimeter ? 'pinwheel' : 'block'
               };
               palPlaced.push(placedBox);
               inTruck.push({
@@ -2631,18 +2650,23 @@
 
               const topY = cy + bestO.h + 0.2;
 
+              // 外周に配置した際、上段用の外周密着点群も追加
+              if (boxQueue.length > 0 && topY < maxStackH - 10) {
+                addPinwheelPerimeterPoints(topY, Math.floor(topY / 30) + 1, boxQueue[0]);
+              }
+
               // 1. 同一水平層の隣接候補点（横方向・奥行方向）
-              pts.push({ y: cy, x: cx + bestO.l + 0.2, z: cz });
-              pts.push({ y: cy, x: cx, z: cz + bestO.w + 0.2 });
+              pts.push({ y: cy, x: cx + bestO.l + 0.2, z: cz, prio: 1 });
+              pts.push({ y: cy, x: cx, z: cz + bestO.w + 0.2, prio: 1 });
 
               // 2. 直上候補点（ブロック積み・同一SKU垂直柱）
-              pts.push({ y: topY, x: cx, z: cz });
+              pts.push({ y: topY, x: cx, z: cz, prio: 2 });
 
-              // 3. 周囲の同一天面高さの箱に合わせた候補点（ピンホール積みインターロック）
+              // 3. 周囲の同一天面高さの箱に合わせた候補点（インターロック噛み合わせ）
               for (const pb of palPlaced) {
                 if (Math.abs((pb.y + pb.h) - (cy + bestO.h)) <= 0.5) {
-                  pts.push({ y: topY, x: pb.x, z: cz });
-                  pts.push({ y: topY, x: cx, z: pb.z });
+                  pts.push({ y: topY, x: pb.x, z: cz, prio: 2 });
+                  pts.push({ y: topY, x: cx, z: pb.z, prio: 2 });
                 }
               }
             }
