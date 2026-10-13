@@ -379,6 +379,7 @@
             </div>
             <div id="tooltipPalletRow" class="hidden text-amber-300">積載パレット: <span id="tooltipPallet" class="font-bold font-mono"></span></div>
             <div>天面向き: <span id="tooltipOrientationStatus" class="font-bold text-emerald-400">✅ 天面正常 (上向き)</span></div>
+            <div>底面支持率: <span id="tooltipSupportRatio" class="font-bold text-emerald-400">100% (安定接地・荷崩れ防止)</span></div>
             <div>ケース総数: <span id="tooltipQty" class="font-semibold text-white"></span></div>
             <div>元サイズ (L×W×H): <span id="tooltipSize" class="text-white"></span></div>
             <div>配置サイズ (L×W×H): <span id="tooltipOrient" class="text-amber-300 font-mono font-bold"></span></div>
@@ -1931,7 +1932,8 @@
         isUpright: isUpright,
         topAxis: topAxis,
         orientType: orientType,
-        palletId: box.palletId || null
+        palletId: box.palletId || null,
+        supportRatio: box.supportRatio !== undefined ? box.supportRatio : 1.0
       };
 
       cargoGroup.add(mesh);
@@ -2095,7 +2097,8 @@
               l: bl, h: bh, w: bw,
               topAxis: bestO.topAxis,
               orientType: bestO.orientType,
-              isUpright: bestO.upright
+              isUpright: bestO.upright,
+              supportRatio: 1.0
             };
 
             if (curX + bl <= maxAllowedX) {
@@ -2152,7 +2155,8 @@
               l: bl, h: bh, w: bw,
               topAxis: bestSO.topAxis,
               orientType: bestSO.orientType,
-              isUpright: bestSO.upright
+              isUpright: bestSO.upright,
+              supportRatio: 1.0
             };
 
             if (curX + bl <= maxAllowedX) {
@@ -2179,6 +2183,18 @@
       }
 
       return { inTruck, overflow, maxEndX };
+    }
+
+    // 荷崩れ防止・安定支持判定: 2つの水平矩形の重なり面積を算出 (X-Z平面)
+    function getRectOverlapArea(x1, x2, z1, z2, x3, x4, z3, z4) {
+      const ix1 = Math.max(x1, x3);
+      const ix2 = Math.min(x2, x4);
+      const iz1 = Math.max(z1, z3);
+      const iz2 = Math.min(z2, z4);
+      if (ix2 > ix1 && iz2 > iz1) {
+        return (ix2 - ix1) * (iz2 - iz1);
+      }
+      return 0.0;
     }
 
     // 6方向回転パターンの生成
@@ -2262,7 +2278,8 @@
             w: bestW,
             topAxis: chosenO ? chosenO.topAxis : (Math.abs(bestH - item.H) < 0.2 ? 'y' : 'z'),
             orientType: chosenO ? chosenO.orientType : (Math.abs(bestH - item.H) < 0.2 ? 'upright' : 'side'),
-            isUpright: chosenO ? chosenO.upright : (Math.abs(bestH - item.H) < 0.2)
+            isUpright: chosenO ? chosenO.upright : (Math.abs(bestH - item.H) < 0.2),
+            supportRatio: 1.0
           };
 
           // 荷台内か積み残しか
@@ -2474,12 +2491,12 @@
           const baseY = pal.h + (overhang > 0 ? 0.4 : 0);
 
           const palPlaced = [];
-          // 候補配置点: (y, x, z) - Y昇順（下から上へ）で処理！
+          // 候補配置点: (y, x, z) - Y昇順（下から上へ）で処理
           const pts = [{ y: 0.0, x: pMinX, z: pMinZ }];
 
           while (pts.length > 0 && boxQueue.length > 0) {
-            // Yが最も低い（下層）点を最優先で取り出す！
-            pts.sort((a, b) => a.y - b.y || a.x - b.x || a.z - b.z);
+            // Yが最も低い（下層）点を最優先で取り出す
+            pts.sort((a, b) => (Math.round(a.y * 10) - Math.round(b.y * 10)) || a.x - b.x || a.z - b.z);
             const pt = pts.shift();
             const cy = pt.y, cx = pt.x, cz = pt.z;
 
@@ -2490,61 +2507,120 @@
               continue;
             }
 
-            // キュー先頭（同一品種）を優先して探索
-            let placed = false;
-            const searchLimit = Math.min(boxQueue.length, 60);
+            let bestIdx = -1;
+            let bestO = null;
+            let bestSupport = 0.0;
 
-            for (let i = 0; i < searchLimit; i++) {
-              const b = boxQueue[i];
-              let bestO = null;
-              const ors = getOrientations(b);
-
-              for (let o of ors) {
-                if (cx + o.l <= pMaxX + 0.5 && cz + o.w <= pMaxZ + 0.5 && cy + o.h <= maxStackH + 0.5) {
-                  // 干渉チェック
-                  let ol = false;
-                  for (let pb of palPlaced) {
-                    if (!(cx + o.l <= pb.x + 0.1 || cx >= pb.x + pb.l - 0.1 ||
-                          cz + o.w <= pb.z + 0.1 || cz >= pb.z + pb.w - 0.1 ||
-                          cy + o.h <= pb.y + 0.1 || cy >= pb.y + pb.h - 0.1)) {
-                      ol = true;
-                      break;
-                    }
-                  }
-                  if (!ol) {
-                    bestO = o;
+            // 直下にある箱のSKUを特定（ブロック積み・耐圧角支持のため同一SKUを最優先）
+            let underlyingSku = null;
+            if (cy > 0.5) {
+              for (const pb of palPlaced) {
+                if (Math.abs((pb.y + pb.h) - cy) <= 0.8) {
+                  if (getRectOverlapArea(cx, cx + 30, cz, cz + 30, pb.x, pb.x + pb.l, pb.z, pb.z + pb.w) > 0) {
+                    underlyingSku = pb.item.name;
                     break;
                   }
                 }
               }
+            }
 
-              if (bestO) {
-                const box = boxQueue.splice(i, 1)[0];
-                const placedBox = {
-                  item: box,
-                  palletId: pal.id,
-                  x: cx,
-                  y: cy,
-                  z: cz,
-                  l: bestO.l,
-                  h: bestO.h,
-                  w: bestO.w,
-                  topAxis: bestO.topAxis,
-                  orientType: bestO.orientType,
-                  isUpright: bestO.upright
-                };
-                palPlaced.push(placedBox);
-                inTruck.push({
-                  ...placedBox,
-                  y: baseY + cy
-                });
+            const searchLimit = Math.min(boxQueue.length, 100);
+            const passes = underlyingSku ? [true, false] : [false];
 
-                // 新たな候補点（同一水平層のX方向・Z方向、および上部Y方向）
-                pts.push({ y: cy, x: cx + bestO.l + 0.2, z: cz });
-                pts.push({ y: cy, x: cx, z: cz + bestO.w + 0.2 });
-                pts.push({ y: cy + bestO.h + 0.2, x: cx, z: cz });
-                placed = true;
-                break;
+            for (const matchSame of passes) {
+              for (let i = 0; i < searchLimit; i++) {
+                const b = boxQueue[i];
+                if (matchSame && b.name !== underlyingSku) continue;
+
+                const ors = getOrientations(b);
+                for (const o of ors) {
+                  const boxL = o.l, boxW = o.w, boxH = o.h;
+
+                  // パレット境界チェック（OH 0cm厳格）
+                  if (cx + boxL > pMaxX + 0.1 || cz + boxW > pMaxZ + 0.1 || cy + boxH > maxStackH + 0.1) {
+                    continue;
+                  }
+
+                  // 既存箱との干渉（衝突）チェック
+                  let ol = false;
+                  for (const pb of palPlaced) {
+                    if (!(cx + boxL <= pb.x + 0.1 || cx >= pb.x + pb.l - 0.1 ||
+                          cz + boxW <= pb.z + 0.1 || cz >= pb.z + pb.w - 0.1 ||
+                          cy + boxH <= pb.y + 0.1 || cy >= pb.y + pb.h - 0.1)) {
+                      ol = true;
+                      break;
+                    }
+                  }
+                  if (ol) continue;
+
+                  // 【底面支持率 80% 以上制約（荷崩れ防止・クロスワーク知見）】
+                  let supportRatio = 0.0;
+                  if (cy <= 0.5) {
+                    // 最下層: パレット天板との重なり面積
+                    const overlap = getRectOverlapArea(cx, cx + boxL, cz, cz + boxW, pMinX, pMaxX, pMinZ, pMaxZ);
+                    supportRatio = overlap / (boxL * boxW);
+                  } else {
+                    // 上層: 直下の箱群天面との重なり面積の合計
+                    let overlap = 0.0;
+                    for (const pb of palPlaced) {
+                      if (Math.abs((pb.y + pb.h) - cy) <= 0.8) {
+                        overlap += getRectOverlapArea(cx, cx + boxL, cz, cz + boxW, pb.x, pb.x + pb.l, pb.z, pb.z + pb.w);
+                      }
+                    }
+                    supportRatio = overlap / (boxL * boxW);
+                  }
+
+                  // 支持率80%以上のみ許容（宙浮き防止！）
+                  if (supportRatio >= 0.80) {
+                    bestIdx = i;
+                    bestO = o;
+                    bestSupport = supportRatio;
+                    break;
+                  }
+                }
+
+                if (bestIdx !== -1) break;
+              }
+              if (bestIdx !== -1) break;
+            }
+
+            if (bestIdx !== -1) {
+              const box = boxQueue.splice(bestIdx, 1)[0];
+              const placedBox = {
+                item: box,
+                palletId: pal.id,
+                x: cx,
+                y: cy,
+                z: cz,
+                l: bestO.l,
+                h: bestO.h,
+                w: bestO.w,
+                topAxis: bestO.topAxis,
+                orientType: bestO.orientType,
+                isUpright: bestO.upright,
+                supportRatio: bestSupport
+              };
+              palPlaced.push(placedBox);
+              inTruck.push({
+                ...placedBox,
+                y: baseY + cy
+              });
+
+              const topY = cy + bestO.h + 0.2;
+
+              // 1. 同一水平層の隣接候補点（横方向・奥行方向）
+              pts.push({ y: cy, x: cx + bestO.l + 0.2, z: cz });
+              pts.push({ y: cy, x: cx, z: cz + bestO.w + 0.2 });
+
+              // 2. 直上候補点（ブロック積み・同一SKU垂直柱）
+              pts.push({ y: topY, x: cx, z: cz });
+
+              // 3. 周囲の同一天面高さの箱に合わせた候補点（レンガ積み・インターロック）
+              for (const pb of palPlaced) {
+                if (Math.abs((pb.y + pb.h) - (cy + bestO.h)) <= 0.5) {
+                  pts.push({ y: topY, x: pb.x, z: cz });
+                  pts.push({ y: topY, x: cx, z: pb.z });
+                }
               }
             }
           }
@@ -2737,6 +2813,18 @@
           } else {
             orientStatusEl.className = 'font-bold text-orange-300';
             orientStatusEl.innerText = '🔄 前後向き (天面を縦倒しして隙間充填・効率UP)';
+          }
+        }
+
+        const supportRatioEl = document.getElementById('tooltipSupportRatio');
+        if (supportRatioEl) {
+          const supPct = Math.round((data.supportRatio !== undefined ? data.supportRatio : 1.0) * 100);
+          if (supPct >= 80) {
+            supportRatioEl.className = 'font-bold text-emerald-400';
+            supportRatioEl.innerText = `${supPct}% (安定接地・荷崩れ防止)`;
+          } else {
+            supportRatioEl.className = 'font-bold text-red-400';
+            supportRatioEl.innerText = `⚠️ ${supPct}% (接地不足・荷崩れリスク)`;
           }
         }
 
