@@ -60,7 +60,10 @@
           <i data-lucide="upload" class="w-4 h-4 mr-1"></i> JSON読込
           <input type="file" id="jsonInput" accept=".json" class="hidden" onchange="handleFileUpload(event)">
         </label>
-        <button onclick="exportJSON()" class="bg-blue-600 hover:bg-blue-500 text-xs text-white px-3 py-2 rounded-lg font-medium flex items-center transition shadow-sm">
+        <button onclick="exportCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-xs text-white px-3 py-2 rounded-lg font-medium flex items-center transition shadow-sm cursor-pointer" title="現在の積載貨物データをExcel対応CSVとしてダウンロード">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-1"></i> CSV保存
+        </button>
+        <button onclick="exportJSON()" class="bg-blue-600 hover:bg-blue-500 text-xs text-white px-3 py-2 rounded-lg font-medium flex items-center transition shadow-sm cursor-pointer" title="全便統合データをJSONとして保存・ダウンロード">
           <i data-lucide="download" class="w-4 h-4 mr-1"></i> JSON保存
         </button>
       </div>
@@ -431,8 +434,13 @@
             <option value="name">品名順</option>
           </select>
 
+          <!-- CSVダウンロードボタン -->
+          <button onclick="exportCSV()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center transition shadow-2xs cursor-pointer" title="品目一覧をExcel対応CSVとしてダウンロード">
+            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> CSV出力
+          </button>
+
           <!-- 新規アイテム追加ボタン -->
-          <button onclick="openModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium flex items-center transition">
+          <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium flex items-center transition shadow-2xs cursor-pointer">
             <i data-lucide="plus" class="w-4 h-4 mr-1"></i> 品目追加
           </button>
         </div>
@@ -4034,6 +4042,38 @@
         }
       };
       reader.readAsText(file);
+    }
+
+    function exportCSV() {
+      const curBatch = (multiBatchData && multiBatchData.batches) ? multiBatchData.batches[multiBatchData.activeBatchIndex] : null;
+      const batchCode = curBatch ? (curBatch.code || curBatch.id) : "幹線6511";
+      const items = currentData.cargoItems || [];
+
+      // Excel対応 UTF-8 BOM付き CSV
+      let csvContent = "\uFEFF";
+      csvContent += "No,商品コード,品名,配送ステージ,長さL(cm),幅W(cm),高さH(cm),単体重量(kg),数量(ケース),合計重量(kg),合計容積(m3)\r\n";
+
+      items.forEach((item, idx) => {
+        const vol = ((item.L * item.W * item.H * item.qty) / 1000000.0).toFixed(4);
+        const totWt = (item.weight * item.qty).toFixed(2);
+        const safeName = `"${(item.name || '').replace(/"/g, '""')}"`;
+        const stage = `Stage ${item.deliveryStage || 1}`;
+        csvContent += `${idx + 1},${item.id},${safeName},${stage},${item.L},${item.W},${item.H},${item.weight},${item.qty},${totWt},${vol}\r\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const fileName = `トラック積載貨物データ_${batchCode}.csv`;
+
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", url);
+      downloadAnchor.setAttribute("download", fileName);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      URL.revokeObjectURL(url);
+
+      showToast(`CSVファイル(${fileName})をダウンロードしました！`, 'success');
     }
 
     function exportJSON() {
