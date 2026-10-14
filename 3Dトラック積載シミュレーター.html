@@ -352,6 +352,41 @@
         </div>
       </div>
 
+      <!-- 【追加】パレタイズロボット 1箱ずつ積載順シミュレーション＆CSV出力バー -->
+      <div id="robotSeqControlBar" class="mb-4 p-3 bg-slate-900 text-white rounded-xl border border-slate-700 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 text-xs shadow-md">
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 bg-blue-600 rounded-lg font-bold">🤖</span>
+          <div>
+            <div class="font-bold text-sm flex items-center gap-2">
+              <span>パレタイズロボット 積載シーケンス再生</span>
+              <span id="robotSpecBadge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono">
+                推奨: 可搬20kg / リーチ1700mm+昇降軸+回転台
+              </span>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-0.5">
+              下層(Layer 1)の奥側(Far)から手前側(Near)へ1箱ずつ順番に配置し、アーム干渉を防止します
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 flex-wrap w-full lg:w-auto justify-end">
+          <button onclick="toggleRobotPlay()" id="btnRobotPlay" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition cursor-pointer">
+            ▶ 順再生
+          </button>
+          <button onclick="resetRobotStep()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-600 transition cursor-pointer">
+            全表示
+          </button>
+          <div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+            <span class="text-slate-400">Step:</span>
+            <input type="range" id="robotStepSlider" min="1" max="793" value="793" oninput="onRobotSliderChange(this.value)" class="w-36 accent-blue-500 cursor-pointer">
+            <span id="robotStepLabel" class="font-mono font-bold text-amber-400 min-w-[75px] text-right">793 / 793</span>
+          </div>
+          <button onclick="exportRobotSequenceCSV()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold transition cursor-pointer">
+            📥 ロボット座標CSV出力
+          </button>
+        </div>
+      </div>
+
       <!-- 3D描画エリア -->
       <div class="relative w-full h-[520px] bg-slate-900 rounded-lg overflow-hidden shadow-inner">
         <canvas id="threeCanvas"></canvas>
@@ -1693,6 +1728,19 @@
         currentPallets = pallets;
         updateGapVisualizer();
 
+        // ロボット積載シーケンススライダーの同期
+        const totalInTruck = placedBoxes.length;
+        const robotSlider = document.getElementById('robotStepSlider');
+        const robotLabel = document.getElementById('robotStepLabel');
+        if (robotSlider) {
+          robotSlider.max = totalInTruck || 1;
+          robotSlider.value = totalInTruck;
+        }
+        if (robotLabel) {
+          robotLabel.innerText = `${totalInTruck} / ${totalInTruck}`;
+        }
+        currentRobotStep = totalInTruck;
+
         renderer.render(scene, camera);
       } catch (err) {
         console.error("build3DTruckAndCargo ERROR:", err);
@@ -1969,7 +2017,8 @@
         orientType: orientType,
         palletId: box.palletId || null,
         supportRatio: box.supportRatio !== undefined ? box.supportRatio : 1.0,
-        stackingPattern: box.stackingPattern || 'block'
+        stackingPattern: box.stackingPattern || 'block',
+        robotSeq: box.robotSeq || null
       };
 
       cargoGroup.add(mesh);
@@ -2032,194 +2081,271 @@
     }
 
     // ==========================================
-    // 【要件②】混載高密度バラ積み充填アルゴリズム (3D BLF / Extreme Point)
+    // 【統合改修②】外周4辺＋4隅完全密着・中心ピンホール探索 ＆ ロボット順序採番
     // ==========================================
-    function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX) {
-      const usableW = truckW - 2.0;
-      const usableH = truckH - 2.0;
-      const minZ = -usableW / 2;
-      const maxZ = usableW / 2;
-
-      // 大型箱と小型箱（隙間充填用）に分類
-      const largeBoxes = [];
-      const smallBoxes = [];
-
-      stageItems.forEach(it => {
-        const count = it.qty || 0;
-        for (let q = 0; q < count; q++) {
-          const b = { ...it };
-          // 最小寸法 <= 22cm または 体積 <= 30L を小型箱（充填用）として分類
-          if (Math.min(b.L, b.W, b.H) <= 22.0 || (b.L * b.W * b.H) <= 30000) {
-            smallBoxes.push(b);
-          } else {
-            largeBoxes.push(b);
-          }
-        }
-      });
-
-      // 体積降順ソート
-      largeBoxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
-      smallBoxes.sort((a, b) => (b.L * b.W * b.H) - (a.L * a.W * a.H));
-
-      const inTruck = [];
-      const overflow = [];
-
-      let curX = startX;
-      let maxEndX = startX;
-
-      while (largeBoxes.length > 0 || smallBoxes.length > 0) {
-        // 目標とする壁の厚み（レイヤー奥行き targetDepth）を先頭の大型箱から決定
-        let targetDepth = 50.0;
-        if (largeBoxes.length > 0) {
-          const firstBox = largeBoxes[0];
-          const fOrs = getOrientations(firstBox);
-          const goodOrs = fOrs.filter(o => o.h >= 30 && o.h <= 50 && o.w <= usableW);
-          targetDepth = (goodOrs.length > 0 ? goodOrs[0] : fOrs[0]).l;
-        } else if (smallBoxes.length > 0) {
-          const firstBox = smallBoxes[0];
-          const fOrs = getOrientations(firstBox);
-          const validL = fOrs.filter(o => o.h <= usableH && o.w <= usableW).map(o => o.l);
-          targetDepth = validL.length > 0 ? Math.min(...validL) : firstBox.L;
-        }
-
-        let curZ = minZ;
-        let actualLayerMaxL = 0.0;
-
-        while (curZ < maxZ - 5 && (largeBoxes.length > 0 || smallBoxes.length > 0)) {
-          let curY = 0.0;
-          let colMaxW = 0.0;
-
-          // 1. カラムに大型箱を下から上へ積み上げる
-          while (curY < usableH - 10 && largeBoxes.length > 0) {
-            const remH = usableH - curY;
-            const remW = maxZ - curZ;
-
-            let bestI = -1;
-            let bestO = null;
-            let bestScore = Infinity;
-
-            for (let i = 0; i < largeBoxes.length; i++) {
-              const b = largeBoxes[i];
-              const bOrs = getOrientations(b);
-              for (let o of bOrs) {
-                if (o.h <= remH + 0.5 && o.w <= remW + 0.5) {
-                  let depthDiff = Math.abs(o.l - targetDepth);
-                  if (o.l > targetDepth + 2) depthDiff += 50;
-                  // 効率UPのため横倒し(天面が側面)を許可しつつ、正置を緩やかに優先
-                  if (o.orientType === 'side') {
-                    depthDiff += 0.8;
-                  } else if (o.orientType === 'front') {
-                    depthDiff += 3.0; // 縦倒し（前後向き）より横倒し（側面向き）を優先
-                  }
-                  const score = depthDiff * 2 + (remH - o.h) * 0.5;
-                  if (score < bestScore) {
-                    bestScore = score;
-                    bestI = i;
-                    bestO = o;
-                  }
-                }
-              }
-              if (bestScore < 5) break;
-            }
-
-            if (bestI === -1) break;
-
-            const boxToPlace = largeBoxes.splice(bestI, 1)[0];
-            const bl = bestO.l, bh = bestO.h, bw = bestO.w;
-
-            const boxData = {
-              item: boxToPlace,
-              x: curX, y: curY, z: curZ,
-              l: bl, h: bh, w: bw,
-              topAxis: bestO.topAxis,
-              orientType: bestO.orientType,
-              isUpright: bestO.upright,
-              supportRatio: 1.0
-            };
-
-            if (curX + bl <= maxAllowedX) {
-              inTruck.push(boxData);
-              maxEndX = Math.max(maxEndX, curX + bl);
-            } else {
-              overflow.push(boxData);
-            }
-
-            curY += bh + 0.2;
-            colMaxW = Math.max(colMaxW, bw);
-            actualLayerMaxL = Math.max(actualLayerMaxL, bl);
-          }
-
-          // 2. 【高密度バラ積み隙間充填】大型箱を積んだ後の天井付近の隙間に小型箱を詰める！
-          while (curY < usableH - 5 && smallBoxes.length > 0) {
-            const remH = usableH - curY;
-            const remW = (colMaxW > 0 ? colMaxW : (maxZ - curZ));
-
-            let bestSI = -1;
-            let bestSO = null;
-            let bestSScore = Infinity;
-
-            for (let i = 0; i < smallBoxes.length; i++) {
-              const sb = smallBoxes[i];
-              const sbOrs = getOrientations(sb);
-              for (let o of sbOrs) {
-                if (o.h <= remH + 0.5 && o.w <= remW + 0.5) {
-                  let depthDiff = Math.abs(o.l - targetDepth);
-                  if (o.orientType === 'side') {
-                    depthDiff += 0.5;
-                  } else if (o.orientType === 'front') {
-                    depthDiff += 3.0;
-                  }
-                  const score = depthDiff * 1.5 + (remH - o.h);
-                  if (score < bestSScore) {
-                    bestSScore = score;
-                    bestSI = i;
-                    bestSO = o;
-                  }
-                }
-              }
-              if (bestSScore < 5) break;
-            }
-
-            if (bestSI === -1) break;
-
-            const boxToPlace = smallBoxes.splice(bestSI, 1)[0];
-            const bl = bestSO.l, bh = bestSO.h, bw = bestSO.w;
-
-            const boxData = {
-              item: boxToPlace,
-              x: curX, y: curY, z: curZ,
-              l: bl, h: bh, w: bw,
-              topAxis: bestSO.topAxis,
-              orientType: bestSO.orientType,
-              isUpright: bestSO.upright,
-              supportRatio: 1.0
-            };
-
-            if (curX + bl <= maxAllowedX) {
-              inTruck.push(boxData);
-              maxEndX = Math.max(maxEndX, curX + bl);
-            } else {
-              overflow.push(boxData);
-            }
-
-            curY += bh + 0.2;
-            colMaxW = Math.max(colMaxW, bw);
-            actualLayerMaxL = Math.max(actualLayerMaxL, bl);
-          }
-
-          if (colMaxW === 0) break;
-          curZ += colMaxW + 0.2;
-        }
-
-        if (actualLayerMaxL === 0) {
-          actualLayerMaxL = targetDepth || 40.0;
-        }
-
-        curX += actualLayerMaxL + 0.2;
-      }
-
-      return { inTruck, overflow, maxEndX };
+// 【統合改修②】外周4辺＋4隅完全密着・中心ピンホール探索 ＆ 1・2段目交互反転
+// ============================================================================
+function evaluateOuterShellQuality(rects, P) {
+  // 外周4辺への接触判定
+  const f = rects.some(r => Math.abs(r[1]) < 0.1) ? 1 : 0;
+  const bk = rects.some(r => Math.abs(r[1] + r[3] - P) < 0.1) ? 1 : 0;
+  const lf = rects.some(r => Math.abs(r[0]) < 0.1) ? 1 : 0;
+  const rt = rects.some(r => Math.abs(r[0] + r[2] - P) < 0.1) ? 1 : 0;
+  const edges = f + bk + lf + rt;
+  // パレット4隅すべてに箱が密着しているか判定（角の隙間・宙浮きを完全防止）
+  const c00 = rects.some(r => Math.abs(r[0]) < 0.1 && Math.abs(r[1]) < 0.1) ? 1 : 0;
+  const cP0 = rects.some(r => Math.abs(r[0] + r[2] - P) < 0.1 && Math.abs(r[1]) < 0.1) ? 1 : 0;
+  const c0P = rects.some(r => Math.abs(r[0]) < 0.1 && Math.abs(r[1] + r[3] - P) < 0.1) ? 1 : 0;
+  const cPP = rects.some(r => Math.abs(r[0] + r[2] - P) < 0.1 && Math.abs(r[1] + r[3] - P) < 0.1) ? 1 : 0;
+  const corners = c00 + cP0 + c0P + cPP;
+  // 外周4辺の密着長合計（外周がどれだけ隙間なく埋まっているか）
+  let perimLength = 0;
+  for (const [x, z, l, w] of rects) {
+    if (Math.abs(z) < 0.1) perimLength += l;
+    if (Math.abs(z + w - P) < 0.1) perimLength += l;
+    if (Math.abs(x) < 0.1) perimLength += w;
+    if (Math.abs(x + l - P) < 0.1) perimLength += w;
+  }
+  return { edges, corners, perimLength };
+}
+// 1段目と2段目で向きを変える変換（0:標準, 1:90度回転, 2:180度反転, 3:270度回転, 4:X反転, 5:Z反転）
+function transformLayerRects(rects, P, mode) {
+  return rects.map(([x, z, l, w]) => {
+    if (mode === 1) return [P - z - w, x, w, l];           // 90度回転（風車反転）
+    if (mode === 2) return [P - x - l, P - z - w, l, w];   // 180度点対称反転
+    if (mode === 3) return [z, P - x - l, w, l];           // 270度回転
+    if (mode === 4) return [P - x - l, z, l, w];           // 左右ミラー反転
+    if (mode === 5) return [x, P - z - w, l, w];           // 前後ミラー反転
+    return [x, z, l, w];
+  });
+}
+// ロボットによる1箱ずつの積載順序（SeqNo）自動採番関数
+// ルール：パレット順 ➔ 下層(Layer 1)から上層へ ➔ 奥側(Far)から手前側(Near)へ ➔ 同一向き連続
+function assignRobotSequence(placedBoxes) {
+  // パレットID順 ➔ Y座標(段数)昇順 ➔ 奥から手前(Z座標/X座標) ➔ 向き(J6回転角)でソート
+  const sorted = [...placedBoxes].sort((a, b) => {
+    const pA = parseInt((a.palletId || 'P1').replace('P', ''), 10) || 1;
+    const pB = parseInt((b.palletId || 'P1').replace('P', ''), 10) || 1;
+    if (pA !== pB) return pA - pB;
+    // 1. 下の段（Yが小さい順）を絶対優先（ボトムアップ層積み）
+    const layerDiff = Math.round(a.y / 5) - Math.round(b.y / 5);
+    if (layerDiff !== 0) return layerDiff;
+    // 2. 同じ段の中では「奥側（Far: キャビン側 -X および外側 Z）」から「手前側（Near）」へ配置
+    const xDiff = Math.round(a.x / 10) - Math.round(b.x / 10);
+    if (xDiff !== 0) return xDiff;
+    return a.z - b.z;
+  });
+  let currentLayerY = -999;
+  let currentPallet = "";
+  let layerIdx = 0;
+  sorted.forEach((box, idx) => {
+    if (box.palletId !== currentPallet) {
+      currentPallet = box.palletId;
+      currentLayerY = -999;
+      layerIdx = 0;
     }
+    if (Math.abs(box.y - currentLayerY) > 4.0) {
+      layerIdx++;
+      currentLayerY = box.y;
+    }
+    const rotJ6 = (box.l >= box.w) ? 0.0 : 90.0;
+    box.robotSeq = {
+      seqNo: idx + 1,
+      palletId: box.palletId || 'P1',
+      layer: layerIdx,
+      rotJ6: rotJ6,
+      centerX: Math.round((box.x + box.l / 2) * 10) / 10,
+      centerY: Math.round((box.y + box.h) * 10) / 10, // 吸着天面高さ
+      centerZ: Math.round((box.z + box.w / 2) * 10) / 10
+    };
+  });
+  return sorted;
+}
+
+    // ==========================================
+    // 【統合改修①】山型（ピラミッド型）高密度バラ積みアルゴリズム
+    // ==========================================
+// 【統合改修①】山型（ピラミッド型）高密度バラ積みアルゴリズム
+// 下段＝大底面積・重量物、中段＝中箱、上段＝小型箱の順で山型に積層
+// ============================================================================
+function getOrientationsWithPyramidScore(item, curY, usableH) {
+  const raw = getOrientations(item);
+  const maxFace = Math.max(item.L * item.W, item.L * item.H, item.W * item.H);
+  const heightRatio = curY / (usableH || 260);
+  return raw.map(o => {
+    const baseArea = o.l * o.w;
+    let pyramidPenalty = 0;
+    // 下段〜中段(高さ65%未満)では、最も面積の広い面を底面にしない「薄立て」に強いペナルティ
+    if (heightRatio < 0.65 && baseArea < maxFace * 0.85) {
+      pyramidPenalty += (maxFace - baseArea) * 1.5;
+    }
+    return { ...o, baseArea, pyramidPenalty };
+  });
+}
+function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX) {
+  const usableW = truckW - 2.0;
+  const usableH = truckH - 2.0;
+  const minZ = -usableW / 2;
+  const maxZ = usableW / 2;
+  const largeBoxes = [];
+  const smallBoxes = [];
+  stageItems.forEach(it => {
+    const count = it.qty || 0;
+    const maxBase = Math.max(it.L * it.W, it.L * it.H, it.W * it.H);
+    for (let q = 0; q < count; q++) {
+      const b = { ...it, maxBase };
+      if (Math.min(b.L, b.W, b.H) <= 22.0 || (b.L * b.W * b.H) <= 30000 || maxBase < 1100) {
+        smallBoxes.push(b);
+      } else {
+        largeBoxes.push(b);
+      }
+    }
+  });
+  // 【山型ソート】最大底面積の降順 ➔ 重量の降順 ➔ 体積の降順でソート（土台に大面積箱を集約）
+  largeBoxes.sort((a, b) => (b.maxBase - a.maxBase) || (b.weight - a.weight) || ((b.L * b.W * b.H) - (a.L * a.W * a.H)));
+  smallBoxes.sort((a, b) => (b.maxBase - a.maxBase) || ((b.L * b.W * b.H) - (a.L * a.W * a.H)));
+  const inTruck = [];
+  const overflow = [];
+  let curX = startX;
+  let maxEndX = startX;
+  while (largeBoxes.length > 0 || smallBoxes.length > 0) {
+    let targetDepth = 45.0;
+    if (largeBoxes.length > 0) {
+      const firstBox = largeBoxes[0];
+      const fOrs = getOrientationsWithPyramidScore(firstBox, 0, usableH);
+      const goodOrs = fOrs.filter(o => o.h >= 25 && o.h <= 50 && o.w <= usableW && o.pyramidPenalty === 0);
+      targetDepth = (goodOrs.length > 0 ? goodOrs[0] : fOrs[0]).l;
+    } else if (smallBoxes.length > 0) {
+      const firstBox = smallBoxes[0];
+      const fOrs = getOrientations(firstBox);
+      const validL = fOrs.filter(o => o.h <= usableH && o.w <= usableW).map(o => o.l);
+      targetDepth = validL.length > 0 ? Math.min(...validL) : firstBox.L;
+    }
+    let curZ = minZ;
+    let actualLayerMaxL = 0.0;
+    while (curZ < maxZ - 5 && (largeBoxes.length > 0 || smallBoxes.length > 0)) {
+      let curY = 0.0;
+      let colMaxW = 0.0;
+      let prevBaseArea = Infinity; // 直下の箱の底面積（山型制約用）
+      let prevBoxW = Infinity;
+      // 1. 大型・中型箱を下から山型（下段大面積 ➔ 上段小面積）に積み上げる
+      while (curY < usableH - 10 && largeBoxes.length > 0) {
+        const remH = usableH - curY;
+        const remW = maxZ - curZ;
+        let bestI = -1;
+        let bestO = null;
+        let bestScore = Infinity;
+        for (let i = 0; i < largeBoxes.length; i++) {
+          const b = largeBoxes[i];
+          const bOrs = getOrientationsWithPyramidScore(b, curY, usableH);
+          for (let o of bOrs) {
+            if (o.h <= remH + 0.5 && o.w <= remW + 0.5) {
+              let depthDiff = Math.abs(o.l - targetDepth);
+              if (o.l > targetDepth + 2) depthDiff += 50;
+              if (o.orientType === 'side') depthDiff += 0.8;
+              else if (o.orientType === 'front') depthDiff += 3.0;
+              // 【山型（逆ピラミッド防止）ペナルティ】直下の箱より底面積や幅が大きい場合は抑制
+              let inversionPenalty = 0;
+              if (o.baseArea > prevBaseArea * 1.05) {
+                inversionPenalty += (o.baseArea - prevBaseArea) * 2.5 + 150.0;
+              }
+              if (o.w > prevBoxW + 2.0) {
+                inversionPenalty += (o.w - prevBoxW) * 15.0;
+              }
+              // 下段では大底面積ほど高評価（スコア減算）
+              const baseBonus = (curY < usableH * 0.45) ? -(o.baseArea * 0.04) : 0;
+              const score = depthDiff * 2.0 + (remH - o.h) * 0.4 + o.pyramidPenalty + inversionPenalty + baseBonus;
+              if (score < bestScore) {
+                bestScore = score;
+                bestI = i;
+                bestO = o;
+              }
+            }
+          }
+          if (bestScore < 0) break;
+        }
+        if (bestI === -1) break;
+        const boxToPlace = largeBoxes.splice(bestI, 1)[0];
+        const bl = bestO.l, bh = bestO.h, bw = bestO.w;
+        prevBaseArea = bestO.baseArea;
+        prevBoxW = bw;
+        const boxData = {
+          item: boxToPlace,
+          x: curX, y: curY, z: curZ,
+          l: bl, h: bh, w: bw,
+          topAxis: bestO.topAxis,
+          orientType: bestO.orientType,
+          isUpright: bestO.upright,
+          supportRatio: 1.0
+        };
+        if (curX + bl <= maxAllowedX) {
+          inTruck.push(boxData);
+          maxEndX = Math.max(maxEndX, curX + bl);
+        } else {
+          overflow.push(boxData);
+        }
+        curY += bh + 0.2;
+        colMaxW = Math.max(colMaxW, bw);
+        actualLayerMaxL = Math.max(actualLayerMaxL, bl);
+      }
+      // 2. 小型箱（smallBoxes）は「上段隙間（または大型箱が全て終わった後）」のみに充填（中段のくびれ防止）
+      if (curY >= usableH * 0.45 || largeBoxes.length === 0) {
+        while (curY < usableH - 5 && smallBoxes.length > 0) {
+          const remH = usableH - curY;
+          const remW = (colMaxW > 0 ? colMaxW : (maxZ - curZ));
+          let bestSI = -1;
+          let bestSO = null;
+          let bestSScore = Infinity;
+          for (let i = 0; i < smallBoxes.length; i++) {
+            const sb = smallBoxes[i];
+            const sbOrs = getOrientations(sb);
+            for (let o of sbOrs) {
+              if (o.h <= remH + 0.5 && o.w <= remW + 0.5) {
+                let depthDiff = Math.abs(o.l - targetDepth);
+                if (o.orientType === 'side') depthDiff += 0.5;
+                else if (o.orientType === 'front') depthDiff += 3.0;
+                const score = depthDiff * 1.5 + (remH - o.h);
+                if (score < bestSScore) {
+                  bestSScore = score;
+                  bestSI = i;
+                  bestSO = o;
+                }
+              }
+            }
+            if (bestSScore < 5) break;
+          }
+          if (bestSI === -1) break;
+          const boxToPlace = smallBoxes.splice(bestSI, 1)[0];
+          const bl = bestSO.l, bh = bestSO.h, bw = bestSO.w;
+          const boxData = {
+            item: boxToPlace,
+            x: curX, y: curY, z: curZ,
+            l: bl, h: bh, w: bw,
+            topAxis: bestSO.topAxis,
+            orientType: bestSO.orientType,
+            isUpright: bestSO.upright,
+            supportRatio: 1.0
+          };
+          if (curX + bl <= maxAllowedX) {
+            inTruck.push(boxData);
+            maxEndX = Math.max(maxEndX, curX + bl);
+          } else {
+            overflow.push(boxData);
+          }
+          curY += bh + 0.2;
+          colMaxW = Math.max(colMaxW, bw);
+          actualLayerMaxL = Math.max(actualLayerMaxL, bl);
+        }
+      }
+      if (colMaxW === 0) break;
+      curZ += colMaxW + 0.2;
+    }
+    if (actualLayerMaxL === 0) actualLayerMaxL = targetDepth || 40.0;
+    curX += actualLayerMaxL + 0.2;
+  }
+  const sequencedInTruck = assignRobotSequence(inTruck);
+  return { inTruck: sequencedInTruck, overflow, maxEndX };
+}
 
     // 荷崩れ防止・安定支持判定: 2つの水平矩形の重なり面積を算出 (X-Z平面)
     function getRectOverlapArea(x1, x2, z1, z2, x3, x4, z3, z4) {
@@ -2330,7 +2456,7 @@
         }
       });
 
-      return { inTruck, overflow, nextX: curX + layerMaxL };
+      return { inTruck: assignRobotSequence(inTruck), overflow, nextX: curX + layerMaxL };
     }
 
     // ==========================================
@@ -2644,8 +2770,9 @@
                   if (Math.abs(r[0]) < 0.1) lf = 1;
                   if (Math.abs(r[0] + r[2] - P) < 0.1) rt = 1;
                 }
-                const edges = f + bk + lf + rt;
-                const edgePrio = isBottom ? edges : 0;
+                const shell = evaluateOuterShellQuality(rects, P);
+                // パレット4隅すべてに密着(corners===4)を最優先、外周密着長を最大化
+                const edgePrio = isBottom ? (shell.corners * 1000 + shell.edges * 100 + shell.perimLength) : (shell.edges * 10 + shell.perimLength * 0.1);
                 if (rects.length > bestCount || (rects.length === bestCount && edgePrio > bestEdges)) {
                   bestCount = rects.length;
                   bestEdges = edgePrio;
@@ -3044,6 +3171,9 @@
             for (const hc of halfConfigs) {
               if (Math.abs(st.qh[hc.qA] - st.qh[hc.qB]) < 0.5 && st.qh[hc.qA] < maxStackH - 10) {
                 const curY = st.qh[hc.qA];
+                // 【改修ポイントC】床面(Y=0)に空き象限がある間は上段(Y>0)への積載をロック
+                const hasEmptyFloor = st.qh.some(h => h < 0.1);
+                if (hasEmptyFloor && curY > 0.1) continue;
                 for (const g of groups) {
                   for (const opt of g[hc.optName]) {
                     if (g.queue.length >= opt.count && curY + opt.h <= maxStackH + 0.01) {
@@ -3065,6 +3195,9 @@
             if (minQh < maxStackH - 10) {
               const qIdx = st.qh.indexOf(minQh);
               const curY = minQh;
+              // 【改修ポイントC】床面(Y=0)に空き象限がある間は上段(Y>0)への積載をロック
+              const hasEmptyFloor = st.qh.some(h => h < 0.1);
+              if (hasEmptyFloor && curY > 0.1) continue;
               const ox = (qIdx === 1 || qIdx === 3) ? 110.0 : 0.0;
               const oz = (qIdx === 2 || qIdx === 3) ? 110.0 : 0.0;
               for (const g of groups) {
@@ -3261,7 +3394,8 @@
         packStageRobot(stage2Items, palletsS2);
       }
 
-      return { inTruck, overflow };
+      const sequencedInTruck = assignRobotSequence(inTruck);
+      return { inTruck: sequencedInTruck, overflow };
     }
 
 
@@ -4095,6 +4229,90 @@
       downloadAnchor.remove();
       showToast(`JSONファイル(${fileName})を保存しました。`, 'success');
     }
+
+    // ==========================================
+    // 【統合改修③】パレタイズロボット シーケンスアニメーション＆CSV出力関数
+    // ==========================================
+let robotPlayTimer = null;
+let currentRobotStep = 9999;
+function onRobotSliderChange(val) {
+  currentRobotStep = parseInt(val, 10);
+  const total = cargoMeshList.filter(m => !m.userData.isOverflow).length;
+  const label = document.getElementById('robotStepLabel');
+  if (label) label.innerText = `${Math.min(currentRobotStep, total)} / ${total}`;
+  cargoMeshList.forEach(mesh => {
+    if (mesh.userData.isOverflow) return;
+    const seq = mesh.userData.robotSeq ? mesh.userData.robotSeq.seqNo : 1;
+    mesh.visible = (seq <= currentRobotStep);
+  });
+  renderer.render(scene, camera);
+}
+function toggleRobotPlay() {
+  const btn = document.getElementById('btnRobotPlay');
+  const slider = document.getElementById('robotStepSlider');
+  const total = cargoMeshList.filter(m => !m.userData.isOverflow).length;
+  if (robotPlayTimer) {
+    clearInterval(robotPlayTimer);
+    robotPlayTimer = null;
+    if (btn) btn.innerText = '▶ 順再生';
+    return;
+  }
+  if (currentRobotStep >= total) currentRobotStep = 0;
+  if (btn) btn.innerText = '⏸ 一時停止';
+  robotPlayTimer = setInterval(() => {
+    currentRobotStep += 1;
+    if (slider) {
+      slider.max = total;
+      slider.value = currentRobotStep;
+    }
+    onRobotSliderChange(currentRobotStep);
+    if (currentRobotStep >= total) {
+      clearInterval(robotPlayTimer);
+      robotPlayTimer = null;
+      if (btn) btn.innerText = '▶ 順再生';
+    }
+  }, 60); // 60msごとに1箱ずつ配置アニメーション
+}
+function resetRobotStep() {
+  if (robotPlayTimer) toggleRobotPlay();
+  const total = cargoMeshList.filter(m => !m.userData.isOverflow).length;
+  const slider = document.getElementById('robotStepSlider');
+  if (slider) {
+    slider.max = total;
+    slider.value = total;
+  }
+  onRobotSliderChange(total);
+}
+// パレタイズロボット実機コントローラ連携用 シーケンスCSV出力
+function exportRobotSequenceCSV() {
+  const inTruckBoxes = (currentPlacedBoxes || []).filter(b => b.robotSeq);
+  if (inTruckBoxes.length === 0) {
+    showToast('出力対象の積載データがありません。', 'error');
+    return;
+  }
+  let csv = "\uFEFF";
+  csv += "SeqNo,PalletID,Layer,SKU_ID,SKU_Name,Place_CenterX(cm),Place_TopY(cm),Place_CenterZ(cm),Box_L(cm),Box_W(cm),Box_H(cm),Gripper_RotJ6(deg),Weight(kg),SupportRatio(%)\r\n";
+  inTruckBoxes
+    .sort((a, b) => a.robotSeq.seqNo - b.robotSeq.seqNo)
+    .forEach(b => {
+      const s = b.robotSeq;
+      const safeName = `"${(b.item.name || '').replace(/"/g, '""')}"`;
+      const supPct = Math.round((b.supportRatio || 1.0) * 100);
+      csv += `${s.seqNo},${s.palletId},${s.layer},${b.item.id},${safeName},${s.centerX},${s.centerY},${s.centerZ},${b.l},${b.w},${b.h},${s.rotJ6},${b.item.weight},${supPct}\r\n`;
+    });
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ロボット積載シーケンス_${packingMode}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('ロボット連携用シーケンスCSVを出力しました。', 'success');
+}
+
+
 
     function showToast(message, type = 'info') {
       const container = document.getElementById('toastContainer');
