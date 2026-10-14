@@ -2422,7 +2422,10 @@
     }
 
     // ==========================================
-    // 【要件③】パレタイズロボット向け 外周密着レイヤー構築（下部のみピンホール・上部高密度密着）＆ 2200mmパレット4象限ブロック化
+    // ==========================================
+    // 【要件③】パレタイズロボット向け パッキングエンジン
+    // - 1100mmパレット: 5ブロック・ピンホール外周密着（下部）＋高密度密着（上部）＋4隅充填
+    // - 2200mmパレット: マルチスケールブロック積載（Full 220x220, Half 220x110, Quad 110x110）＋高さ適応高密度充填
     // ==========================================
     function packPalletGridBuilding(palletConfig, pallets, truckH) {
       const maxStackH = palletOptions.maxHeight || palletConfig.maxHeight || 215.0; // パレット上面からの有効高
@@ -2430,35 +2433,7 @@
       const SUP_MIN = 0.88; // 底面支持率88%以上（宙浮き・荷崩れ防止）
       const EPS = 1e-6;
 
-      // 2200mmパレット（220×220cm）は荷役実務に準拠し4象限（110×110cm×4ブロック）として構成
-      const expandedPallets = [];
-      pallets.forEach(pal => {
-        if (pal.l > 150) {
-          const halfL = pal.l / 4; // 55cm
-          const halfW = pal.w / 4; // 55cm
-          const subL = pal.l / 2; // 110cm
-          const subW = pal.w / 2; // 110cm
-          const quadOffsets = [
-            { id: `${pal.id}_Q1`, cx: pal.cx - halfL, cz: pal.cz - halfW },
-            { id: `${pal.id}_Q2`, cx: pal.cx + halfL, cz: pal.cz - halfW },
-            { id: `${pal.id}_Q3`, cx: pal.cx - halfL, cz: pal.cz + halfW },
-            { id: `${pal.id}_Q4`, cx: pal.cx + halfL, cz: pal.cz + halfW }
-          ];
-          quadOffsets.forEach(q => {
-            expandedPallets.push({
-              id: q.id,
-              cx: q.cx,
-              cz: q.cz,
-              l: subL,
-              w: subW,
-              h: pal.h,
-              parentPalId: pal.id
-            });
-          });
-        } else {
-          expandedPallets.push({ ...pal, parentPalId: pal.id });
-        }
-      });
+      const isP2200 = (palletConfig && palletConfig.id === 'p2200') || (pallets.length > 0 && pallets[0].l > 150);
 
       const stage1Items = currentData.cargoItems.filter(it => it.deliveryStage === 1 && it.qty > 0);
       const stage2Items = currentData.cargoItems.filter(it => it.deliveryStage === 2 && it.qty > 0);
@@ -2467,15 +2442,15 @@
       const totalVol1 = stage1Items.reduce((sum, it) => sum + (it.L * it.W * it.H * it.qty), 0);
       const totalVol2 = stage2Items.reduce((sum, it) => sum + (it.L * it.W * it.H * it.qty), 0);
       const ratio1 = (totalVol1 + totalVol2 > 0) ? (totalVol1 / (totalVol1 + totalVol2)) : 1.0;
-      let s1Count = expandedPallets.length;
+      let s1Count = pallets.length;
       if (stage1Items.length > 0 && stage2Items.length > 0) {
-        s1Count = Math.max(1, Math.min(expandedPallets.length - 1, Math.round(expandedPallets.length * ratio1)));
+        s1Count = Math.max(1, Math.min(pallets.length - 1, Math.round(pallets.length * ratio1)));
       } else if (stage1Items.length === 0) {
         s1Count = 0;
       }
 
-      const palletsS1 = expandedPallets.slice(0, s1Count);
-      const palletsS2 = expandedPallets.slice(s1Count);
+      const palletsS1 = pallets.slice(0, s1Count);
+      const palletsS2 = pallets.slice(s1Count);
 
       const inTruck = [];
       const overflow = [];
@@ -2513,7 +2488,9 @@
         return best;
       }
 
-      // 純粋グリッド時の外周4辺密着＆中央ピンホール分割配置（最下段のみ使用）
+      // ==========================================
+      // 【1100mmパレット専用】ピンホール積み＆上段密着エンジン
+      // ==========================================
       function spreadPinholeGrid(nx, nz, a, b, P, parity) {
         const xs = [];
         if (nx === 1) {
@@ -2543,7 +2520,6 @@
         return rects;
       }
 
-      // 5ブロック・レイヤーパターン探索（isBottom: trueの場合は下部ピンホール外周密着、falseの場合は上部高密度密着）
       function bestPinwheelPattern(a, b, P, isBottom) {
         let bestCount = -1;
         let bestEdges = -1;
@@ -2577,7 +2553,6 @@
                   if (isBottom) {
                     rects = spreadPinholeGrid(nAx, nAz, a, b, P, 0);
                   } else {
-                    // 上段: 隙間を広げず、箱同士を密着（隙間ゼロ・コンパクト積載）
                     for (let i = 0; i < nAx; i++) {
                       for (let j = 0; j < nAz; j++) {
                         rects.push([i * a, j * b, a, b]);
@@ -2588,7 +2563,6 @@
                   if (isBottom) {
                     rects = spreadPinholeGrid(nBx, nBz, b, a, P, 0);
                   } else {
-                    // 上段: 隙間を広げず、箱同士を密着（隙間ゼロ・コンパクト積載）
                     for (let i = 0; i < nBx; i++) {
                       for (let j = 0; j < nBz; j++) {
                         rects.push([i * b, j * a, b, a]);
@@ -2596,32 +2570,11 @@
                     }
                   }
                 } else {
-                  // A: 左手前 (0, 0)
-                  for (let i = 0; i < nAx; i++) {
-                    for (let j = 0; j < nAz; j++) {
-                      rects.push([i * a, j * b, a, b]);
-                    }
-                  }
-                  // B: 右手前 (P, 0)
-                  for (let i = 0; i < nBx; i++) {
-                    for (let j = 0; j < nBz; j++) {
-                      rects.push([P - (i + 1) * b, j * a, b, a]);
-                    }
-                  }
-                  // C: 右奥 (P, P)
-                  for (let i = 0; i < nCx; i++) {
-                    for (let j = 0; j < nCz; j++) {
-                      rects.push([P - (i + 1) * a, P - (j + 1) * b, a, b]);
-                    }
-                  }
-                  // D: 左奥 (0, P)
-                  for (let i = 0; i < nDx; i++) {
-                    for (let j = 0; j < nDz; j++) {
-                      rects.push([i * b, P - (j + 1) * a, b, a]);
-                    }
-                  }
+                  for (let i = 0; i < nAx; i++) for (let j = 0; j < nAz; j++) rects.push([i * a, j * b, a, b]);
+                  for (let i = 0; i < nBx; i++) for (let j = 0; j < nBz; j++) rects.push([P - (i + 1) * b, j * a, b, a]);
+                  for (let i = 0; i < nCx; i++) for (let j = 0; j < nCz; j++) rects.push([P - (i + 1) * a, P - (j + 1) * b, a, b]);
+                  for (let i = 0; i < nDx; i++) for (let j = 0; j < nDz; j++) rects.push([i * b, P - (j + 1) * a, b, a]);
 
-                  // 中央ピンホール領域にさらに箱が入る場合は第5ブロックとして充填
                   const Dbot = P - nDz * a;
                   const Dright = nDx * b;
                   const Bleft = P - nBx * b;
@@ -2705,8 +2658,6 @@
         }
 
         const P = palList[0].l + overhang * 2;
-
-        // 同一寸法 (L, W, H) ごとにグループ化（重い順、同一SKUが連続するようにソート）
         const sortedItems = [...stageItems].sort((a, b) => (b.weight * b.qty) - (a.weight * a.qty) || (b.weight - a.weight));
         const dimMap = new Map();
         for (const it of sortedItems) {
@@ -2727,7 +2678,6 @@
           }
           const botOpts = getLayerOptionsFor(entry.L, entry.W, entry.H, P, true);
           const upOpts = getLayerOptionsFor(entry.L, entry.W, entry.H, P, false);
-          // 上段は隙間を作らない密着レイヤーを最優先し、支えられない場合は下段パターン（インターロック）も試行
           const combinedUpOpts = [...upOpts, ...botOpts];
           groups.push({
             key: k,
@@ -2740,7 +2690,6 @@
         }
         groups.sort((a, b) => b.wt - a.wt);
 
-        // Phase 1: レイヤー積層（下部のみピンホール外周密着、上部は高密度密着）
         const palletStates = [];
         for (let pIdx = 0; pIdx < palList.length; pIdx++) {
           const pal = palList[pIdx];
@@ -2817,7 +2766,6 @@
           palletStates.push({ pal, placed, top, effL, effW });
         }
 
-        // Phase 2: 端数ケース（フルレイヤー未満）の4隅コーナーアンカー外周充填
         const rest = [];
         for (const g of groups) {
           while (g.queue.length > 0) rest.push(g.queue.shift());
@@ -2916,7 +2864,6 @@
             seen.delete(k);
           }
 
-          // ローカル座標 -> ワールド座標へ変換し inTruck へ登録
           const pal = st.pal;
           const pMinX = pal.cx - effL / 2;
           const pMinZ = pal.cz - effW / 2;
@@ -2947,11 +2894,341 @@
         }
       }
 
-      packStageRobot(stage1Items, palletsS1);
-      packStageRobot(stage2Items, palletsS2);
+      // ==========================================
+      // 【2200mmパレット専用】マルチスケール高密度積載エンジン
+      // Full(220x220) / Half(220x110) / Quad(110x110) の動的適応により境界損失ゼロ化＆超高効率積載を実現
+      // ==========================================
+      function packStage2200MultiScale(stageItems, palList) {
+        if (stageItems.length === 0 || palList.length === 0) {
+          stageItems.forEach(it => {
+            for (let q = 0; q < it.qty; q++) overflow.push({ item: { ...it } });
+          });
+          return;
+        }
+
+        const sortedItems = [...stageItems].sort((a, b) => (b.weight * b.qty) - (a.weight * a.qty) || (b.weight - a.weight));
+        const dimMap = new Map();
+        for (const it of sortedItems) {
+          const k = `${it.L}_${it.W}_${it.H}`;
+          if (!dimMap.has(k)) dimMap.set(k, { L: it.L, W: it.W, H: it.H, items: [] });
+          dimMap.get(k).items.push(it);
+        }
+
+        const groups = [];
+        for (const [k, entry] of dimMap.entries()) {
+          const q = [];
+          let totalW = 0;
+          for (const it of entry.items) {
+            for (let c = 0; c < it.qty; c++) {
+              q.push({ ...it });
+              totalW += it.weight;
+            }
+          }
+
+          const rawOrients = [
+            { a: entry.L, b: entry.W, h: entry.H, ot: 'upright', ta: 'y', up: true },
+            { a: entry.L, b: entry.H, h: entry.W, ot: 'side', ta: 'z', up: false },
+            { a: entry.W, b: entry.H, h: entry.L, ot: 'side', ta: 'z', up: false }
+          ];
+
+          const optsFull = [];
+          const optsHalfX = [];
+          const optsHalfZ = [];
+          const optsQuad = [];
+
+          for (const o of rawOrients) {
+            if (o.h > maxStackH) continue;
+            const rf = packSubGrid(220, 220, o.a, o.b);
+            if (rf.length > 0) optsFull.push({ count: rf.length, rects: rf, h: o.h, ot: o.ot, ta: o.ta, up: o.up, btype: 'full' });
+
+            const rhx = packSubGrid(110, 220, o.a, o.b);
+            if (rhx.length > 0) optsHalfX.push({ count: rhx.length, rects: rhx, h: o.h, ot: o.ot, ta: o.ta, up: o.up, btype: 'halfX' });
+
+            const rhz = packSubGrid(220, 110, o.a, o.b);
+            if (rhz.length > 0) optsHalfZ.push({ count: rhz.length, rects: rhz, h: o.h, ot: o.ot, ta: o.ta, up: o.up, btype: 'halfZ' });
+
+            const rq = packSubGrid(110, 110, o.a, o.b);
+            if (rq.length > 0) optsQuad.push({ count: rq.length, rects: rq, h: o.h, ot: o.ot, ta: o.ta, up: o.up, btype: 'quad' });
+          }
+
+          optsFull.sort((a, b) => b.count - a.count);
+          optsHalfX.sort((a, b) => b.count - a.count);
+          optsHalfZ.sort((a, b) => b.count - a.count);
+          optsQuad.sort((a, b) => b.count - a.count);
+
+          groups.push({
+            key: k,
+            queue: q,
+            optsFull,
+            optsHalfX,
+            optsHalfZ,
+            optsQuad,
+            wt: totalW,
+            avgW: q.length > 0 ? totalW / q.length : 0
+          });
+        }
+        groups.sort((a, b) => b.wt - a.wt);
+
+        const palStates = palList.map(pal => ({
+          pal,
+          placed: [],
+          qh: [0.0, 0.0, 0.0, 0.0]
+        }));
+
+        for (let step = 0; step < 300; step++) {
+          let bestMove = null;
+          for (let pIdx = 0; pIdx < palStates.length; pIdx++) {
+            const st = palStates[pIdx];
+            // 1. Full layer (220x220)
+            const isFullLevel = (Math.abs(st.qh[0] - st.qh[1]) < 0.5 && Math.abs(st.qh[0] - st.qh[2]) < 0.5 && Math.abs(st.qh[0] - st.qh[3]) < 0.5);
+            if (isFullLevel && st.qh[0] < maxStackH - 10) {
+              const curY = st.qh[0];
+              for (const g of groups) {
+                for (const opt of g.optsFull) {
+                  if (g.queue.length >= opt.count && curY + opt.h <= maxStackH + 0.01) {
+                    const remH = maxStackH - (curY + opt.h);
+                    const hBonus = remH < 15.0 ? 50.0 : 0.0;
+                    const score = opt.count * 10.0 + g.avgW + hBonus;
+                    if (bestMove === null || score > bestMove.score) {
+                      bestMove = { score, mtype: 'full', pIdx, g, opt, curY };
+                    }
+                    break;
+                  }
+                }
+                if (bestMove && bestMove.mtype === 'full' && bestMove.score > 300) break;
+              }
+            }
+
+            // 2. Half layers (220x110 or 110x220)
+            const halfConfigs = [
+              { qA: 0, qB: 2, ox: 0.0, oz: 0.0, btype: 'halfX', optName: 'optsHalfX' },
+              { qA: 1, qB: 3, ox: 110.0, oz: 0.0, btype: 'halfX', optName: 'optsHalfX' },
+              { qA: 0, qB: 1, ox: 0.0, oz: 0.0, btype: 'halfZ', optName: 'optsHalfZ' },
+              { qA: 2, qB: 3, ox: 0.0, oz: 110.0, btype: 'halfZ', optName: 'optsHalfZ' },
+            ];
+            for (const hc of halfConfigs) {
+              if (Math.abs(st.qh[hc.qA] - st.qh[hc.qB]) < 0.5 && st.qh[hc.qA] < maxStackH - 10) {
+                const curY = st.qh[hc.qA];
+                for (const g of groups) {
+                  for (const opt of g[hc.optName]) {
+                    if (g.queue.length >= opt.count && curY + opt.h <= maxStackH + 0.01) {
+                      const remH = maxStackH - (curY + opt.h);
+                      const hBonus = remH < 15.0 ? 30.0 : 0.0;
+                      const score = opt.count * 5.0 + g.avgW + hBonus;
+                      if (bestMove === null || score > bestMove.score) {
+                        bestMove = { score, mtype: hc.btype, pIdx, params: hc, g, opt, curY };
+                      }
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+
+            // 3. Quad layer (110x110)
+            const minQh = Math.min(...st.qh);
+            if (minQh < maxStackH - 10) {
+              const qIdx = st.qh.indexOf(minQh);
+              const curY = minQh;
+              const ox = (qIdx === 1 || qIdx === 3) ? 110.0 : 0.0;
+              const oz = (qIdx === 2 || qIdx === 3) ? 110.0 : 0.0;
+              for (const g of groups) {
+                for (const opt of g.optsQuad) {
+                  if (g.queue.length >= opt.count && curY + opt.h <= maxStackH + 0.01) {
+                    const remH = maxStackH - (curY + opt.h);
+                    const hBonus = remH < 15.0 ? 20.0 : 0.0;
+                    const score = opt.count * 2.0 + g.avgW + hBonus;
+                    if (bestMove === null || score > bestMove.score) {
+                      bestMove = { score, mtype: 'quad', pIdx, params: { qIdx, ox, oz }, g, opt, curY };
+                    }
+                    break;
+                  }
+                }
+              }
+            }
+          }
+
+          if (!bestMove) break;
+
+          const { mtype, pIdx, params, g, opt, curY } = bestMove;
+          const st = palStates[pIdx];
+          const boxes = [];
+          if (mtype === 'full') {
+            for (const [rx, rz, rl, rw] of opt.rects) {
+              boxes.push({
+                x: rx, z: rz, l: rl, w: rw, h: opt.h, y: curY,
+                ot: opt.ot, ta: opt.ta, up: opt.up, sup: 1.0,
+                item: g.queue.shift()
+              });
+            }
+            for (let q = 0; q < 4; q++) st.qh[q] = curY + opt.h;
+          } else if (mtype === 'halfX' || mtype === 'halfZ') {
+            const { qA, qB, ox, oz } = params;
+            for (const [rx, rz, rl, rw] of opt.rects) {
+              boxes.push({
+                x: rx + ox, z: rz + oz, l: rl, w: rw, h: opt.h, y: curY,
+                ot: opt.ot, ta: opt.ta, up: opt.up, sup: 1.0,
+                item: g.queue.shift()
+              });
+            }
+            st.qh[qA] = curY + opt.h;
+            st.qh[qB] = curY + opt.h;
+          } else {
+            const { qIdx, ox, oz } = params;
+            for (const [rx, rz, rl, rw] of opt.rects) {
+              boxes.push({
+                x: rx + ox, z: rz + oz, l: rl, w: rw, h: opt.h, y: curY,
+                ot: opt.ot, ta: opt.ta, up: opt.up, sup: 1.0,
+                item: g.queue.shift()
+              });
+            }
+            st.qh[qIdx] = curY + opt.h;
+          }
+
+          for (const b of boxes) st.placed.push(b);
+        }
+
+        // Phase 2: Rest items充填
+        const rest = [];
+        for (const g of groups) {
+          while (g.queue.length > 0) rest.push(g.queue.shift());
+        }
+        rest.sort((a, b) => (b.L * b.W) - (a.L * a.W) || (b.weight - a.weight));
+
+        for (const st of palStates) {
+          const allp = st.placed;
+          const pts = [];
+          for (const b of allp) {
+            const topY = b.y + b.h;
+            pts.push({ y: topY, px: b.x, pz: b.z, sx: 1, sz: 1 });
+            pts.push({ y: topY, px: b.x + b.l, pz: b.z, sx: -1, sz: 1 });
+            pts.push({ y: topY, px: b.x, pz: b.z + b.w, sx: 1, sz: -1 });
+            pts.push({ y: topY, px: b.x + b.l, pz: b.z + b.w, sx: -1, sz: -1 });
+          }
+          for (let qIdx = 0; qIdx < 4; qIdx++) {
+            const ox = (qIdx === 1 || qIdx === 3) ? 110.0 : 0.0;
+            const oz = (qIdx === 2 || qIdx === 3) ? 110.0 : 0.0;
+            const qy = st.qh[qIdx];
+            pts.push({ y: qy, px: ox, pz: oz, sx: 1, sz: 1 });
+            pts.push({ y: qy, px: ox + 110.0, pz: oz, sx: -1, sz: 1 });
+            pts.push({ y: qy, px: ox, pz: oz + 110.0, sx: 1, sz: -1 });
+            pts.push({ y: qy, px: ox + 110.0, pz: oz + 110.0, sx: -1, sz: -1 });
+          }
+
+          const seen = new Set();
+          while (pts.length > 0 && rest.length > 0) {
+            pts.sort((a, b) => {
+              const dy = Math.round(a.y * 10) - Math.round(b.y * 10);
+              if (dy !== 0) return dy;
+              return (Math.abs(a.px - 110.0) + Math.abs(a.pz - 110.0)) - (Math.abs(b.px - 110.0) + Math.abs(b.pz - 110.0));
+            });
+            const pt = pts.shift();
+            const { y, px, pz, sx, sz } = pt;
+            const k = `${Math.round(y * 10)}_${Math.round(px * 10)}_${Math.round(pz * 10)}_${sx}_${sz}`;
+            if (seen.has(k)) continue;
+            seen.add(k);
+
+            const belowBoxes = allp.filter(q => Math.abs((q.y + q.h) - y) < 0.8);
+            if (y > 0.05 && belowBoxes.length === 0) continue;
+
+            let best = null;
+            const testedDims = new Set();
+            for (let i = 0; i < rest.length; i++) {
+              const it = rest[i];
+              const dk = `${it.L}_${it.W}_${it.H}`;
+              if (testedDims.has(dk)) continue;
+              testedDims.add(dk);
+
+              const cands = [
+                { l: it.L, w: it.W, h: it.H, ot: 'upright', ta: 'y', up: true },
+                { l: it.W, w: it.L, h: it.H, ot: 'upright', ta: 'y', up: true },
+                { l: it.L, w: it.H, h: it.W, ot: 'side', ta: 'z', up: false },
+                { l: it.W, w: it.H, h: it.L, ot: 'side', ta: 'z', up: false }
+              ];
+              for (const c of cands) {
+                const x = sx > 0 ? px : px - c.l;
+                const z = sz > 0 ? pz : pz - c.w;
+                if (x < -0.01 || z < -0.01 || x + c.l > 220.0 + 0.01 || z + c.w > 220.0 + 0.01 || y + c.h > maxStackH + 0.01) {
+                  continue;
+                }
+                const bx = { x, z, l: c.l, w: c.w, h: c.h, y };
+                let col = false;
+                for (const q of allp) {
+                  if (boxOverlapArea(bx, q) > 0.01 && y < q.y + q.h - 0.01 && y + c.h > q.y + 0.01) {
+                    col = true;
+                    break;
+                  }
+                }
+                if (col) continue;
+
+                const s = (y < 0.05) ? 1.0 : calcSupport(bx, belowBoxes);
+                if (s < 0.82) continue;
+
+                const outerTouch = ((x < 0.1 || x + c.l > 220.0 - 0.1) ? 1 : 0) + ((z < 0.1 || z + c.w > 220.0 - 0.1) ? 1 : 0);
+                const sc = (c.l * c.w) * (c.up ? 1.15 : 1.0) + outerTouch * 200.0 + s * 100.0;
+                if (best === null || sc > best.sc) {
+                  best = { sc, idx: i, bx, ot: c.ot, ta: c.ta, up: c.up, sup: s };
+                }
+              }
+            }
+
+            if (!best) continue;
+            const it = rest.splice(best.idx, 1)[0];
+            const bx = best.bx;
+            bx.item = it;
+            bx.ot = best.ot;
+            bx.ta = best.ta;
+            bx.up = best.up;
+            bx.sup = best.sup;
+            allp.push(bx);
+
+            pts.push({ y, px: sx > 0 ? bx.x + bx.l : bx.x, pz, sx, sz });
+            pts.push({ y, px, pz: sz > 0 ? bx.z + bx.w : bx.z, sx, sz });
+            pts.push({ y: y + bx.h, px: sx > 0 ? bx.x : bx.x + bx.l, pz: sz > 0 ? bx.z : bx.z + bx.w, sx, sz });
+            seen.delete(k);
+          }
+
+          const pal = st.pal;
+          const pMinX = pal.cx - 110.0;
+          const pMinZ = pal.cz - 110.0;
+          const baseY = pal.h + (overhang > 0 ? 0.4 : 0);
+
+          for (const b of allp) {
+            const isPerimeter = (b.x < 0.5 || b.x + b.l > 220.0 - 0.5 || b.z < 0.5 || b.z + b.w > 220.0 - 0.5);
+            inTruck.push({
+              item: b.item,
+              palletId: pal.id,
+              x: pMinX + b.x,
+              y: baseY + b.y,
+              z: pMinZ + b.z,
+              l: b.l,
+              h: b.h,
+              w: b.w,
+              topAxis: b.ta,
+              orientType: b.ot,
+              isUpright: b.up,
+              supportRatio: b.sup,
+              stackingPattern: isPerimeter ? 'pinwheel' : 'block'
+            });
+          }
+        }
+
+        while (rest.length > 0) {
+          overflow.push({ item: rest.shift() });
+        }
+      }
+
+      if (isP2200) {
+        packStage2200MultiScale(stage1Items, palletsS1);
+        packStage2200MultiScale(stage2Items, palletsS2);
+      } else {
+        packStageRobot(stage1Items, palletsS1);
+        packStageRobot(stage2Items, palletsS2);
+      }
 
       return { inTruck, overflow };
     }
+
 
     // ステータス・KPIアラート表示の更新
     function updateStatusAndAlerts(totalQty, loadedCount, unloadedCount, truckL, cfg) {
