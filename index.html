@@ -340,6 +340,9 @@
           <button onclick="toggleTruckWalls()" id="wallToggleBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1">
             <i data-lucide="eye" class="w-3.5 h-3.5"></i> 壁・天井: ON
           </button>
+          <button onclick="toggleGapVisualizer()" id="gapToggleBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1.5 shadow-2xs" title="パレット上・荷台内の空き空間（デッドスペース）を3Dハイライト表示">
+            <i data-lucide="scan" class="w-3.5 h-3.5 text-indigo-600"></i> <span id="gapToggleText">空間隙間表示: OFF</span>
+          </button>
           <button onclick="resetCameraView()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1">
             <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 視点リセット
           </button>
@@ -351,12 +354,22 @@
         <canvas id="threeCanvas"></canvas>
         
         <!-- 3D操作ガイドオーバーレイ・凡例 -->
-        <div class="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-md text-white text-[11px] p-3 rounded-xl border border-slate-700 pointer-events-none space-y-1.5 shadow-lg">
+        <div class="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-md text-white text-[11px] p-3 rounded-xl border border-slate-700 pointer-events-none space-y-1.5 shadow-lg max-w-xs">
           <div class="font-bold text-slate-300 border-b border-slate-700/60 pb-1 text-[10px] tracking-wide uppercase">積載ゾーン凡例</div>
           <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-emerald-400 inline-block shadow-sm"></span> <span>奥側（キャビン側）: <b>Stage 1 (配送先 1)</b></span></div>
           <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-sky-400 inline-block shadow-sm"></span> <span>手前側（後方ゲート）: <b>Stage 2 (配送先 2)</b></span></div>
           <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-red-500/80 border border-red-300 inline-block shadow-sm"></span> <span class="text-red-300 font-semibold">後方ゲート外: 積み残し保管エリア (Overflow)</span></div>
           <div class="flex items-center gap-2"><span class="w-3 h-1.5 rounded bg-amber-400 border border-slate-600 inline-block shadow-sm"></span> <span class="text-amber-200">天面ライン: <b>段ボール上蓋フラップ・合わせ目</b></span></div>
+          <!-- 空間隙間表示（デッドスペース）凡例（ON時のみ展開） -->
+          <div id="gapLegendRow" class="hidden border-t border-indigo-700/60 pt-1.5 space-y-1">
+            <div class="text-[10px] font-bold text-indigo-300 uppercase tracking-wider flex items-center justify-between">
+              <span>🔍 空間隙間（デッドスペース）</span>
+              <span id="gapTotalVolBadge" class="bg-indigo-600 text-white px-1.5 py-0.2 rounded text-[10px] font-bold">0.0 m³</span>
+            </div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-cyan-400/80 border border-cyan-200 inline-block shadow-sm"></span> <span class="text-cyan-200">パレット内空隙 (ピンホール/段差)</span></div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-amber-400/80 border border-amber-200 inline-block shadow-sm"></span> <span class="text-amber-200">パレット上部余白 (上限高まで)</span></div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-purple-400/80 border border-purple-200 inline-block shadow-sm"></span> <span class="text-purple-200">車両空間余白 (天井/側壁/後方)</span></div>
+          </div>
           <div class="text-emerald-300 text-[11px] pt-1 font-bold border-t border-slate-700/60 mt-1" id="meshCounter">3D積載描画数: 0 / 0 ケース</div>
         </div>
 
@@ -1368,11 +1381,16 @@
 
     // Three.js グローバル変数
     let scene, camera, renderer, controls;
-    let truckGroup, cargoGroup, wallMeshGroup, palletGroup;
+    let truckGroup, cargoGroup, wallMeshGroup, palletGroup, gapGroup;
     let showWalls = true;
     let showTopSeams = true; // 段ボール天面フラップライン表示フラグ
+    let showGaps = false; // 空間隙間（デッドスペース）表示フラグ
     let raycaster, mouse;
     let cargoMeshList = [];
+    let gapMeshList = [];
+    let totalGapVolumeM3 = 0.0;
+    let currentPlacedBoxes = [];
+    let currentPallets = [];
 
     window.onload = function() {
       lucide.createIcons();
@@ -1422,9 +1440,12 @@
       cargoGroup = new THREE.Group();
       wallMeshGroup = new THREE.Group();
       palletGroup = new THREE.Group();
+      gapGroup = new THREE.Group();
+      gapGroup.visible = showGaps;
       
       truckGroup.add(wallMeshGroup);
       truckGroup.add(palletGroup);
+      truckGroup.add(gapGroup);
       truckGroup.add(cargoGroup);
       scene.add(truckGroup);
 
@@ -1593,6 +1614,7 @@
 
         let placedBoxes = [];
         let overflowBoxes = [];
+        let pallets = [];
 
         const startX = -halfL + 5;
         const maxAllowedX = halfL;
@@ -1600,7 +1622,7 @@
 
         if (currentCfg.isPallet) {
           // 【要件③】パレット積み（パレタイズ）シミュレーション
-          const pallets = buildPalletMeshes(currentCfg, t.L, t.W, halfL);
+          pallets = buildPalletMeshes(currentCfg, t.L, t.W, halfL);
           const res = packPalletGridBuilding(currentCfg, pallets, t.H);
           placedBoxes = res.inTruck;
           overflowBoxes = res.overflow;
@@ -1657,6 +1679,11 @@
 
         updateStatusAndAlerts(totalExpectedQty, loadedCount, unloadedCount, t.L, currentCfg);
         updateSummaryPanel(currentCfg, totalExpectedQty, loadedCount, unloadedCount, totalExpectedVol, totalExpectedWeight);
+
+        // --- 空間隙間（デッドスペース）の更新 ---
+        currentPlacedBoxes = placedBoxes;
+        currentPallets = pallets;
+        updateGapVisualizer();
 
         renderer.render(scene, camera);
       } catch (err) {
@@ -3357,6 +3384,291 @@
       build3DTruckAndCargo();
     }
 
+    // 空間隙間（デッドスペース）の3D可視化トグル切り替え
+    function toggleGapVisualizer() {
+      showGaps = !showGaps;
+      if (gapGroup) gapGroup.visible = showGaps;
+
+      const btn = document.getElementById('gapToggleBtn');
+      const legend = document.getElementById('gapLegendRow');
+
+      if (showGaps) {
+        if (btn) {
+          btn.className = "bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg border border-indigo-700 font-bold transition flex items-center gap-1.5 shadow-sm";
+          btn.innerHTML = `<i data-lucide="scan" class="w-3.5 h-3.5 text-white"></i> <span id="gapToggleText">空間隙間表示: ON (${totalGapVolumeM3.toFixed(1)}m³)</span>`;
+        }
+        if (legend) legend.classList.remove('hidden');
+        showToast(`「空間隙間（デッドスペース）可視化」をONにしました。\n未利用空間 約${totalGapVolumeM3.toFixed(2)} m³ をハイライト表示（荷物はシースルー透過）`, 'info');
+      } else {
+        if (btn) {
+          btn.className = "bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1.5 shadow-2xs";
+          btn.innerHTML = `<i data-lucide="scan" class="w-3.5 h-3.5 text-indigo-600"></i> <span id="gapToggleText">空間隙間表示: OFF</span>`;
+        }
+        if (legend) legend.classList.add('hidden');
+        showToast("空間隙間の表示をOFFにしました。", "info");
+      }
+      lucide.createIcons();
+
+      // 貨物メッシュの透過（シースルー・ゴースト表示）連動
+      cargoMeshList.forEach(mesh => {
+        if (mesh && mesh.material && !mesh.userData.isOverflow) {
+          mesh.material.transparent = showGaps;
+          mesh.material.opacity = showGaps ? 0.38 : 1.0;
+          mesh.material.needsUpdate = true;
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    // 空間隙間（デッドスペース）メッシュ群の自動計算・生成
+    function updateGapVisualizer() {
+      if (!gapGroup) return;
+      while (gapGroup.children.length > 0) gapGroup.remove(gapGroup.children[0]);
+      gapMeshList = [];
+      totalGapVolumeM3 = 0.0;
+
+      const t = currentData.truck.customDims;
+      const currentCfg = PALLET_CONFIGS[packingMode] || PALLET_CONFIGS.highDensity;
+      const placed = currentPlacedBoxes || [];
+      const pallets = currentPallets || [];
+
+      // マテリアル定義
+      const matPinhole = new THREE.MeshStandardMaterial({
+        color: 0x06b6d4, // cyan-500
+        roughness: 0.2,
+        transparent: true,
+        opacity: 0.38,
+        depthWrite: false
+      });
+      const edgePinhole = new THREE.LineBasicMaterial({ color: 0x22d3ee, linewidth: 2 });
+
+      const matTopMargin = new THREE.MeshStandardMaterial({
+        color: 0xf59e0b, // amber-500
+        roughness: 0.25,
+        transparent: true,
+        opacity: 0.32,
+        depthWrite: false
+      });
+      const edgeTopMargin = new THREE.LineBasicMaterial({ color: 0xfbbf24, linewidth: 2 });
+
+      const matCeilClearance = new THREE.MeshStandardMaterial({
+        color: 0x8b5cf6, // purple-500
+        roughness: 0.3,
+        transparent: true,
+        opacity: 0.16,
+        depthWrite: false
+      });
+      const edgeCeilClearance = new THREE.LineBasicMaterial({ color: 0xa78bfa, linewidth: 1.5 });
+
+      const matVehicleGap = new THREE.MeshStandardMaterial({
+        color: 0x64748b, // slate-500
+        roughness: 0.3,
+        transparent: true,
+        opacity: 0.14,
+        depthWrite: false
+      });
+      const edgeVehicleGap = new THREE.LineBasicMaterial({ color: 0x94a3b8, linewidth: 1.5 });
+
+      function addGapBox(x, y, z, l, w, h, gapType, labelName, mat, edgeMat) {
+        if (l <= 0.5 || w <= 0.5 || h <= 0.5) return;
+        const geo = new THREE.BoxGeometry(l, h, w);
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x + l / 2, y + h / 2, z + w / 2);
+
+        const edgeGeo = new THREE.EdgesGeometry(geo);
+        const wire = new THREE.LineSegments(edgeGeo, edgeMat);
+        mesh.add(wire);
+
+        const vol = (l * w * h) / 1000000.0;
+        totalGapVolumeM3 += vol;
+
+        mesh.userData = {
+          isGap: true,
+          gapType,
+          label: labelName,
+          actualL: Math.round(l * 10) / 10,
+          actualW: Math.round(w * 10) / 10,
+          actualH: Math.round(h * 10) / 10,
+          volumeM3: Math.round(vol * 1000) / 1000
+        };
+
+        gapGroup.add(mesh);
+        gapMeshList.push(mesh);
+      }
+
+      if (currentCfg.isPallet && pallets.length > 0) {
+        // --- 【A. パレット積載時の隙間解析】---
+        const maxStackH = palletOptions.maxHeight || 215;
+
+        pallets.forEach((pal, pIdx) => {
+          const palL = pal.l;
+          const palW = pal.w;
+          const baseY = pal.h;
+          const limitY = pal.h + maxStackH;
+          const truckCeilY = t.H;
+
+          const pMinX = pal.cx - palL / 2;
+          const pMinZ = pal.cz - palW / 2;
+          const pMaxX = pal.cx + palL / 2;
+          const pMaxZ = pal.cz + palW / 2;
+
+          // このパレット上の荷物
+          const palBoxes = placed.filter(b => b.x < pMaxX - 0.1 && b.x + b.l > pMinX + 0.1 && b.z < pMaxZ - 0.1 && b.z + b.w > pMinZ + 0.1);
+
+          // 2D グリッド解析 (step = 10cm)
+          const step = 10.0;
+          const nx = Math.round(palL / step);
+          const nz = Math.round(palW / step);
+          const gridTop = [];
+          for (let i = 0; i < nx; i++) {
+            gridTop[i] = [];
+            for (let j = 0; j < nz; j++) {
+              gridTop[i][j] = baseY;
+            }
+          }
+
+          palBoxes.forEach(b => {
+            const bx0 = Math.max(0, Math.floor((b.x - pMinX) / step + 0.01));
+            const bx1 = Math.min(nx, Math.ceil((b.x + b.l - pMinX) / step - 0.01));
+            const bz0 = Math.max(0, Math.floor((b.z - pMinZ) / step + 0.01));
+            const bz1 = Math.min(nz, Math.ceil((b.z + b.w - pMinZ) / step - 0.01));
+            const topY = b.y + b.h;
+            for (let ix = bx0; ix < bx1; ix++) {
+              for (let iz = bz0; iz < bz1; iz++) {
+                if (topY > gridTop[ix][iz]) {
+                  gridTop[ix][iz] = topY;
+                }
+              }
+            }
+          });
+
+          // 1. 各行ごとに連続スパンを抽出
+          const rowSpans = [];
+          for (let j = 0; j < nz; j++) {
+            const spans = [];
+            let i = 0;
+            while (i < nx) {
+              const topY = gridTop[i][j];
+              const gapH = limitY - topY;
+              if (gapH <= 1.0) {
+                i++;
+                continue;
+              }
+              const isPinhole = (Math.abs(topY - baseY) < 1.0);
+              const iStart = i;
+              while (i < nx && Math.abs(gridTop[i][j] - topY) < 1.0) {
+                i++;
+              }
+              spans.push({
+                xStart: iStart * step,
+                xLen: (i - iStart) * step,
+                y: topY,
+                h: gapH,
+                isPinhole: isPinhole,
+                used: false
+              });
+            }
+            rowSpans.push(spans);
+          }
+
+          // 2. 2D Greedy Merge along Z
+          for (let j = 0; j < nz; j++) {
+            for (const sp of rowSpans[j]) {
+              if (sp.used) continue;
+              sp.used = true;
+              const zStart = j * step;
+              let zLen = step;
+
+              let j2 = j + 1;
+              while (j2 < nz) {
+                let match = null;
+                for (const cand of rowSpans[j2]) {
+                  if (!cand.used &&
+                      Math.abs(cand.xStart - sp.xStart) < 0.1 &&
+                      Math.abs(cand.xLen - sp.xLen) < 0.1 &&
+                      Math.abs(cand.y - sp.y) < 0.1 &&
+                      cand.isPinhole === sp.isPinhole) {
+                    match = cand;
+                    break;
+                  }
+                }
+                if (match) {
+                  match.used = true;
+                  zLen += step;
+                  j2++;
+                } else {
+                  break;
+                }
+              }
+
+              const absX = pMinX + sp.xStart;
+              const absZ = pMinZ + zStart;
+              if (sp.isPinhole) {
+                addGapBox(absX, sp.y, absZ, sp.xLen, zLen, sp.h, 'pinhole', `パレット#${pIdx + 1} 内部空隙 (ピンホール隙間)`, matPinhole, edgePinhole);
+              } else {
+                addGapBox(absX, sp.y, absZ, sp.xLen, zLen, sp.h, 'topMargin', `パレット#${pIdx + 1} 上部余白 (上限高まで)`, matTopMargin, edgeTopMargin);
+              }
+            }
+          }
+
+          // 3. パレット上限高からトラック天井までの安全クリアランス
+          if (truckCeilY > limitY + 2.0) {
+            addGapBox(pMinX, limitY, pMinZ, palL, palW, truckCeilY - limitY, 'ceilingClearance', `パレット#${pIdx + 1} 上空天井クリアランス`, matCeilClearance, edgeCeilClearance);
+          }
+        });
+
+        // 4. 車両側壁・後方クリアランス
+        const minPalZ = Math.min(...pallets.map(p => p.cz - p.w / 2));
+        const maxPalZ = Math.max(...pallets.map(p => p.cz + p.w / 2));
+        const maxPalX = Math.max(...pallets.map(p => p.cx + p.l / 2));
+        const truckHalfL = t.L / 2;
+        const truckHalfW = t.W / 2;
+
+        // 左右壁クリアランス
+        if (minPalZ > -truckHalfW + 2) {
+          addGapBox(-truckHalfL, 0, -truckHalfW, t.L, minPalZ - (-truckHalfW), t.H, 'sideWallGap', '左側壁クリアランス余白', matVehicleGap, edgeVehicleGap);
+        }
+        if (maxPalZ < truckHalfW - 2) {
+          addGapBox(-truckHalfL, 0, maxPalZ, t.L, truckHalfW - maxPalZ, t.H, 'sideWallGap', '右側壁クリアランス余白', matVehicleGap, edgeVehicleGap);
+        }
+        // 後方ゲート余白
+        if (maxPalX < truckHalfL - 5) {
+          addGapBox(maxPalX, 0, -truckHalfW, truckHalfL - maxPalX, t.W, t.H, 'rearGap', 'トラック後方ゲート空きスペース', matVehicleGap, edgeVehicleGap);
+        }
+
+      } else {
+        // --- 【B. バラ積み（手積み・ウォール積み）時の隙間解析】---
+        const truckHalfL = t.L / 2;
+        const truckHalfW = t.W / 2;
+
+        let maxX = -truckHalfL;
+        placed.forEach(b => {
+          if (b.x + b.l > maxX) maxX = b.x + b.l;
+        });
+
+        // 後方空きスペース
+        if (maxX < truckHalfL - 5) {
+          addGapBox(maxX, 0, -truckHalfW, truckHalfL - maxX, t.W, t.H, 'rearGap', '荷台後方未利用スペース', matVehicleGap, edgeVehicleGap);
+        }
+
+        // 天井余白
+        let maxStackY = 0;
+        placed.forEach(b => {
+          if (b.y + b.h > maxStackY) maxStackY = b.y + b.h;
+        });
+        if (maxStackY < t.H - 5 && maxX > -truckHalfL + 10) {
+          addGapBox(-truckHalfL, maxStackY, -truckHalfW, maxX - (-truckHalfL), t.W, t.H - maxStackY, 'topMargin', '荷台天井上部余白', matTopMargin, edgeTopMargin);
+        }
+      }
+
+      // UIバッジ更新
+      const badge = document.getElementById('gapTotalVolBadge');
+      if (badge) badge.innerText = `${totalGapVolumeM3.toFixed(1)} m³`;
+      const btnTxt = document.getElementById('gapToggleText');
+      if (btnTxt && showGaps) btnTxt.innerText = `空間隙間表示: ON (${totalGapVolumeM3.toFixed(1)}m³)`;
+    }
+
     // 3Dキャンバスクリック時のツールチップ表示
     function onCanvasClick(event) {
       const canvas = document.getElementById('threeCanvas');
@@ -3366,13 +3678,45 @@
       mouse.y = -((event.clientY - rect.top) / canvas.clientHeight) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(cargoMeshList);
+      const targetObjects = showGaps ? [...cargoMeshList, ...gapMeshList] : cargoMeshList;
+      const intersects = raycaster.intersectObjects(targetObjects);
 
       const tooltip = document.getElementById('3dTooltip');
 
       if (intersects.length > 0) {
         const selectedObj = intersects[0].object;
         const data = selectedObj.userData;
+
+        if (data.isGap) {
+          document.getElementById('tooltipTitle').innerText = data.label;
+          const badge = document.getElementById('tooltipStatusBadge');
+          badge.className = 'font-bold px-2 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40';
+          badge.innerText = '空間隙間 (デッドスペース)';
+
+          const palletRow = document.getElementById('tooltipPalletRow');
+          if (palletRow) palletRow.classList.add('hidden');
+
+          const orientStatusEl = document.getElementById('tooltipOrientationStatus');
+          if (orientStatusEl) {
+            orientStatusEl.className = 'font-bold text-cyan-300';
+            orientStatusEl.innerText = `🔍 空隙容積: 約 ${data.volumeM3} m³`;
+          }
+
+          const supportRatioEl = document.getElementById('tooltipSupportRatio');
+          if (supportRatioEl) {
+            supportRatioEl.className = 'font-bold text-indigo-300';
+            supportRatioEl.innerText = '未利用スペース (追加入力・積載可能)';
+          }
+
+          document.getElementById('tooltipQty').innerText = '-';
+          document.getElementById('tooltipSize').innerText = `${data.actualL} × ${data.actualW} × ${data.actualH} cm`;
+          document.getElementById('tooltipOrient').innerText = `${data.actualL} × ${data.actualW} × ${data.actualH} cm`;
+          document.getElementById('tooltipWeight').innerText = '-';
+          document.getElementById('tooltipStage').innerText = '空隙領域';
+
+          tooltip.classList.remove('hidden');
+          return;
+        }
 
         document.getElementById('tooltipTitle').innerText = data.name;
         
