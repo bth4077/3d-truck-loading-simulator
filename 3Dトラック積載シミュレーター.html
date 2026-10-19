@@ -4006,72 +4006,81 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
           return;
         }
 
-        document.getElementById('tooltipTitle').innerText = data.name;
-        const ngRow = document.getElementById('tooltipNGBadgeRow');
-        const ngText = document.getElementById('tooltipNGReason');
-        if (ngRow && ngText) {
-          if (data.ngReasons && data.ngReasons.length > 0) {
-            ngRow.classList.remove('hidden');
-            ngText.innerText = data.ngReasons.map(r => `【${r.title}】 ${r.desc}`).join(' / ');
-          } else {
-            ngRow.classList.add('hidden');
-          }
-        }
-        
-        const badge = document.getElementById('tooltipStatusBadge');
-        const palletRow = document.getElementById('tooltipPalletRow');
-        const palletEl = document.getElementById('tooltipPallet');
-
-        if (data.isOverflow) {
-          badge.className = 'font-bold px-2 py-0.5 rounded text-[10px] bg-red-500/20 text-red-300 border border-red-500/40';
-          badge.innerText = '状態: 積み残し（荷台外）';
-          if (palletRow) palletRow.classList.add('hidden');
-        } else {
-          badge.className = 'font-bold px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
-          badge.innerText = '状態: 荷台内積載 (OK)';
-          if (data.palletId && palletRow) {
-            palletRow.classList.remove('hidden');
-            palletEl.innerText = `${data.palletId} パレット`;
-          } else if (palletRow) {
-            palletRow.classList.add('hidden');
-          }
-        }
-
-        const orientStatusEl = document.getElementById('tooltipOrientationStatus');
-        if (orientStatusEl) {
-          if (data.isUpright) {
-            orientStatusEl.className = 'font-bold text-emerald-400';
-            orientStatusEl.innerText = '✅ 天面正常 (上向き)';
-          } else if (data.topAxis === 'z' || data.orientType === 'side') {
-            orientStatusEl.className = 'font-bold text-amber-300';
-            orientStatusEl.innerText = '↔️ 側面向き (天面を横倒しして隙間充填・効率UP)';
-          } else {
-            orientStatusEl.className = 'font-bold text-orange-300';
-            orientStatusEl.innerText = '🔄 前後向き (天面を縦倒しして隙間充填・効率UP)';
-          }
-        }
-
-        const supportRatioEl = document.getElementById('tooltipSupportRatio');
-        if (supportRatioEl) {
-          const supPct = Math.round((data.supportRatio !== undefined ? data.supportRatio : 1.0) * 100);
-          const patternNote = data.stackingPattern === 'pinwheel' ? ' (🌀ピンホール積み・中心隙間確保・安定接地)' : ' (安定接地・荷崩れ防止)';
-          if (supPct >= 90) {
-            supportRatioEl.className = 'font-bold text-emerald-400';
-            supportRatioEl.innerText = `${supPct}%${patternNote}`;
-          } else {
-            supportRatioEl.className = 'font-bold text-amber-300';
-            supportRatioEl.innerText = `${supPct}%${patternNote}`;
-          }
-        }
-
-        document.getElementById('tooltipQty').innerText = `${data.qty} ケース`;
-        document.getElementById('tooltipSize').innerText = `${data.L} × ${data.W} × ${data.H} cm`;
-        document.getElementById('tooltipOrient').innerText = `${data.actualL} × ${data.actualW} × ${data.actualH} cm`;
-        document.getElementById('tooltipWeight').innerText = `${data.weight} kg`;
-        document.getElementById('tooltipStage').innerText = `Stage ${data.deliveryStage}`;
-
-        tooltip.classList.remove('hidden');
+        showBoxTooltip(selectedObj);
       }
+    }
+
+    function showBoxTooltip(mesh) {
+      if (!mesh || !mesh.userData) return;
+      const data = mesh.userData;
+      const tooltip = document.getElementById('3dTooltip');
+      if (!tooltip) return;
+
+      document.getElementById('tooltipTitle').innerText = data.name || data.id || '貨物詳細';
+      const ngRow = document.getElementById('tooltipNGBadgeRow');
+      const ngText = document.getElementById('tooltipNGReason');
+      if (ngRow && ngText) {
+        if (data.ngReasons && data.ngReasons.length > 0) {
+          ngRow.classList.remove('hidden');
+          ngText.innerText = data.ngReasons.map(r => `【${r.title}】 ${r.desc}`).join(' / ');
+        } else {
+          ngRow.classList.add('hidden');
+        }
+      }
+      
+      const badge = document.getElementById('tooltipStatusBadge');
+      const palletRow = document.getElementById('tooltipPalletRow');
+      const palletEl = document.getElementById('tooltipPallet');
+
+      if (data.isOverflow) {
+        badge.className = 'font-bold px-2 py-0.5 rounded text-[10px] bg-red-500/20 text-red-300 border border-red-500/40';
+        badge.innerText = '状態: 積み残し（荷台外）';
+        if (palletRow) palletRow.classList.add('hidden');
+      } else {
+        badge.className = 'font-bold px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        badge.innerText = '状態: 荷台内積載 (OK)';
+        if (data.palletId && palletRow) {
+          palletRow.classList.remove('hidden');
+          palletEl.innerText = `${data.palletId} パレット`;
+        } else if (palletRow) {
+          palletRow.classList.add('hidden');
+        }
+      }
+
+      const orientStatusEl = document.getElementById('tooltipOrientationStatus');
+      if (orientStatusEl) {
+        if (data.isUpright) {
+          orientStatusEl.className = 'font-bold text-emerald-400';
+          orientStatusEl.innerText = '✅ 天面正常 (上向き)';
+        } else if (data.topAxis === 'z' || data.orientType === 'side') {
+          orientStatusEl.className = 'font-bold text-amber-300';
+          orientStatusEl.innerText = '↔️ 側面向き (天面を横倒しして隙間充填・効率UP)';
+        } else {
+          orientStatusEl.className = 'font-bold text-orange-300';
+          orientStatusEl.innerText = '🔄 前後向き (天面を縦倒しして隙間充填・効率UP)';
+        }
+      }
+
+      const supportRatioEl = document.getElementById('tooltipSupportRatio');
+      if (supportRatioEl) {
+        const supPct = Math.round((data.supportRatio !== undefined ? data.supportRatio : 1.0) * 100);
+        const patternNote = data.stackingPattern === 'pinwheel' ? ' (🌀ピンホール積み・中心隙間確保・安定接地)' : ' (安定接地・荷崩れ防止)';
+        if (supPct >= 90) {
+          supportRatioEl.className = 'font-bold text-emerald-400';
+          supportRatioEl.innerText = `${supPct}%${patternNote}`;
+        } else {
+          supportRatioEl.className = 'font-bold text-amber-300';
+          supportRatioEl.innerText = `${supPct}%${patternNote}`;
+        }
+      }
+
+      document.getElementById('tooltipQty').innerText = `${data.qty || 1} ケース`;
+      document.getElementById('tooltipSize').innerText = `${data.L} × ${data.W} × ${data.H} cm`;
+      document.getElementById('tooltipOrient').innerText = `${data.actualL} × ${data.actualW} × ${data.actualH} cm`;
+      document.getElementById('tooltipWeight').innerText = `${data.weight} kg`;
+      document.getElementById('tooltipStage').innerText = `Stage ${data.deliveryStage || 1}`;
+
+      tooltip.classList.remove('hidden');
     }
 
     function closeTooltip() {
