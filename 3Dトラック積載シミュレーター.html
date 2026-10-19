@@ -337,18 +337,53 @@
         
         <!-- コントロールボタン -->
         <div class="flex flex-wrap items-center gap-2 text-xs">
-          <button onclick="toggleTopSeams()" id="topSeamToggleBtn" class="bg-amber-50 hover:bg-amber-100 text-amber-900 px-3 py-1.5 rounded-lg border border-amber-300 font-semibold transition flex items-center gap-1 shadow-2xs">
-            <i data-lucide="package" class="w-3.5 h-3.5 text-amber-600"></i> 段ボール天面線: ON
+          <!-- カメラ視点切り替えグループ -->
+          <div class="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-300 text-[11px]">
+            <span class="text-slate-500 px-1.5 font-medium flex items-center gap-1"><i data-lucide="video" class="w-3 h-3"></i> 視点:</span>
+            <button onclick="setViewAngle('iso')" id="btnViewIso" class="px-2 py-1 rounded bg-white font-bold text-blue-600 shadow-xs" title="鳥瞰（標準斜め視点）">鳥瞰</button>
+            <button onclick="setViewAngle('side')" id="btnViewSide" class="px-2 py-1 rounded hover:bg-white/70 text-slate-700 transition" title="真横側面（段差・高さバランス確認）">側面</button>
+            <button onclick="setViewAngle('rear')" id="btnViewRear" class="px-2 py-1 rounded hover:bg-white/70 text-slate-700 transition" title="後方後面（左右偏荷重・荷崩れ確認）">後面</button>
+            <button onclick="setViewAngle('top')" id="btnViewTop" class="px-2 py-1 rounded hover:bg-white/70 text-slate-700 transition" title="真上上面（パレット配置・隙間確認）">上面</button>
+          </div>
+
+          <button onclick="toggleTopSeams()" id="topSeamToggleBtn" class="bg-amber-50 hover:bg-amber-100 text-amber-900 px-2.5 py-1.5 rounded-lg border border-amber-300 font-semibold transition flex items-center gap-1 shadow-2xs">
+            <i data-lucide="package" class="w-3.5 h-3.5 text-amber-600"></i> 天面線: ON
           </button>
-          <button onclick="toggleTruckWalls()" id="wallToggleBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1">
-            <i data-lucide="eye" class="w-3.5 h-3.5"></i> 壁・天井: ON
+          <button onclick="toggleTruckWalls()" id="wallToggleBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1">
+            <i data-lucide="eye" class="w-3.5 h-3.5"></i> 壁: ON
           </button>
-          <button onclick="toggleGapVisualizer()" id="gapToggleBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1.5 shadow-2xs" title="パレット上・荷台内の空き空間（デッドスペース）を3Dハイライト表示">
-            <i data-lucide="scan" class="w-3.5 h-3.5 text-indigo-600"></i> <span id="gapToggleText">空間隙間表示: OFF</span>
+          <button onclick="toggleGapVisualizer()" id="gapToggleBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1 shadow-2xs" title="空き空間（デッドスペース）を3D表示">
+            <i data-lucide="scan" class="w-3.5 h-3.5 text-indigo-600"></i> <span id="gapToggleText">隙間: OFF</span>
           </button>
-          <button onclick="resetCameraView()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1">
-            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 視点リセット
+
+          <!-- 【新機能】積載バランス診断・NG抽出トグルボタン -->
+          <button onclick="toggleBalanceDiagnostics()" id="balanceDiagBtn" class="bg-rose-50 hover:bg-rose-100 text-rose-800 px-3 py-1.5 rounded-lg border border-rose-300 font-bold transition flex items-center gap-1.5 shadow-2xs" title="積載バランス（偏荷重・座屈・宙浮き・逆ピラミッド）を診断してNG項目を抽出">
+            <i data-lucide="scale" class="w-3.5 h-3.5 text-rose-600"></i> <span id="balanceDiagBtnText">⚖️ バランス診断</span>
+            <span id="ngBadgeCount" class="bg-rose-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ml-0.5">0件</span>
           </button>
+
+          <!-- 【新機能】3D画像出力ボタングループ -->
+          <div class="relative inline-block text-left" id="imageExportDropdownWrapper">
+            <button onclick="toggleImageExportMenu()" id="btnImageExportMenu" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+              <i data-lucide="camera" class="w-3.5 h-3.5"></i> <span>📸 3D画像出力</span> <i data-lucide="chevron-down" class="w-3 h-3"></i>
+            </button>
+            <div id="imageExportMenu" class="hidden absolute right-0 mt-1.5 w-60 bg-slate-900 border border-slate-700 text-white rounded-xl shadow-2xl py-1.5 z-40 text-xs">
+              <button onclick="export3DImage(false); closeImageExportMenu();" class="w-full text-left px-3.5 py-2 hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer">
+                <i data-lucide="image" class="w-4 h-4 text-blue-400"></i>
+                <div>
+                  <div class="font-bold">3Dビュー画像 (PNG)</div>
+                  <div class="text-[10px] text-slate-400">現在の3D画面を高解像度保存</div>
+                </div>
+              </button>
+              <button onclick="export3DImage(true); closeImageExportMenu();" class="w-full text-left px-3.5 py-2 hover:bg-slate-800 flex items-center gap-2.5 border-t border-slate-800 cursor-pointer">
+                <i data-lucide="file-check-2" class="w-4 h-4 text-emerald-400"></i>
+                <div>
+                  <div class="font-bold text-emerald-300">📊 診断レポート画像 (PNG)</div>
+                  <div class="text-[10px] text-slate-400">左右比・前後比・NG項目を自動合成</div>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -384,6 +419,109 @@
           <button onclick="exportRobotSequenceCSV()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold transition cursor-pointer">
             📥 ロボット座標CSV出力
           </button>
+        </div>
+      </div>
+
+      <!-- 【新機能】積載バランス診断＆NG項目自動抽出パネル -->
+      <div id="balanceDiagnosticPanel" class="mb-4 p-4 bg-slate-900 text-white rounded-xl border border-slate-700 text-xs shadow-lg transition-all duration-300">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2.5">
+            <span class="p-2 bg-rose-600 rounded-lg font-bold">⚖️</span>
+            <div>
+              <div class="font-bold text-sm flex items-center gap-2">
+                <span>積載バランス診断 ＆ NG項目解析インスペクター</span>
+                <span id="diagSafetyBadge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold">
+                  安全スコア: 92点 (優良)
+                </span>
+              </div>
+              <div class="text-[11px] text-slate-400 mt-0.5">
+                左右偏荷重・前後軸重・重量逆転（座屈）・宙浮き（オーバーハング）・逆ピラミッドを自動解析
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 flex-wrap">
+            <label class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer text-[11px]">
+              <input type="checkbox" id="chkDiagnosticHighlight" onchange="toggleDiagnosticHighlight()" class="w-3.5 h-3.5 accent-rose-500 cursor-pointer">
+              <span class="font-medium text-slate-200">⚠️ NG箱のみ3D強調表示 (正常箱ゴースト化)</span>
+            </label>
+            <button onclick="export3DImage(true)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> 診断レポート画像出力
+            </button>
+          </div>
+        </div>
+
+        <!-- 診断サマリーグリッド -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3 pt-1">
+          <!-- 左右偏荷重メーター -->
+          <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700/80">
+            <div class="flex justify-between items-center text-[11px] text-slate-400 mb-1">
+              <span>左右偏荷重 (横転耐性)</span>
+              <span id="diagLRStatus" class="font-bold text-emerald-400">良好 (差 3.2%)</span>
+            </div>
+            <div class="flex items-center justify-between text-xs font-mono font-bold mb-1">
+              <span id="diagLeftRatio" class="text-sky-300">左: 51.6%</span>
+              <span id="diagRightRatio" class="text-indigo-300">右: 48.4%</span>
+            </div>
+            <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden flex">
+              <div id="diagLeftBar" class="bg-sky-500 h-full" style="width: 51.6%;"></div>
+              <div id="diagRightBar" class="bg-indigo-500 h-full" style="width: 48.4%;"></div>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1.5" id="diagLRDetail">左 1,980kg / 右 1,850kg (基準: 左右差10%以内)</div>
+          </div>
+
+          <!-- 前後軸重配分 -->
+          <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700/80">
+            <div class="flex justify-between items-center text-[11px] text-slate-400 mb-1">
+              <span>前後軸重バランス</span>
+              <span id="diagFRStatus" class="font-bold text-emerald-400">良好</span>
+            </div>
+            <div class="flex items-center justify-between text-xs font-mono font-bold mb-1">
+              <span id="diagFrontRatio" class="text-emerald-300">前(奥): 52.0%</span>
+              <span id="diagRearRatio" class="text-amber-300">後(手前): 48.0%</span>
+            </div>
+            <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden flex">
+              <div id="diagFrontBar" class="bg-emerald-500 h-full" style="width: 52%;"></div>
+              <div id="diagRearBar" class="bg-amber-500 h-full" style="width: 48%;"></div>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1.5" id="diagFRDetail">重心位置: 荷台中央より前方 +25cm</div>
+          </div>
+
+          <!-- 検出NG件数サマリー -->
+          <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700/80 col-span-1 md:col-span-2">
+            <div class="text-[11px] text-slate-400 mb-1.5 font-medium">検出されたNGリスク項目サマリー</div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+              <div class="bg-slate-900/70 p-1.5 rounded border border-rose-500/30">
+                <div class="text-[10px] text-rose-300">重量逆転(座屈)</div>
+                <div id="cntCrushRisk" class="font-mono font-bold text-sm text-rose-400">0 件</div>
+              </div>
+              <div class="bg-slate-900/70 p-1.5 rounded border border-orange-500/30">
+                <div class="text-[10px] text-orange-300">支持率不足(宙浮き)</div>
+                <div id="cntOverhang" class="font-mono font-bold text-sm text-orange-400">0 件</div>
+              </div>
+              <div class="bg-slate-900/70 p-1.5 rounded border border-amber-500/30">
+                <div class="text-[10px] text-amber-300">逆ピラミッド</div>
+                <div id="cntPyramid" class="font-mono font-bold text-sm text-amber-400">0 件</div>
+              </div>
+              <div class="bg-slate-900/70 p-1.5 rounded border border-purple-500/30">
+                <div class="text-[10px] text-purple-300">縦立ち自立</div>
+                <div id="cntAspect" class="font-mono font-bold text-sm text-purple-400">0 件</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 抽出NGアイテム一覧リスト（クリックで3Dカメラが該当箱へフォーカス） -->
+        <div id="ngItemsContainer" class="mt-3 pt-3 border-t border-slate-800">
+          <div class="flex justify-between items-center mb-2">
+            <span class="font-bold text-xs text-rose-300 flex items-center gap-1.5">
+              <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> NG検出段ボール詳細リスト (<span id="ngListCount">0</span>件)
+            </span>
+            <span class="text-[10px] text-slate-400">※リストのアイテムをクリックすると3Dカメラが該当箱へスムーズにフォーカスします</span>
+          </div>
+          <div id="ngItemsList" class="max-h-48 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+            <!-- 動的挿入 -->
+          </div>
         </div>
       </div>
 
@@ -429,6 +567,9 @@
               <span id="tooltipStatusBadge" class="font-bold px-2 py-0.5 rounded text-[10px]">荷台内積載</span>
             </div>
             <div id="tooltipPalletRow" class="hidden text-amber-300">積載パレット: <span id="tooltipPallet" class="font-bold font-mono"></span></div>
+            <div id="tooltipNGBadgeRow" class="hidden p-1.5 bg-rose-950/80 border border-rose-600/60 rounded text-[10px] text-rose-200 font-bold mb-1">
+              ⚠️ <span id="tooltipNGReason">NG項目あり</span>
+            </div>
             <div>天面向き: <span id="tooltipOrientationStatus" class="font-bold text-emerald-400">✅ 天面正常 (上向き)</span></div>
             <div>底面支持率: <span id="tooltipSupportRatio" class="font-bold text-emerald-400">100% (安定接地・荷崩れ防止)</span></div>
             <div>ケース総数: <span id="tooltipQty" class="font-semibold text-white"></span></div>
@@ -1455,7 +1596,7 @@
       camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 6000);
       
       // 3. Renderer
-      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, preserveDrawingBuffer: true });
       renderer.setSize(container.clientWidth, container.clientHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.shadowMap.enabled = true;
@@ -1741,6 +1882,9 @@
         }
         currentRobotStep = totalInTruck;
 
+        // 【新機能】積載バランス診断＆NG項目自動抽出の実行
+        analyzeLoadingBalance();
+
         renderer.render(scene, camera);
       } catch (err) {
         console.error("build3DTruckAndCargo ERROR:", err);
@@ -2018,7 +2162,9 @@
         palletId: box.palletId || null,
         supportRatio: box.supportRatio !== undefined ? box.supportRatio : 1.0,
         stackingPattern: box.stackingPattern || 'block',
-        robotSeq: box.robotSeq || null
+        robotSeq: box.robotSeq || null,
+        boxRef: box,
+        ngReasons: box.ngReasons || []
       };
 
       cargoGroup.add(mesh);
@@ -3861,6 +4007,16 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
         }
 
         document.getElementById('tooltipTitle').innerText = data.name;
+        const ngRow = document.getElementById('tooltipNGBadgeRow');
+        const ngText = document.getElementById('tooltipNGReason');
+        if (ngRow && ngText) {
+          if (data.ngReasons && data.ngReasons.length > 0) {
+            ngRow.classList.remove('hidden');
+            ngText.innerText = data.ngReasons.map(r => `【${r.title}】 ${r.desc}`).join(' / ');
+          } else {
+            ngRow.classList.add('hidden');
+          }
+        }
         
         const badge = document.getElementById('tooltipStatusBadge');
         const palletRow = document.getElementById('tooltipPalletRow');
@@ -4228,6 +4384,631 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
       downloadAnchor.click();
       downloadAnchor.remove();
       showToast(`JSONファイル(${fileName})を保存しました。`, 'success');
+    }
+
+    // ==========================================
+    // 【新機能】多視点カメラ切り替え (鳥瞰・側面・後面・上面)
+    // ==========================================
+    function setViewAngle(angle) {
+      if (!camera || !controls) return;
+      const t = (typeof VEHICLE_PRESETS !== 'undefined' && currentData.truck && VEHICLE_PRESETS[currentData.truck.selected]) ? VEHICLE_PRESETS[currentData.truck.selected] : ((currentData.truck && currentData.truck.customDims) ? currentData.truck.customDims : { L: 960, W: 240, H: 260, maxWeight: 13000 });
+      const halfL = (t.L || 960) / 2;
+      const truckH = t.H || 260;
+      const truckW = t.W || 240;
+      controls.target.set(0, truckH * 0.4, 0);
+
+      // ボタンのアクティブ状態更新
+      ['btnViewIso', 'btnViewSide', 'btnViewRear', 'btnViewTop'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.className = "px-2 py-1 rounded hover:bg-white/70 text-slate-700 transition";
+      });
+
+      if (angle === 'iso') {
+        camera.position.set(halfL * 1.5, truckH * 2.0, truckW * 2.2);
+        const b = document.getElementById('btnViewIso');
+        if (b) b.className = "px-2 py-1 rounded bg-white font-bold text-blue-600 shadow-xs";
+      } else if (angle === 'side') {
+        // 真横側面視点（段差・高さバランス確認）
+        camera.position.set(0, truckH * 0.5, truckW * 4.2);
+        const b = document.getElementById('btnViewSide');
+        if (b) b.className = "px-2 py-1 rounded bg-white font-bold text-blue-600 shadow-xs";
+      } else if (angle === 'rear') {
+        // 後方後面視点（左右偏荷重・荷崩れ確認）
+        camera.position.set(halfL * 2.8, truckH * 0.6, 0);
+        const b = document.getElementById('btnViewRear');
+        if (b) b.className = "px-2 py-1 rounded bg-white font-bold text-blue-600 shadow-xs";
+      } else if (angle === 'top') {
+        // 真上上面視点（パレット配置・隙間確認）
+        camera.position.set(0, truckH * 4.6, 0.1);
+        const b = document.getElementById('btnViewTop');
+        if (b) b.className = "px-2 py-1 rounded bg-white font-bold text-blue-600 shadow-xs";
+      }
+      controls.update();
+      renderer.render(scene, camera);
+      showToast(`視点を「${angle === 'iso' ? '鳥瞰' : angle === 'side' ? '側面' : angle === 'rear' ? '後面' : '上面'}」に変更しました。`, 'info');
+    }
+
+    // ==========================================
+    // 【新機能】積載バランス診断＆NG項目自動抽出エンジン
+    // ==========================================
+    let currentBalanceAnalysis = null;
+    let isDiagnosticHighlightMode = false;
+
+    function toggleBalanceDiagnostics() {
+      const panel = document.getElementById('balanceDiagnosticPanel');
+      if (panel) {
+        panel.classList.toggle('hidden');
+      }
+      // もしハイライトがOFFなら自動でONに
+      if (!isDiagnosticHighlightMode) {
+        isDiagnosticHighlightMode = true;
+        updateDiagnosticMeshHighlights();
+      }
+    }
+
+    function toggleImageExportMenu() {
+      const menu = document.getElementById('imageExportMenu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function closeImageExportMenu() {
+      const menu = document.getElementById('imageExportMenu');
+      if (menu) menu.classList.add('hidden');
+    }
+
+    // ドロップダウン外クリックで閉じる
+    document.addEventListener('click', function(e) {
+      const wrapper = document.getElementById('imageExportDropdownWrapper');
+      if (wrapper && !wrapper.contains(e.target)) {
+        closeImageExportMenu();
+      }
+    });
+
+    function toggleDiagnosticHighlight() {
+      const chk = document.getElementById('chkDiagnosticHighlight');
+      if (chk) isDiagnosticHighlightMode = chk.checked;
+      else isDiagnosticHighlightMode = !isDiagnosticHighlightMode;
+      updateDiagnosticMeshHighlights();
+    }
+
+    function analyzeLoadingBalance() {
+      const boxes = (currentPlacedBoxes || []).filter(b => !b.isOverflow);
+      if (boxes.length === 0) {
+        currentBalanceAnalysis = null;
+        updateBalanceDiagnosticUI();
+        return;
+      }
+
+      let totalWt = 0;
+      let leftWt = 0, rightWt = 0;
+      let frontWt = 0, rearWt = 0;
+      let sumWX = 0, sumWY = 0, sumWZ = 0;
+
+      boxes.forEach(b => {
+        const wt = (b.item && b.item.weight) ? b.item.weight : 5.0;
+        const cx = b.x + b.l / 2;
+        const cy = b.y + b.h / 2;
+        const cz = b.z + b.w / 2;
+
+        totalWt += wt;
+        sumWX += wt * cx;
+        sumWY += wt * cy;
+        sumWZ += wt * cz;
+
+        if (cz < 0) leftWt += wt;
+        else rightWt += wt;
+
+        if (cx < 0) frontWt += wt;
+        else rearWt += wt;
+      });
+
+      const cogX = totalWt > 0 ? sumWX / totalWt : 0;
+      const cogY = totalWt > 0 ? sumWY / totalWt : 0;
+      const cogZ = totalWt > 0 ? sumWZ / totalWt : 0;
+
+      const leftRatio = totalWt > 0 ? (leftWt / totalWt) * 100 : 50;
+      const rightRatio = totalWt > 0 ? (rightWt / totalWt) * 100 : 50;
+      const frontRatio = totalWt > 0 ? (frontWt / totalWt) * 100 : 50;
+      const rearRatio = totalWt > 0 ? (rearWt / totalWt) * 100 : 50;
+      const lrDiff = Math.abs(leftRatio - rightRatio);
+      const frDiff = Math.abs(frontRatio - rearRatio);
+
+      let lrStatus = 'good';
+      if (lrDiff > 10.0) lrStatus = 'danger';
+      else if (lrDiff > 5.0) lrStatus = 'warning';
+
+      let frStatus = 'good';
+      if (frDiff > 20.0) frStatus = 'danger';
+      else if (frDiff > 10.0) frStatus = 'warning';
+
+      const ngItems = [];
+
+      // 個々の箱のNG検査
+      for (let i = 0; i < boxes.length; i++) {
+        const a = boxes[i];
+        a.ngReasons = [];
+
+        // 1. 高アスペクト比・縦立ち自立リスク
+        const minBaseEdge = Math.min(a.l, a.w);
+        if (a.h / minBaseEdge > 1.85 && a.y < 5) {
+          a.ngReasons.push({
+            type: 'aspectRatio',
+            severity: 'warning',
+            title: '縦立ち不安定 (転倒リスク)',
+            desc: `底面短辺(${minBaseEdge.toFixed(1)}cm)に対し高さ(${a.h.toFixed(1)}cm)が1.85倍以上`
+          });
+        }
+
+        // 床面以外の直下との関係を検査
+        if (a.y >= 5) {
+          let belowBoxes = [];
+          for (let j = 0; j < boxes.length; j++) {
+            if (i === j) continue;
+            const b = boxes[j];
+            if (Math.abs((b.y + b.h) - a.y) < 2.5) {
+              const ix1 = Math.max(a.x, b.x);
+              const ix2 = Math.min(a.x + a.l, b.x + b.l);
+              const iz1 = Math.max(a.z, b.z);
+              const iz2 = Math.min(a.z + a.w, b.z + b.w);
+              if (ix2 > ix1 && iz2 > iz1) {
+                belowBoxes.push({ box: b, overlapArea: (ix2 - ix1) * (iz2 - iz1) });
+              }
+            }
+          }
+
+          // 2. 重量逆転（座屈・圧壊リスク）
+          for (const bel of belowBoxes) {
+            const b = bel.box;
+            const aWt = a.item.weight || 5.0;
+            const bWt = b.item.weight || 5.0;
+            if (aWt > bWt * 1.3 && (aWt - bWt) >= 2.0) {
+              a.ngReasons.push({
+                type: 'crushRisk',
+                severity: 'danger',
+                title: '重量逆転 (下段座屈リスク)',
+                desc: `直下「${b.item.name || b.item.id}」(${bWt}kg)の上に重い箱(${aWt}kg)が積載 (差 +${(aWt - bWt).toFixed(1)}kg)`
+              });
+              break;
+            }
+          }
+
+          // 3. 支持率不足・宙浮き
+          const sup = a.supportRatio !== undefined ? a.supportRatio : 1.0;
+          if (sup < 0.85) {
+            a.ngReasons.push({
+              type: 'overhang',
+              severity: 'danger',
+              title: '底面支持率不足 (宙浮き・脱落)',
+              desc: `接地支持率が${Math.round(sup * 100)}%と基準(85%以上)を下回っており荷崩れリスク大`
+            });
+          }
+
+          // 4. 逆ピラミッド・頭でっかち
+          const aBaseArea = a.l * a.w;
+          for (const bel of belowBoxes) {
+            const bBaseArea = bel.box.l * bel.box.w;
+            if (aBaseArea > bBaseArea * 1.35 && (aBaseArea - bBaseArea) > 600) {
+              a.ngReasons.push({
+                type: 'invertedPyramid',
+                severity: 'warning',
+                title: '逆ピラミッド (頭でっかち)',
+                desc: `直下より底面積が+${Math.round((aBaseArea - bBaseArea) / bBaseArea * 100)}%広く上段が肥大化`
+              });
+              break;
+            }
+          }
+        }
+
+        if (a.ngReasons.length > 0) {
+          ngItems.push({
+            boxIndex: i,
+            box: a,
+            reasons: a.ngReasons
+          });
+        }
+      }
+
+      // 総合安全スコア（0〜100点）
+      let penalty = 0;
+      ngItems.forEach(item => {
+        item.reasons.forEach(r => {
+          if (r.severity === 'danger') penalty += 3.5;
+          else penalty += 1.2;
+        });
+      });
+      if (lrStatus === 'danger') penalty += 15;
+      else if (lrStatus === 'warning') penalty += 6;
+
+      if (frStatus === 'danger') penalty += 10;
+      else if (frStatus === 'warning') penalty += 4;
+
+      const safetyScore = Math.max(20, Math.min(100, Math.round(100 - penalty)));
+
+      currentBalanceAnalysis = {
+        totalBoxes: boxes.length,
+        totalWeight: totalWt,
+        leftWeight: leftWt,
+        rightWeight: rightWt,
+        leftRatio: leftRatio,
+        rightRatio: rightRatio,
+        frontRatio: frontRatio,
+        rearRatio: rearRatio,
+        lrDiff: lrDiff,
+        lrStatus: lrStatus,
+        frDiff: frDiff,
+        frStatus: frStatus,
+        cog: { x: cogX, y: cogY, z: cogZ },
+        ngItems: ngItems,
+        safetyScore: safetyScore
+      };
+
+      // 各メッシュの userData.ngReasons を同期！
+      if (cargoMeshList) {
+        cargoMeshList.forEach(mesh => {
+          if (!mesh.userData.isOverflow && mesh.userData.boxRef) {
+            mesh.userData.ngReasons = mesh.userData.boxRef.ngReasons || [];
+          }
+        });
+      }
+
+      updateBalanceDiagnosticUI();
+      updateDiagnosticMeshHighlights();
+    }
+
+    function updateBalanceDiagnosticUI() {
+      const diag = currentBalanceAnalysis;
+      if (!diag) return;
+
+      const badge = document.getElementById('diagSafetyBadge');
+      const ngCountEl = document.getElementById('ngBadgeCount');
+      const ngListCount = document.getElementById('ngListCount');
+
+      if (badge) {
+        let label = '優良';
+        let cls = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+        if (diag.safetyScore < 60) {
+          label = '危険・要改善';
+          cls = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+        } else if (diag.safetyScore < 80) {
+          label = '注意';
+          cls = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+        }
+        badge.className = `px-2 py-0.5 rounded border text-[10px] font-mono font-bold ${cls}`;
+        badge.innerText = `安全スコア: ${diag.safetyScore}点 (${label})`;
+      }
+
+      if (ngCountEl) {
+        ngCountEl.innerText = `${diag.ngItems.length}件`;
+        ngCountEl.className = `text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ml-0.5 ${diag.ngItems.length > 0 ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`;
+      }
+      if (ngListCount) ngListCount.innerText = diag.ngItems.length;
+
+      // 左右バランス
+      const lrStatusEl = document.getElementById('diagLRStatus');
+      const leftRatioEl = document.getElementById('diagLeftRatio');
+      const rightRatioEl = document.getElementById('diagRightRatio');
+      const leftBar = document.getElementById('diagLeftBar');
+      const rightBar = document.getElementById('diagRightBar');
+      const lrDetail = document.getElementById('diagLRDetail');
+
+      if (lrStatusEl) {
+        if (diag.lrStatus === 'danger') {
+          lrStatusEl.className = 'font-bold text-rose-400';
+          lrStatusEl.innerText = `🚨 警告 (差 ${diag.lrDiff.toFixed(1)}%)`;
+        } else if (diag.lrStatus === 'warning') {
+          lrStatusEl.className = 'font-bold text-amber-400';
+          lrStatusEl.innerText = `⚠️ 注意 (差 ${diag.lrDiff.toFixed(1)}%)`;
+        } else {
+          lrStatusEl.className = 'font-bold text-emerald-400';
+          lrStatusEl.innerText = `✅ 良好 (差 ${diag.lrDiff.toFixed(1)}%)`;
+        }
+      }
+      if (leftRatioEl) leftRatioEl.innerText = `左: ${diag.leftRatio.toFixed(1)}%`;
+      if (rightRatioEl) rightRatioEl.innerText = `右: ${diag.rightRatio.toFixed(1)}%`;
+      if (leftBar) leftBar.style.width = `${diag.leftRatio.toFixed(1)}%`;
+      if (rightBar) rightBar.style.width = `${diag.rightRatio.toFixed(1)}%`;
+      if (lrDetail) lrDetail.innerText = `左 ${Math.round(diag.leftWeight).toLocaleString()}kg / 右 ${Math.round(diag.rightWeight).toLocaleString()}kg (基準: 左右差10%以内)`;
+
+      // 前後軸重バランス
+      const frStatusEl = document.getElementById('diagFRStatus');
+      const frontRatioEl = document.getElementById('diagFrontRatio');
+      const rearRatioEl = document.getElementById('diagRearRatio');
+      const frontBar = document.getElementById('diagFrontBar');
+      const rearBar = document.getElementById('diagRearBar');
+      const frDetail = document.getElementById('diagFRDetail');
+
+      if (frStatusEl) {
+        if (diag.frStatus === 'danger') {
+          frStatusEl.className = 'font-bold text-rose-400';
+          frStatusEl.innerText = `⚠️ 前後不均衡`;
+        } else {
+          frStatusEl.className = 'font-bold text-emerald-400';
+          frStatusEl.innerText = `✅ 良好`;
+        }
+      }
+      if (frontRatioEl) frontRatioEl.innerText = `前(奥): ${diag.frontRatio.toFixed(1)}%`;
+      if (rearRatioEl) rearRatioEl.innerText = `後(手前): ${diag.rearRatio.toFixed(1)}%`;
+      if (frontBar) frontBar.style.width = `${diag.frontRatio.toFixed(1)}%`;
+      if (rearBar) rearBar.style.width = `${diag.rearRatio.toFixed(1)}%`;
+      if (frDetail) {
+        const offset = Math.round(diag.cog.x);
+        frDetail.innerText = `重心位置: 中央から${offset >= 0 ? '手前' : '奥'}へ ${Math.abs(offset)}cm`;
+      }
+
+      // NG件数サマリー
+      const crushCount = diag.ngItems.filter(i => i.reasons.some(r => r.type === 'crushRisk')).length;
+      const overhangCount = diag.ngItems.filter(i => i.reasons.some(r => r.type === 'overhang')).length;
+      const pyramidCount = diag.ngItems.filter(i => i.reasons.some(r => r.type === 'invertedPyramid')).length;
+      const aspectCount = diag.ngItems.filter(i => i.reasons.some(r => r.type === 'aspectRatio')).length;
+
+      const cntCrush = document.getElementById('cntCrushRisk');
+      const cntOver = document.getElementById('cntOverhang');
+      const cntPyr = document.getElementById('cntPyramid');
+      const cntAsp = document.getElementById('cntAspect');
+
+      if (cntCrush) cntCrush.innerText = `${crushCount} 件`;
+      if (cntOver) cntOver.innerText = `${overhangCount} 件`;
+      if (cntPyr) cntPyr.innerText = `${pyramidCount} 件`;
+      if (cntAsp) cntAsp.innerText = `${aspectCount} 件`;
+
+      // NGリスト一覧の描画
+      const listContainer = document.getElementById('ngItemsList');
+      if (listContainer) {
+        if (diag.ngItems.length === 0) {
+          listContainer.innerHTML = '<div class="text-emerald-400 font-bold p-3 bg-emerald-950/40 rounded-lg border border-emerald-800 text-center">🎉 重大な積載バランスNG項目は検出されませんでした！安全に運行可能です。</div>';
+        } else {
+          listContainer.innerHTML = diag.ngItems.map(item => {
+            const b = item.box;
+            const primaryReason = item.reasons[0];
+            const badgeColor = primaryReason.severity === 'danger' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' : 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+            return `
+              <div onclick="focusOnBox(${item.boxIndex})" class="p-2 bg-slate-800/90 hover:bg-slate-700/90 rounded-lg border border-slate-700 flex items-center justify-between gap-2.5 cursor-pointer transition transform hover:translate-x-1">
+                <div class="flex items-center gap-2 overflow-hidden">
+                  <span class="w-2.5 h-2.5 rounded-full ${primaryReason.type === 'crushRisk' ? 'bg-rose-500 animate-pulse' : primaryReason.type === 'overhang' ? 'bg-orange-500' : 'bg-amber-500'} flex-shrink-0"></span>
+                  <div class="truncate">
+                    <div class="font-bold text-slate-200 truncate">${b.item.name || b.item.id}</div>
+                    <div class="text-[10px] text-slate-400 truncate">${primaryReason.desc}</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <span class="px-2 py-0.5 rounded border text-[10px] font-bold ${badgeColor}">
+                    ${primaryReason.title}
+                  </span>
+                  <span class="text-[10px] text-blue-400 font-mono">🔍 フォーカス</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    function updateDiagnosticMeshHighlights() {
+      if (!cargoMeshList || cargoMeshList.length === 0) return;
+
+      const chk = document.getElementById('chkDiagnosticHighlight');
+      if (chk) chk.checked = isDiagnosticHighlightMode;
+
+      cargoMeshList.forEach(mesh => {
+        if (mesh.userData.isOverflow) return;
+
+        const ngReasons = mesh.userData.ngReasons || [];
+        const hasNG = ngReasons.length > 0;
+
+        if (!isDiagnosticHighlightMode) {
+          // 通常表示モード
+          mesh.material.transparent = false;
+          mesh.material.opacity = 1.0;
+          mesh.material.color.set(mesh.userData.color || '#3b82f6');
+          mesh.renderOrder = 0;
+        } else {
+          // 診断ハイライトモード
+          if (hasNG) {
+            mesh.material.transparent = false;
+            mesh.material.opacity = 1.0;
+            mesh.renderOrder = 10; // 前面に描画
+
+            const hasCrush = ngReasons.some(r => r.type === 'crushRisk');
+            const hasOverhang = ngReasons.some(r => r.type === 'overhang');
+            const hasDanger = ngReasons.some(r => r.severity === 'danger');
+
+            if (hasCrush) {
+              mesh.material.color.set(0xff0044); // 鮮烈な蛍光レッド（座屈リスク）
+            } else if (hasOverhang) {
+              mesh.material.color.set(0xff6600); // 鮮やかなオレンジ（宙浮き）
+            } else if (hasDanger) {
+              mesh.material.color.set(0xff1144);
+            } else {
+              mesh.material.color.set(0xffcc00); // 鮮やかな黄色（逆ピラミッド・アスペクト比）
+            }
+          } else {
+            // 正常な段ボールはゴースト化
+            mesh.material.transparent = true;
+            mesh.material.opacity = 0.12;
+            mesh.material.color.set(0x475569);
+            mesh.renderOrder = 1;
+          }
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    function focusOnBox(boxIndex) {
+      if (!currentPlacedBoxes || !currentPlacedBoxes[boxIndex]) return;
+      const b = currentPlacedBoxes[boxIndex];
+      const targetX = b.x + b.l / 2;
+      const targetY = b.y + b.h / 2;
+      const targetZ = b.z + b.w / 2;
+
+      controls.target.set(targetX, targetY, targetZ);
+      camera.position.set(targetX + 160, targetY + 120, targetZ + 180);
+      controls.update();
+      renderer.render(scene, camera);
+
+      // 該当メッシュを探してツールチップ表示
+      const mesh = cargoMeshList.find(m => !m.userData.isOverflow && Math.abs(m.position.x - targetX) < 1.0 && Math.abs(m.position.y - targetY) < 1.0 && Math.abs(m.position.z - targetZ) < 1.0);
+      if (mesh) {
+        showBoxTooltip(mesh);
+      }
+    }
+
+    // ==========================================
+    // 【新機能】高解像度3D画像出力＆診断レポート画像合成
+    // ==========================================
+    function export3DImage(withReport) {
+      if (!renderer || !renderer.domElement) return;
+
+      // 最新画面を描画
+      renderer.render(scene, camera);
+
+      const curCfg = PALLET_CONFIGS[packingMode] || PALLET_CONFIGS.highDensity;
+      const modeName = curCfg.name || packingMode;
+      const curBatch = (multiBatchData && multiBatchData.batches) ? multiBatchData.batches[multiBatchData.activeBatchIndex] : null;
+      const batchCode = curBatch ? (curBatch.code || curBatch.id) : "6511";
+      const timeStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+
+      if (!withReport) {
+        // 単体3DビューPNGダウンロード
+        const dataUrl = renderer.domElement.toDataURL("image/png");
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `3Dトラック積載ビュー_${modeName}_${batchCode}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        showToast('3Dビュー画像(PNG)をダウンロードしました！', 'success');
+        return;
+      }
+
+      // 診断レポート付き合成画像作成
+      const repCanvas = document.createElement('canvas');
+      repCanvas.width = 1600;
+      repCanvas.height = 1000;
+      const ctx = repCanvas.getContext('2d');
+
+      // 背景
+      ctx.fillStyle = '#0b1120'; // slate-950
+      ctx.fillRect(0, 0, repCanvas.width, repCanvas.height);
+
+      // 1. 上部ヘッダー（プロフェッショナル解析バナー）
+      ctx.fillStyle = '#1e293b'; // slate-800
+      ctx.fillRect(0, 0, repCanvas.width, 110);
+
+      ctx.fillStyle = '#38bdf8'; // sky-400
+      ctx.font = 'bold 26px sans-serif';
+      ctx.fillText('🚛 3Dトラック積載バランス＆NG項目解析レポート', 40, 48);
+
+      ctx.fillStyle = '#94a3b8'; // slate-400
+      ctx.font = '14px sans-serif';
+      const trk = (typeof VEHICLE_PRESETS !== 'undefined' && currentData.truck && VEHICLE_PRESETS[currentData.truck.selected]) ? VEHICLE_PRESETS[currentData.truck.selected] : ((currentData.truck && currentData.truck.customDims) ? currentData.truck.customDims : { L: 960, W: 240, H: 260, maxWeight: 13000 });
+      const truckL = trk.L || 960;
+      const truckW = trk.W || 240;
+      const truckH = trk.H || 260;
+      const truckMaxWeight = trk.maxWeight || 13000;
+      const truckSpec = `車両: ${trk.name || '低床10tウイング'} (${truckL}×${truckW}×${truckH}cm / 最大積載${truckMaxWeight.toLocaleString()}kg) | 積載方式: ${modeName}`;
+      ctx.fillText(truckSpec, 40, 82);
+
+      // ヘッダー右側: 積載基本サマリー
+      const placed = (currentPlacedBoxes || []).filter(b => !b.isOverflow);
+      const overflow = (currentPlacedBoxes || []).filter(b => b.isOverflow);
+      const totalCount = currentData.cargoItems.reduce((sum, it) => sum + (it.qty || 0), 0);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(`積載数: ${placed.length} / ${totalCount} ケース (${overflow.length === 0 ? '全数格納完了' : overflow.length + 'cs 積み残し発生'})`, 1560, 48);
+
+      const batchName = curBatch ? (curBatch.name || curBatch.code) : '幹線6511便';
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '13px sans-serif';
+      ctx.fillText(`対象便: ${batchName} | 出力日時: ${new Date().toLocaleString('ja-JP')}`, 1560, 82);
+      ctx.textAlign = 'left';
+
+      // 2. 中央部: 3Dビュー描画
+      const imgW = 1520;
+      const imgH = 680;
+      const imgX = 40;
+      const imgY = 125;
+
+      ctx.drawImage(renderer.domElement, imgX, imgY, imgW, imgH);
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(imgX, imgY, imgW, imgH);
+
+      // 3. 下部フッター: 積載バランス診断サマリーカード
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(40, 825, 1520, 145);
+      ctx.strokeRect(40, 825, 1520, 145);
+
+      const diag = currentBalanceAnalysis || { safetyScore: 100, lrDiff: 0, leftRatio: 50, rightRatio: 50, frontRatio: 50, rearRatio: 50, ngItems: [] };
+
+      // スコアボックス
+      ctx.fillStyle = diag.safetyScore >= 80 ? '#059669' : diag.safetyScore >= 60 ? '#d97706' : '#dc2626';
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(65, 845, 120, 105, 12);
+      } else {
+        ctx.rect(65, 845, 120, 105);
+      }
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 36px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${diag.safetyScore}`, 125, 905);
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('安全スコア', 125, 935);
+      ctx.textAlign = 'left';
+
+      // 左右バランス
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText(`左右偏荷重 (横転耐性): ${diag.lrDiff <= 5 ? '✅ 良好' : diag.lrDiff <= 10 ? '⚠️ 注意' : '🚨 警告 (偏荷重)'}`, 215, 865);
+      ctx.font = '13px sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(`左側: ${diag.leftRatio.toFixed(1)}% (${diag.leftWeight ? Math.round(diag.leftWeight).toLocaleString() : 0}kg)  vs  右側: ${diag.rightRatio.toFixed(1)}% (${diag.rightWeight ? Math.round(diag.rightWeight).toLocaleString() : 0}kg) [左右差: ${diag.lrDiff.toFixed(1)}%]`, 215, 892);
+
+      // 前後バランス
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText(`前後軸重配分: ${diag.frDiff <= 10 ? '✅ 良好' : '⚠️ 注意'}`, 215, 925);
+      ctx.font = '13px sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(`前部(奥): ${diag.frontRatio.toFixed(1)}%  vs  後部(手前): ${diag.rearRatio.toFixed(1)}%`, 215, 950);
+
+      // NG項目サマリー
+      const crushCount = (diag.ngItems || []).filter(item => item.reasons.some(r => r.type === 'crushRisk')).length;
+      const overhangCount = (diag.ngItems || []).filter(item => item.reasons.some(r => r.type === 'overhang')).length;
+      const pyramidCount = (diag.ngItems || []).filter(item => item.reasons.some(r => r.type === 'invertedPyramid')).length;
+      const aspectCount = (diag.ngItems || []).filter(item => item.reasons.some(r => r.type === 'aspectRatio')).length;
+
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText(`抽出されたNG項目 (計 ${diag.ngItems ? diag.ngItems.length : 0} 件):`, 850, 865);
+
+      ctx.font = '13px sans-serif';
+      ctx.fillStyle = crushCount > 0 ? '#f87171' : '#34d399';
+      ctx.fillText(`• 重量逆転 (座屈リスク): ${crushCount} 件`, 860, 895);
+
+      ctx.fillStyle = overhangCount > 0 ? '#fb923c' : '#34d399';
+      ctx.fillText(`• 支持率不足 (宙浮き): ${overhangCount} 件`, 860, 925);
+
+      ctx.fillStyle = pyramidCount > 0 ? '#fbbf24' : '#34d399';
+      ctx.fillText(`• 逆ピラミッド (頭でっかち): ${pyramidCount} 件`, 1180, 895);
+
+      ctx.fillStyle = aspectCount > 0 ? '#c084fc' : '#34d399';
+      ctx.fillText(`• 縦立ち自立 (転倒リスク): ${aspectCount} 件`, 1180, 925);
+
+      // PNGエクスポート実行
+      const reportDataUrl = repCanvas.toDataURL("image/png");
+      const a = document.createElement('a');
+      a.href = reportDataUrl;
+      a.download = `積載バランス診断レポート_${modeName}_${batchCode}_${timeStr}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast('積載バランス診断レポート画像(PNG)を出力しました！', 'success');
     }
 
     // ==========================================
