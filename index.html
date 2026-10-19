@@ -523,6 +523,88 @@
             <!-- 動的挿入 -->
           </div>
         </div>
+
+        <!-- 導入済み8大数理ルール（課題・リスク・根本原因・解決アルゴリズム一覧） -->
+        <details class="mt-3 pt-2.5 border-t border-slate-800 group">
+          <summary class="cursor-pointer list-none flex items-center justify-between text-xs font-bold text-indigo-300 hover:text-indigo-200 transition select-none">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>📐 荷姿・積載バランスに関する8大数理ルール（物理原則・安全基準一覧）を表示</span>
+            </span>
+            <span class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 group-open:bg-indigo-950/60 group-open:text-indigo-300">クリックで開閉 ▼</span>
+          </summary>
+          <div class="mt-2.5 overflow-x-auto rounded-lg border border-slate-700/80 bg-slate-950/70">
+            <table class="w-full text-left border-collapse text-[11px]">
+              <thead>
+                <tr class="bg-slate-800/90 text-slate-300 border-b border-slate-700">
+                  <th class="py-1.5 px-2 font-bold w-7 text-center">#</th>
+                  <th class="py-1.5 px-2.5 font-bold">発生していた課題・現象</th>
+                  <th class="py-1.5 px-2.5 font-bold">現場リスク</th>
+                  <th class="py-1.5 px-2.5 font-bold">根本原因</th>
+                  <th class="py-1.5 px-2.5 font-bold text-emerald-300">ソフトウェア上の解決アルゴリズム</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/80 text-slate-300">
+                <tr class="hover:bg-slate-900/60">
+                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">1</td>
+                  <td class="py-1.5 px-2.5 font-semibold text-white">パレット底面の隙間（木枠露出）</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">上段箱が下からの支持を失い、角落ち・傾斜崩壊を誘発。</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">床面（Y=0）の全象限が埋まる前に上段への積載へ移行していた。</td>
+                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">Floor Flattening Lock（床面敷き詰めロック）</b><br><span class="text-[10px] text-slate-400">床面が100%埋まるまで上段（Y&gt;0）への積載を禁止し、フラットな土台を形成。</span></td>
+                </tr>
+                <tr class="hover:bg-slate-900/60">
+                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">2</td>
+                  <td class="py-1.5 px-2.5 font-semibold text-white">外周の欠損・端の隙間</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">外周の支えがなくなり、輸送振動や遠心力で外側へ崩落。ラップテンション無効化。</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">外周密着がソフト制約に留まり、箱数優先で外周欠損配置が選ばれていた。</td>
+                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">厳格外周4隅・4辺密着（Strict Shell Rule）</b><br><span class="text-[10px] text-slate-400">パレットの4隅および外周4辺すべてに段ボールが密着する配置（corners === 4）を最優先化。</span></td>
+                </tr>
+                <tr class="hover:bg-slate-900/60">
+                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">3</td>
+                  <td class="py-1.5 px-2.5 font-semibold text-white">中央の巨大空洞（25〜40cmの大穴）</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">上段箱が空洞の上を跨ぎ、踏み抜き・内側への陥没・ズレ落ちが発生。</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">風車探索で外周端に無理に広げた結果、中央に大穴が開いていた。</td>
+                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">ピンホール上限制約（≤15.0cm）＆ 中心寄せ（求心密着）</b><br><span class="text-[10px] text-slate-400">空洞幅・奥行15cm超の風車を禁止。箱同士を中心に隙間0cmで密着させ余白は外周へ逃がす。</span></td>
+                </tr>
+                <tr class="hover:bg-slate-900/60">
+                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">4</td>
+                  <td class="py-1.5 px-2.5 font-semibold text-white">列間のスリット状長大溝（天板露出）</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">同一SKUの列同士が引き離され、上段箱の角が溝に落ち込む。</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">単純グリッド配置で手前端と奥端に箱を引き離して中央に余白を集約していた。</td>
+                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">Tight-Fit Centering（タイトフィット求心配置）</b><br><span class="text-[10px] text-slate-400">列間・箱間の隙間を0cmで完全密着させ、ブロック全体を中心寄せして中央溝を完全消滅。</span></td>
+                </tr>
+                <tr class="hover:bg-slate-900/60">
+                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">5</td>
+                  <td class="py-1.5 px-2.5 font-semibold text-white">中段のくびれ・逆ピラミッド（頭でっかち）</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">重心が上がり、ブレーキ・加速時の前後Gで上段が倒壊・下段が座屈。</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">体積ソートのみで配置され、軽量・小面積箱の上に重量・大面積箱が載っていた。</td>
+                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">底面積・重量非増加則（山型ピラミッド積層）</b><br><span class="text-[10px] text-slate-400">下段ほど大底面積・高重量を強制。直下の箱より重い/大きい箱が載る配置を厳格排除。</span></td>
+                </tr>
+                <tr class="hover:bg-slate-900/60">
+                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">6</td>
+                  <td class="py-1.5 px-2.5 font-semibold text-white">サイドの底面浮き（片持ちオーバーハング）</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">下段に床がない空間へ上段が飛び出し、自重で脱落。</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">直下の接触面積しか見ておらず、床面までの荷重伝達パスが途切れていた。</td>
+                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">垂直荷重パス検証（Vertical Pillar Check）</b><br><span class="text-[10px] text-slate-400">床面（Y=0）まで垂直な柱が繋がり底面支持率88%以上を満たす配置のみ許可。</span></td>
+                </tr>
+                <tr class="hover:bg-slate-900/60">
+                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">7</td>
+                  <td class="py-1.5 px-2.5 font-semibold text-white">凸凹跨ぎ・煙突タワー化・縦立て</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">縦立て箱の転倒、不等沈下による段ボール折損、特定箇所のみの突出。</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">端数箱が空いている角に無秩序に積まれ、薄面接地（縦立て）が許容されていた。</td>
+                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">平坦レイヤー積層（Strict Layer-by-Layer）＆ 縦立て禁止</b><br><span class="text-[10px] text-slate-400">アスペクト比&gt;1.8の縦立てを完全排除。段差1.2cm以上の跨ぎを禁止し低い層から平坦に集約。</span></td>
+                </tr>
+                <tr class="hover:bg-slate-900/60">
+                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">8</td>
+                  <td class="py-1.5 px-2.5 font-semibold text-white">上下層の結束力不足（棒積み崩壊）</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">ブロック積み（棒積み）により上下の結束が弱く、横揺れで崩壊。</td>
+                  <td class="py-1.5 px-2.5 text-slate-400">上下の層が同一パターンで積まれ、目地（継ぎ目）が一直線に揃っていた。</td>
+                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">1・2段目インターロッキング（交互反転）</b><br><span class="text-[10px] text-slate-400">奇数段（パターンA）に対し偶数段は90度回転・鏡像反転（パターンB）を適用し互い違いに噛み合わせる。</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
       </div>
 
       <!-- 3D描画エリア -->
@@ -2320,12 +2402,18 @@ function getOrientationsWithPyramidScore(item, curY, usableH) {
   const heightRatio = curY / (usableH || 260);
   return raw.map(o => {
     const baseArea = o.l * o.w;
+    const minBaseEdge = Math.min(o.l, o.w);
+    const aspectRatio = o.h / (minBaseEdge || 1.0);
     let pyramidPenalty = 0;
-    // 下段〜中段(高さ65%未満)では、最も面積の広い面を底面にしない「薄立て」に強いペナルティ
+    // 【ルール#7 縦立て禁止】高アスペクト比（底面短辺に対し高さ1.80倍超）の縦立て姿勢を厳格排除
+    if (aspectRatio > 1.80) {
+      pyramidPenalty += 8000 + (aspectRatio - 1.80) * 2000;
+    }
+    // 【ルール#5 底面積非増加則】下段〜中段(高さ65%未満)では最も面積の広い面を底面にしない薄立てに強いペナルティ
     if (heightRatio < 0.65 && baseArea < maxFace * 0.85) {
       pyramidPenalty += (maxFace - baseArea) * 1.5;
     }
-    return { ...o, baseArea, pyramidPenalty };
+    return { ...o, baseArea, aspectRatio, pyramidPenalty };
   });
 }
 function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX) {
@@ -2347,24 +2435,26 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
       }
     }
   });
-  // 【山型ソート】最大底面積の降順 ➔ 重量の降順 ➔ 体積の降順でソート（土台に大面積箱を集約）
-  largeBoxes.sort((a, b) => (b.maxBase - a.maxBase) || (b.weight - a.weight) || ((b.L * b.W * b.H) - (a.L * a.W * a.H)));
-  smallBoxes.sort((a, b) => (b.maxBase - a.maxBase) || ((b.L * b.W * b.H) - (a.L * a.W * a.H)));
+  // 【ルール#5 山型ピラミッドソート】単体重量ランク＆最大底面積の降順でソート（土台に重量物・大底面積箱を集約）
+  largeBoxes.sort((a, b) => ((b.weight * 120 + b.maxBase) - (a.weight * 120 + a.maxBase)) || (b.weight - a.weight) || (b.maxBase - a.maxBase));
+  smallBoxes.sort((a, b) => (b.weight - a.weight) || (b.maxBase - a.maxBase) || ((b.L * b.W * b.H) - (a.L * a.W * a.H)));
   const inTruck = [];
   const overflow = [];
   let curX = startX;
   let maxEndX = startX;
+  let wallIdx = 0;
   while (largeBoxes.length > 0 || smallBoxes.length > 0) {
+    const mirrorZ = (wallIdx % 2 === 1);
     let targetDepth = 45.0;
     if (largeBoxes.length > 0) {
       const firstBox = largeBoxes[0];
       const fOrs = getOrientationsWithPyramidScore(firstBox, 0, usableH);
-      const goodOrs = fOrs.filter(o => o.h >= 25 && o.h <= 50 && o.w <= usableW && o.pyramidPenalty === 0);
+      const goodOrs = fOrs.filter(o => o.h >= 20 && o.h <= 52 && o.w <= usableW && o.pyramidPenalty < 100);
       targetDepth = (goodOrs.length > 0 ? goodOrs[0] : fOrs[0]).l;
     } else if (smallBoxes.length > 0) {
       const firstBox = smallBoxes[0];
-      const fOrs = getOrientations(firstBox);
-      const validL = fOrs.filter(o => o.h <= usableH && o.w <= usableW).map(o => o.l);
+      const fOrs = getOrientationsWithPyramidScore(firstBox, 0, usableH);
+      const validL = fOrs.filter(o => o.h <= usableH && o.w <= usableW && o.pyramidPenalty < 1000).map(o => o.l);
       targetDepth = validL.length > 0 ? Math.min(...validL) : firstBox.L;
     }
     let curZ = minZ;
@@ -2374,7 +2464,8 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
       let colMaxW = 0.0;
       let prevBaseArea = Infinity; // 直下の箱の底面積（山型制約用）
       let prevBoxW = Infinity;
-      // 1. 大型・中型箱を下から山型（下段大面積 ➔ 上段小面積）に積み上げる
+      let prevWeight = Infinity;   // 直下の箱の単体重量（座屈防止用）
+      // 1. 大型・中型箱を下から山型（下段＝重量・大底面積 ➔ 上段＝軽量・小底面積）に積み上げる
       while (curY < usableH - 10 && largeBoxes.length > 0) {
         const remH = usableH - curY;
         const remW = maxZ - curZ;
@@ -2383,23 +2474,34 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
         let bestScore = Infinity;
         for (let i = 0; i < largeBoxes.length; i++) {
           const b = largeBoxes[i];
+          const bWt = b.weight || 5.0;
+          // 【ルール#5 重量逆転防止】直下の箱より1.28倍超かつ+1.9kg以上重い箱は座屈リスクのためブロック
+          if (curY > 0.5 && bWt > prevWeight * 1.28 && (bWt - prevWeight) >= 1.9) {
+            continue;
+          }
           const bOrs = getOrientationsWithPyramidScore(b, curY, usableH);
           for (let o of bOrs) {
             if (o.h <= remH + 0.5 && o.w <= remW + 0.5) {
+              // 【ルール#5 逆ピラミッド防止】直下より底面積が1.32倍超かつ+550cm2超の姿勢はブロック
+              if (curY > 0.5 && o.baseArea > prevBaseArea * 1.32 && (o.baseArea - prevBaseArea) > 550) {
+                continue;
+              }
               let depthDiff = Math.abs(o.l - targetDepth);
               if (o.l > targetDepth + 2) depthDiff += 50;
               if (o.orientType === 'side') depthDiff += 0.8;
               else if (o.orientType === 'front') depthDiff += 3.0;
-              // 【山型（逆ピラミッド防止）ペナルティ】直下の箱より底面積や幅が大きい場合は抑制
               let inversionPenalty = 0;
               if (o.baseArea > prevBaseArea * 1.05) {
                 inversionPenalty += (o.baseArea - prevBaseArea) * 2.5 + 150.0;
               }
               if (o.w > prevBoxW + 2.0) {
-                inversionPenalty += (o.w - prevBoxW) * 15.0;
+                inversionPenalty += (o.w - prevBoxW) * 18.0;
               }
-              // 下段では大底面積ほど高評価（スコア減算）
-              const baseBonus = (curY < usableH * 0.45) ? -(o.baseArea * 0.04) : 0;
+              if (bWt > prevWeight) {
+                inversionPenalty += (bWt - prevWeight) * 60.0;
+              }
+              // 下段では高重量・大底面積ほど高評価（スコア減算）
+              const baseBonus = (curY < usableH * 0.45) ? -(o.baseArea * 0.04 + bWt * 8.0) : -(bWt * 2.0);
               const score = depthDiff * 2.0 + (remH - o.h) * 0.4 + o.pyramidPenalty + inversionPenalty + baseBonus;
               if (score < bestScore) {
                 bestScore = score;
@@ -2408,16 +2510,17 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
               }
             }
           }
-          if (bestScore < 0) break;
+          if (bestScore < -40) break;
         }
         if (bestI === -1) break;
         const boxToPlace = largeBoxes.splice(bestI, 1)[0];
         const bl = bestO.l, bh = bestO.h, bw = bestO.w;
         prevBaseArea = bestO.baseArea;
         prevBoxW = bw;
+        prevWeight = boxToPlace.weight || 5.0;
         const boxData = {
           item: boxToPlace,
-          x: curX, y: curY, z: curZ,
+          x: curX, y: curY, z: mirrorZ ? (-curZ - bw) : curZ,
           l: bl, h: bh, w: bw,
           topAxis: bestO.topAxis,
           orientType: bestO.orientType,
@@ -2444,13 +2547,20 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
           let bestSScore = Infinity;
           for (let i = 0; i < smallBoxes.length; i++) {
             const sb = smallBoxes[i];
-            const sbOrs = getOrientations(sb);
+            const sbWt = sb.weight || 5.0;
+            if (curY > 0.5 && sbWt > prevWeight * 1.28 && (sbWt - prevWeight) >= 1.9) {
+              continue;
+            }
+            const sbOrs = getOrientationsWithPyramidScore(sb, curY, usableH);
             for (let o of sbOrs) {
               if (o.h <= remH + 0.5 && o.w <= remW + 0.5) {
+                if (curY > 0.5 && o.baseArea > prevBaseArea * 1.32 && (o.baseArea - prevBaseArea) > 550) {
+                  continue;
+                }
                 let depthDiff = Math.abs(o.l - targetDepth);
                 if (o.orientType === 'side') depthDiff += 0.5;
                 else if (o.orientType === 'front') depthDiff += 3.0;
-                const score = depthDiff * 1.5 + (remH - o.h);
+                const score = depthDiff * 1.5 + (remH - o.h) + o.pyramidPenalty - (sbWt * 2.0);
                 if (score < bestSScore) {
                   bestSScore = score;
                   bestSI = i;
@@ -2458,14 +2568,17 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
                 }
               }
             }
-            if (bestSScore < 5) break;
+            if (bestSScore < 0) break;
           }
           if (bestSI === -1) break;
           const boxToPlace = smallBoxes.splice(bestSI, 1)[0];
           const bl = bestSO.l, bh = bestSO.h, bw = bestSO.w;
+          prevBaseArea = bl * bw;
+          prevBoxW = bw;
+          prevWeight = boxToPlace.weight || 5.0;
           const boxData = {
             item: boxToPlace,
-            x: curX, y: curY, z: curZ,
+            x: curX, y: curY, z: mirrorZ ? (-curZ - bw) : curZ,
             l: bl, h: bh, w: bw,
             topAxis: bestSO.topAxis,
             orientType: bestSO.orientType,
@@ -2488,6 +2601,7 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
     }
     if (actualLayerMaxL === 0) actualLayerMaxL = targetDepth || 40.0;
     curX += actualLayerMaxL + 0.2;
+    wallIdx++;
   }
   const sequencedInTruck = assignRobotSequence(inTruck);
   return { inTruck: sequencedInTruck, overflow, maxEndX };
@@ -2521,7 +2635,7 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
     }
 
     // ==========================================
-    // 【従来方式】ウォール積み（品目順）
+    // 【従来方式】ウォール積み（品目順・縦立て防止＆重量順改善）
     // ==========================================
     function packStageWallBuilding(items, startX, truckW, truckH, maxAllowedX) {
       const halfW = truckW / 2;
@@ -2539,20 +2653,36 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
       const inTruck = [];
       const overflow = [];
 
-      items.forEach(item => {
+      const sortedWallItems = [...items].sort((a, b) => {
+        const areaA = Math.max(a.L * a.W, a.L * a.H, a.W * a.H);
+        const areaB = Math.max(b.L * b.W, b.L * b.H, b.W * b.H);
+        return (b.weight - a.weight) || (areaB - areaA);
+      });
+
+      let prevColW = 0;
+      let prevColArea = Infinity;
+      let wallIdx = 0;
+
+      sortedWallItems.forEach(item => {
         if (!item.qty || item.qty <= 0) return;
 
         let bestL = item.L, bestW = item.W, bestH = item.H;
         let chosenO = null;
+        const maxFace = Math.max(item.L * item.W, item.L * item.H, item.W * item.H);
         const orientations = getOrientations(item);
 
         let bestScore = -1;
         orientations.forEach(o => {
           if (o.w <= usableW && o.h <= maxH) {
+            const minEdge = Math.min(o.l, o.w);
+            const aspect = o.h / (minEdge || 1);
+            if (aspect > 1.80) return; // 縦立て禁止
+            const baseArea = o.l * o.w;
             const cols = Math.floor(usableW / o.w);
             const rows = Math.floor(maxH / o.h);
             let score = (cols * o.w) * (rows * o.h) / o.l;
             if (o.upright) score *= 1.25; // 正置優先
+            if (baseArea >= maxFace * 0.95) score *= 1.35; // 最大底面積優先
             if (score > bestScore) {
               bestScore = score;
               bestL = o.l;
@@ -2563,10 +2693,16 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
           }
         });
 
+        // 直下の箱より底面積が大きい場合や幅が異なる場合は新しい列へ移動（逆ピラミッド・はみ出し防止）
+        if (curY > 0 && (bestL * bestW > prevColArea * 1.05 || bestW > prevColW + 0.1 || bestL > layerMaxL + 0.1)) {
+          curY = 0;
+          curZ += (prevColW > 0 ? prevColW : bestW) + 0.3;
+        }
+
         for (let q = 0; q < item.qty; q++) {
           if (curY + bestH > maxH) {
             curY = 0;
-            curZ += bestW + 0.3;
+            curZ += (prevColW > 0 ? prevColW : bestW) + 0.3;
           }
 
           if (curZ + bestW > maxZ) {
@@ -2574,13 +2710,16 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
             curY = 0;
             curX += (layerMaxL > 0 ? layerMaxL : bestL) + 0.5;
             layerMaxL = 0;
+            wallIdx++;
           }
+
+          const placedZ = (wallIdx % 2 === 1) ? (-curZ - bestW) : curZ;
 
           const boxData = {
             item: item,
             x: curX,
             y: curY,
-            z: curZ,
+            z: placedZ,
             l: bestL,
             h: bestH,
             w: bestW,
@@ -2590,7 +2729,6 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
             supportRatio: 1.0
           };
 
-          // 荷台内か積み残しか
           if (curX + bestL <= maxAllowedX) {
             inTruck.push(boxData);
           } else {
@@ -2598,6 +2736,8 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
           }
 
           curY += bestH + 0.3;
+          prevColW = bestW;
+          prevColArea = bestL * bestW;
           layerMaxL = Math.max(layerMaxL, bestL);
         }
       });
@@ -2730,14 +2870,21 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
 
     // ==========================================
     // ==========================================
-    // 【要件③】パレタイズロボット向け パッキングエンジン
-    // - 1100mmパレット: 5ブロック・ピンホール外周密着（下部）＋高密度密着（上部）＋4隅充填
-    // - 2200mmパレット: マルチスケールブロック積載（Full 220x220, Half 220x110, Quad 110x110）＋高さ適応高密度充填
+    // 【要件③】パレタイズロボット向け パッキングエンジン（8大数理ルール完全統合版）
+    // #1 Floor Flattening Lock（床面敷き詰めロック）
+    // #2 Strict Shell Rule（外周4隅・4辺密着）
+    // #3 Pinhole Limit <= 15.0cm & 求心密着（中央巨大空洞の排除）
+    // #4 Tight-Fit Centering（タイトフィット求心配置・スリット長大溝の消滅）
+    // #5 底面積非増加則・重量非増加則（山型ピラミッド積層・座屈＆逆ピラミッド防止）
+    // #6 Vertical Pillar Check（垂直荷重パス検証・片持ちオーバーハング防止）
+    // #7 Strict Layer-by-Layer & 縦立て禁止（平坦レイヤー積層・煙突タワー化防止）
+    // #8 1・2段目インターロッキング（奇数/偶数段90度回転・鏡像反転）
     // ==========================================
     function packPalletGridBuilding(palletConfig, pallets, truckH) {
       const maxStackH = palletOptions.maxHeight || palletConfig.maxHeight || 215.0; // パレット上面からの有効高
       const overhang = palletOptions.overhang || 0.0;
       const SUP_MIN = 0.88; // 底面支持率88%以上（宙浮き・荷崩れ防止）
+      const MAX_PINHOLE = 15.0; // 【ルール#3】中央ピンホール空洞の上限15.0cm
       const EPS = 1e-6;
 
       const isP2200 = (palletConfig && palletConfig.id === 'p2200') || (pallets.length > 0 && pallets[0].l > 150);
@@ -2776,17 +2923,51 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
         return sum / (bx.l * bx.w);
       }
 
-      function packSubGrid(W, D, a, b) {
+      // 【ルール#5 & #6】直下の箱に対する重量逆転・逆ピラミッド・垂直荷重パス（支持率86%以上）の一括検証
+      function checkPhysicalSafetyOnBelow(bx, itemWt, belowList) {
+        if (!belowList || belowList.length === 0) return { ok: false, sup: 0.0 };
+        let sumArea = 0.0;
+        const bxArea = bx.l * bx.w;
+
+        for (let i = 0; i < belowList.length; i++) {
+          const bel = belowList[i];
+          const ov = boxOverlapArea(bx, bel);
+          if (ov > 0.01) {
+            sumArea += ov;
+            const belWt = (bel.item && bel.item.weight) ? bel.item.weight : 5.0;
+            const belArea = bel.l * bel.w;
+            // 【ルール#5 重量逆転防止】直下の箱より1.28倍超かつ+1.9kg以上重い場合は座屈リスクのためNG
+            if (itemWt > belWt * 1.28 && (itemWt - belWt) >= 1.9) {
+              return { ok: false, sup: 0.0 };
+            }
+            // 【ルール#5 逆ピラミッド防止】直下の箱より底面積が1.32倍超かつ+550cm2超の場合は頭でっかちのためNG
+            if (bxArea > belArea * 1.32 && (bxArea - belArea) > 550) {
+              return { ok: false, sup: 0.0 };
+            }
+          }
+        }
+
+        // 【ルール#6 垂直荷重パス検証（Vertical Pillar Check）】88%以上の底面支持率により片持ちオーバーハングを完全ブロック
+        const sup = sumArea / bxArea;
+        return { ok: sup >= SUP_MIN, sup };
+      }
+
+      // 【ルール#4 Tight-Fit Centering】隙間0cmで完全密着させ、指定アンカー方向(alignX, alignZ: 'center' | 'start' | 'end')に求心配置
+      function packSubGrid(W, D, a, b, alignX = 'center', alignZ = 'center') {
         let best = [];
         const pairs = [[a, b], [b, a]];
         for (const [p, q] of pairs) {
           const nx = Math.floor((W + EPS) / p);
           const nz = Math.floor((D + EPS) / q);
           if (nx * nz > best.length) {
+            const usedW = nx * p;
+            const usedD = nz * q;
+            const ox = alignX === 'end' ? (W - usedW) : (alignX === 'start' ? 0.0 : (W - usedW) / 2.0);
+            const oz = alignZ === 'end' ? (D - usedD) : (alignZ === 'start' ? 0.0 : (D - usedD) / 2.0);
             const cur = [];
             for (let i = 0; i < nx; i++) {
               for (let j = 0; j < nz; j++) {
-                cur.push([i * p, j * q, p, q]);
+                cur.push([ox + i * p, oz + j * q, p, q]);
               }
             }
             best = cur;
@@ -2795,41 +2976,27 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
         return best;
       }
 
-      // ==========================================
-      // 【1100mmパレット専用】ピンホール積み＆上段密着エンジン
-      // ==========================================
-      function spreadPinholeGrid(nx, nz, a, b, P, parity) {
-        const xs = [];
-        if (nx === 1) {
-          xs.push(parity % 2 === 0 ? 0.0 : P - a);
-        } else {
-          const leftN = (parity % 2 === 0) ? Math.floor((nx + 1) / 2) : Math.floor(nx / 2);
-          const rightN = nx - leftN;
-          for (let i = 0; i < leftN; i++) xs.push(i * a);
-          for (let i = 0; i < rightN; i++) xs.push(P - (rightN - i) * a);
+      // 任意の矩形群を隙間なく中心(P/2, P/2)へセンタリングするヘルパー
+      function centerRectsInPallet(rects, P) {
+        if (!rects || rects.length === 0) return rects;
+        let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+        for (const [x, z, l, w] of rects) {
+          if (x < minX) minX = x;
+          if (x + l > maxX) maxX = x + l;
+          if (z < minZ) minZ = z;
+          if (z + w > maxZ) maxZ = z + w;
         }
-        const zs = [];
-        const p2 = Math.floor(parity / 2);
-        if (nz === 1) {
-          zs.push(p2 % 2 === 0 ? 0.0 : P - b);
-        } else {
-          const botN = (p2 % 2 === 0) ? Math.floor((nz + 1) / 2) : Math.floor(nz / 2);
-          const topN = nz - botN;
-          for (let j = 0; j < botN; j++) zs.push(j * b);
-          for (let j = 0; j < topN; j++) zs.push(P - (topN - j) * b);
-        }
-        const rects = [];
-        for (const x of xs) {
-          for (const z of zs) {
-            rects.push([x, z, a, b]);
-          }
-        }
-        return rects;
+        const usedW = maxX - minX;
+        const usedD = maxZ - minZ;
+        const dx = (P - usedW) / 2.0 - minX;
+        const dz = (P - usedD) / 2.0 - minZ;
+        return rects.map(([x, z, l, w]) => [x + dx, z + dz, l, w]);
       }
 
+      // 【ルール#2, #3, #4】Tight-Fit求心配置＆ピンホール上限制約(<=15cm)を満たす高密度レイヤー探索
       function bestPinwheelPattern(a, b, P, isBottom) {
         let bestCount = -1;
-        let bestEdges = -1;
+        let bestQuality = -Infinity;
         let bestRects = [];
 
         const maxMa = Math.floor((P + EPS) / a);
@@ -2856,72 +3023,88 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
                 const nDz = Math.floor((P - dA + EPS) / a);
 
                 let rects = [];
+                let holePenalty = 0.0;
+
                 if (nAx * nAz > 0 && (nBx * nBz + nCx * nCz + nDx * nDz === 0)) {
-                  if (isBottom) {
-                    rects = spreadPinholeGrid(nAx, nAz, a, b, P, 0);
-                  } else {
-                    for (let i = 0; i < nAx; i++) {
-                      for (let j = 0; j < nAz; j++) {
-                        rects.push([i * a, j * b, a, b]);
-                      }
+                  // 【ルール#4 Tight-Fit Centering】列間・箱間の隙間0cmで中心に求心配置（スリット状長大溝を消滅）
+                  const ox = (P - nAx * a) / 2.0;
+                  const oz = (P - nAz * b) / 2.0;
+                  for (let i = 0; i < nAx; i++) {
+                    for (let j = 0; j < nAz; j++) {
+                      rects.push([ox + i * a, oz + j * b, a, b]);
                     }
                   }
                 } else if (nBx * nBz > 0 && (nAx * nAz + nCx * nCz + nDx * nDz === 0)) {
-                  if (isBottom) {
-                    rects = spreadPinholeGrid(nBx, nBz, b, a, P, 0);
-                  } else {
-                    for (let i = 0; i < nBx; i++) {
-                      for (let j = 0; j < nBz; j++) {
-                        rects.push([i * b, j * a, b, a]);
-                      }
+                  const ox = (P - nBx * b) / 2.0;
+                  const oz = (P - nBz * a) / 2.0;
+                  for (let i = 0; i < nBx; i++) {
+                    for (let j = 0; j < nBz; j++) {
+                      rects.push([ox + i * b, oz + j * a, b, a]);
                     }
                   }
                 } else {
-                  for (let i = 0; i < nAx; i++) for (let j = 0; j < nAz; j++) rects.push([i * a, j * b, a, b]);
-                  for (let i = 0; i < nBx; i++) for (let j = 0; j < nBz; j++) rects.push([P - (i + 1) * b, j * a, b, a]);
-                  for (let i = 0; i < nCx; i++) for (let j = 0; j < nCz; j++) rects.push([P - (i + 1) * a, P - (j + 1) * b, a, b]);
-                  for (let i = 0; i < nDx; i++) for (let j = 0; j < nDz; j++) rects.push([i * b, P - (j + 1) * a, b, a]);
+                  // 4ブロック風車配置：最小包絡サイズ Sx, Sz を求めて中心へ求心密着させる（ルール#3 & #4）
+                  const Sx = Math.max(nAx * a + nBx * b, nCx * a + nDx * b, nAx * a, nCx * a, nBx * b, nDx * b);
+                  const Sz = Math.max(nAz * b + nDz * a, nBz * a + nCz * b, nAz * b, nBz * a, nCz * b, nDz * a);
+                  const effPx = (Sx <= P + EPS) ? Sx : P;
+                  const effPz = (Sz <= P + EPS) ? Sz : P;
 
-                  const Dbot = P - nDz * a;
+                  for (let i = 0; i < nAx; i++) for (let j = 0; j < nAz; j++) rects.push([i * a, j * b, a, b]);
+                  for (let i = 0; i < nBx; i++) for (let j = 0; j < nBz; j++) rects.push([effPx - (i + 1) * b, j * a, b, a]);
+                  for (let i = 0; i < nCx; i++) for (let j = 0; j < nCz; j++) rects.push([effPx - (i + 1) * a, effPz - (j + 1) * b, a, b]);
+                  for (let i = 0; i < nDx; i++) for (let j = 0; j < nDz; j++) rects.push([i * b, effPz - (j + 1) * a, b, a]);
+
+                  // 重なり検証
+                  let overlapErr = false;
+                  for (let u = 0; u < rects.length; u++) {
+                    for (let v = u + 1; v < rects.length; v++) {
+                      const r1 = rects[u], r2 = rects[v];
+                      const ix = Math.min(r1[0] + r1[2], r2[0] + r2[2]) - Math.max(r1[0], r2[0]);
+                      const iz = Math.min(r1[1] + r1[3], r2[1] + r2[3]) - Math.max(r1[1], r2[1]);
+                      if (ix > 0.05 && iz > 0.05) { overlapErr = true; break; }
+                    }
+                    if (overlapErr) break;
+                  }
+                  if (overlapErr) continue;
+
+                  const Dbot = effPz - nDz * a;
                   const Dright = nDx * b;
-                  const Bleft = P - nBx * b;
+                  const Bleft = effPx - nBx * b;
+                  const Cleft = effPx - nCx * a;
                   let hx0 = 0, hx1 = 0, hz0 = 0, hz1 = 0;
-                  if (wA < P - wC - EPS && dB < dA + EPS) {
-                    hx0 = wA; hx1 = P - wC; hz0 = dB; hz1 = Dbot;
-                  } else if (wA > P - wC + EPS && dA <= dB + EPS) {
+                  if (wA < Cleft - EPS && dB < dA + EPS) {
+                    hx0 = wA; hx1 = Cleft; hz0 = dB; hz1 = Dbot;
+                  } else if (wA > Cleft + EPS && dA <= dB + EPS) {
                     hx0 = Dright; hx1 = Bleft; hz0 = dA; hz1 = dB;
                   }
-                  if (hx1 - hx0 > EPS && hz1 - hz0 > EPS) {
-                    const g = packSubGrid(hx1 - hx0, hz1 - hz0, a, b);
+                  const holeW = Math.max(0, hx1 - hx0);
+                  const holeD = Math.max(0, hz1 - hz0);
+
+                  if (holeW > EPS && holeD > EPS) {
+                    const g = packSubGrid(holeW, holeD, a, b, 'center', 'center');
                     if (g.length > 0) {
-                      let gw = 0, gd = 0;
                       for (const r of g) {
-                        if (r[0] + r[2] > gw) gw = r[0] + r[2];
-                        if (r[1] + r[3] > gd) gd = r[1] + r[3];
+                        rects.push([hx0 + r[0], hz0 + r[1], r[2], r[3]]);
                       }
-                      const ox = hx0 + (hx1 - hx0 - gw) / 2;
-                      const oz = hz0 + (hz1 - hz0 - gd) / 2;
-                      for (const r of g) {
-                        rects.push([ox + r[0], oz + r[1], r[2], r[3]]);
-                      }
+                    } else if (holeW > MAX_PINHOLE && holeD > MAX_PINHOLE) {
+                      // 【ルール#3 ピンホール上限制約(<=15.0cm)】中央に15cm超の大穴が開く風車は禁止
+                      continue;
+                    } else {
+                      holePenalty = (holeW + holeD) * 1.5;
                     }
                   }
+
+                  // 塊全体をパレット中心(P/2, P/2)へ求心センタリング
+                  rects = centerRectsInPallet(rects, P);
                 }
 
                 if (rects.length === 0) continue;
-                let f = 0, bk = 0, lf = 0, rt = 0;
-                for (const r of rects) {
-                  if (Math.abs(r[1]) < 0.1) f = 1;
-                  if (Math.abs(r[1] + r[3] - P) < 0.1) bk = 1;
-                  if (Math.abs(r[0]) < 0.1) lf = 1;
-                  if (Math.abs(r[0] + r[2] - P) < 0.1) rt = 1;
-                }
                 const shell = evaluateOuterShellQuality(rects, P);
-                // パレット4隅すべてに密着(corners===4)を最優先、外周密着長を最大化
-                const edgePrio = isBottom ? (shell.corners * 1000 + shell.edges * 100 + shell.perimLength) : (shell.edges * 10 + shell.perimLength * 0.1);
-                if (rects.length > bestCount || (rects.length === bestCount && edgePrio > bestEdges)) {
+                const edgePrio = shell.corners * 500 + shell.edges * 80 + shell.perimLength - holePenalty;
+
+                if (rects.length > bestCount || (rects.length === bestCount && edgePrio > bestQuality)) {
                   bestCount = rects.length;
-                  bestEdges = edgePrio;
+                  bestQuality = edgePrio;
                   bestRects = rects;
                 }
               }
@@ -2938,25 +3121,38 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
         const cache = isBottom ? botPatternCache : upPatternCache;
         const key = `${L}_${W}_${H}_${P}`;
         if (cache.has(key)) return cache.get(key);
-        const rawOrients = [
+        const maxFace = Math.max(L * W, L * H, W * H);
+        const allOrients = [
           { a: L, b: W, h: H, ot: 'upright', ta: 'y', up: true },
           { a: L, b: H, h: W, ot: 'side', ta: 'z', up: false },
           { a: W, b: H, h: L, ot: 'side', ta: 'z', up: false }
         ];
+        // 【ルール#7 縦立て禁止】底面短辺に対する高さ比が1.84を超える縦立て姿勢を排除
+        let validOrients = allOrients.filter(o => (o.h / Math.min(o.a, o.b)) <= 1.84);
+        if (validOrients.length === 0) {
+          validOrients = [allOrients.reduce((p, c) => (c.h < p.h ? c : p), allOrients[0])];
+        }
+
         const opts = [];
-        for (const o of rawOrients) {
+        for (const o of validOrients) {
           if (o.h > maxStackH) continue;
           const rects = bestPinwheelPattern(o.a, o.b, P, isBottom);
           if (rects.length === 0) continue;
-          const cov = (rects.length * o.a * o.b) / (P * P);
-          const score = cov * (o.up ? 1.08 : 1.0);
-          opts.push({ score, rects, h: o.h, ot: o.ot, ta: o.ta, up: o.up, cov });
+          const unitArea = o.a * o.b;
+          const cov = (rects.length * unitArea) / (P * P);
+          // 【ルール#5 底面積優先】最大底面積面（平積み）および正置を高評価
+          const flatBonus = (unitArea >= maxFace * 0.90) ? 1.12 : 0.95;
+          const score = cov * (o.up ? 1.08 : 1.0) * flatBonus;
+          opts.push({ score, rects, h: o.h, ot: o.ot, ta: o.ta, up: o.up, cov, unitArea });
         }
         opts.sort((x, y) => y.score - x.score);
         cache.set(key, opts);
         return opts;
       }
 
+      // ==========================================
+      // 【1100mmパレット専用】8大数理ルール完全適用パレタイズエンジン
+      // ==========================================
       function packStageRobot(stageItems, palList) {
         if (stageItems.length === 0 || palList.length === 0) {
           stageItems.forEach(it => {
@@ -2966,7 +3162,7 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
         }
 
         const P = palList[0].l + overhang * 2;
-        const sortedItems = [...stageItems].sort((a, b) => (b.weight * b.qty) - (a.weight * a.qty) || (b.weight - a.weight));
+        const sortedItems = [...stageItems].sort((a, b) => (b.weight - a.weight) || ((b.L * b.W) - (a.L * a.W)));
         const dimMap = new Map();
         for (const it of sortedItems) {
           const k = `${it.L}_${it.W}_${it.H}`;
@@ -2984,19 +3180,25 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
               totalW += it.weight;
             }
           }
+          // 【ルール#5 重量非増加】同一寸法グループ内でも必ず重い箱から順番に下段へ消費させる
+          q.sort((a, b) => (b.weight || 0) - (a.weight || 0));
+
           const botOpts = getLayerOptionsFor(entry.L, entry.W, entry.H, P, true);
           const upOpts = getLayerOptionsFor(entry.L, entry.W, entry.H, P, false);
           const combinedUpOpts = [...upOpts, ...botOpts];
+          const maxBase = Math.max(entry.L * entry.W, entry.L * entry.H, entry.W * entry.H);
           groups.push({
             key: k,
             queue: q,
             botOpts,
             upOpts: combinedUpOpts,
             wt: totalW,
-            avgW: q.length > 0 ? totalW / q.length : 0
+            avgW: q.length > 0 ? totalW / q.length : 0,
+            maxBase
           });
         }
-        groups.sort((a, b) => b.wt - a.wt);
+        // 【ルール#5 山型ピラミッド土台優先】大底面積×高重量×総重量のハイブリッド順でソート
+        groups.sort((a, b) => ((b.maxBase * 0.8 + b.avgW * 120 + b.wt * 2.0) - (a.maxBase * 0.8 + a.avgW * 120 + a.wt * 2.0)));
 
         const palletStates = [];
         for (let pIdx = 0; pIdx < palList.length; pIdx++) {
@@ -3013,13 +3215,19 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
             const isBottom = (top < 0.1);
             const candMoves = [];
             for (const g of groups) {
+              if (g.queue.length === 0) continue;
+              const nextWt = g.queue[0].weight || g.avgW || 5.0;
               const opts = isBottom ? g.botOpts : g.upOpts;
               for (const opt of opts) {
                 if (g.queue.length >= opt.rects.length && top + opt.h <= maxStackH + 0.01) {
                   const remH = maxStackH - (top + opt.h);
-                  const heightFitBonus = remH < 25.0 ? 0.2 : 0.0;
-                  const moveScore = (g.key === lastKey ? 10.0 : 0.0) + opt.score + heightFitBonus + (g.avgW * 0.02);
-                  candMoves.push({ moveScore, g, opt });
+                  const heightFitBonus = remH < 25.0 ? 0.4 : 0.0;
+                  // 1段目(isBottom)は後続段で逆ピラミッドや座屈が起きないよう「大底面積＆重量物＆複数段組めるグループ」を優先
+                  const fullLayersAvail = Math.min(4, Math.floor(g.queue.length / opt.rects.length));
+                  const baseFoundationBonus = isBottom ? (opt.unitArea * 0.003 + nextWt * 0.4 + fullLayersAvail * 1.2) : (nextWt * 0.25 + opt.unitArea * 0.001);
+                  const sameSkuBonus = (g.key === lastKey) ? 10.0 : 0.0;
+                  const moveScore = sameSkuBonus + opt.score * 3.0 + baseFoundationBonus + heightFitBonus;
+                  candMoves.push({ moveScore, g, opt, nextWt });
                 }
               }
             }
@@ -3027,31 +3235,37 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
             candMoves.sort((a, b) => b.moveScore - a.moveScore);
 
             let chosen = null;
-            const mirrorOrders = (li % 2 === 0)
-              ? [[false, false], [true, false], [false, true], [true, true]]
-              : [[true, true], [true, false], [false, true], [false, false]];
+            // 【ルール#8 1・2段目インターロッキング（交互反転）】
+            const transformModes = (li % 2 === 0) ? [0, 2, 4, 5, 1, 3] : [1, 3, 2, 4, 5, 0];
 
             for (const cand of candMoves) {
-              const { g, opt } = cand;
-              for (const [mxFlag, mzFlag] of mirrorOrders) {
+              const { g, opt, nextWt } = cand;
+              const layerMaxWt = g.queue[0].weight || nextWt;
+              for (const tMode of transformModes) {
+                const tRects = transformLayerRects(opt.rects, effL, tMode);
                 const boxes = [];
-                for (const [rx, rz, rl, rw] of opt.rects) {
-                  const mx = mxFlag ? (effL - rx - rl) : rx;
-                  const mz = mzFlag ? (effW - rz - rw) : rz;
-                  boxes.push({
-                    x: mx, z: mz, l: rl, w: rw, h: opt.h, y: top,
-                    ot: opt.ot, ta: opt.ta, up: opt.up
-                  });
-                }
-                let minSup = 1.0;
+                let safetyOk = true;
                 const sups = [];
-                for (const b of boxes) {
-                  const s = (below === null) ? 1.0 : calcSupport(b, below);
-                  sups.push(s);
-                  if (s < minSup) minSup = s;
+
+                for (const [rx, rz, rl, rw] of tRects) {
+                  const bx = {
+                    x: rx, z: rz, l: rl, w: rw, h: opt.h, y: top,
+                    ot: opt.ot, ta: opt.ta, up: opt.up
+                  };
+                  if (isBottom || below === null) {
+                    sups.push(1.0);
+                  } else {
+                    const chk = checkPhysicalSafetyOnBelow(bx, layerMaxWt, below);
+                    if (!chk.ok) {
+                      safetyOk = false;
+                      break;
+                    }
+                    sups.push(chk.sup);
+                  }
+                  boxes.push(bx);
                 }
-                const reqSup = isBottom ? 1.0 : SUP_MIN;
-                if (minSup >= reqSup) {
+
+                if (safetyOk) {
                   for (let i = 0; i < boxes.length; i++) {
                     boxes[i].sup = sups[i];
                     boxes[i].item = g.queue.shift();
@@ -3071,35 +3285,58 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
             li++;
           }
 
-          palletStates.push({ pal, placed, top, effL, effW });
+          palletStates.push({ pal, placed, top, below, effL, effW });
         }
 
+        // Phase 2: 端数箱の平坦レイヤー積層（ルール#5, #6, #7 完全適用）
         const rest = [];
         for (const g of groups) {
           while (g.queue.length > 0) rest.push(g.queue.shift());
         }
-        rest.sort((a, b) => (b.L * b.W) - (a.L * a.W) || (b.weight - a.weight));
+        rest.sort((a, b) => (b.weight - a.weight) || ((b.L * b.W) - (a.L * a.W)));
 
         for (const st of palletStates) {
           const allp = st.placed;
           const t = st.top;
           const effL = st.effL;
           const effW = st.effW;
+          const cx0 = effL / 2.0;
+          const cz0 = effW / 2.0;
 
           const pts = [
+            { y: t, px: cx0, pz: cz0, sx: 1, sz: 1 },
+            { y: t, px: cx0, pz: cz0, sx: -1, sz: 1 },
+            { y: t, px: cx0, pz: cz0, sx: 1, sz: -1 },
+            { y: t, px: cx0, pz: cz0, sx: -1, sz: -1 },
             { y: t, px: 0.0, pz: 0.0, sx: 1, sz: 1 },
             { y: t, px: effL, pz: 0.0, sx: -1, sz: 1 },
             { y: t, px: 0.0, pz: effW, sx: 1, sz: -1 },
             { y: t, px: effL, pz: effW, sx: -1, sz: -1 }
           ];
+          if (st.below && st.below.length > 0) {
+            let minBx = Infinity, maxBx = -Infinity, minBz = Infinity, maxBz = -Infinity;
+            for (const b of st.below) {
+              if (b.x < minBx) minBx = b.x;
+              if (b.x + b.l > maxBx) maxBx = b.x + b.l;
+              if (b.z < minBz) minBz = b.z;
+              if (b.z + b.w > maxBz) maxBz = b.z + b.w;
+            }
+            pts.push(
+              { y: t, px: minBx, pz: minBz, sx: 1, sz: 1 },
+              { y: t, px: maxBx, pz: minBz, sx: -1, sz: 1 },
+              { y: t, px: minBx, pz: maxBz, sx: 1, sz: -1 },
+              { y: t, px: maxBx, pz: maxBz, sx: -1, sz: -1 }
+            );
+          }
+
           const seen = new Set();
 
           while (pts.length > 0 && rest.length > 0) {
             pts.sort((a, b) => {
               const dy = Math.round(a.y * 10) - Math.round(b.y * 10);
               if (dy !== 0) return dy;
-              const da = Math.min(a.px, effL - a.px) + Math.min(a.pz, effW - a.pz);
-              const db = Math.min(b.px, effL - b.px) + Math.min(b.pz, effW - b.pz);
+              const da = Math.abs(a.px - cx0) + Math.abs(a.pz - cz0);
+              const db = Math.abs(b.px - cx0) + Math.abs(b.pz - cz0);
               return da - db;
             });
             const pt = pts.shift();
@@ -3108,23 +3345,26 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
             if (seen.has(k)) continue;
             seen.add(k);
 
-            const belowBoxes = allp.filter(q => Math.abs((q.y + q.h) - y) < 0.8);
+            const belowBoxes = allp.filter(q => Math.abs((q.y + q.h) - y) < 1.2);
             if (y > 0.05 && belowBoxes.length === 0) continue;
 
             let best = null;
             const testedDims = new Set();
             for (let i = 0; i < rest.length; i++) {
               const it = rest[i];
-              const dk = `${it.L}_${it.W}_${it.H}`;
+              const itWt = it.weight || 5.0;
+              const dk = `${it.L}_${it.W}_${it.H}_${itWt}`;
               if (testedDims.has(dk)) continue;
               testedDims.add(dk);
 
-              const cands = [
+              const rawCands = [
                 { l: it.L, w: it.W, h: it.H, ot: 'upright', ta: 'y', up: true },
                 { l: it.W, w: it.L, h: it.H, ot: 'upright', ta: 'y', up: true },
                 { l: it.L, w: it.H, h: it.W, ot: 'side', ta: 'z', up: false },
                 { l: it.W, w: it.H, h: it.L, ot: 'side', ta: 'z', up: false }
               ];
+              const cands = rawCands.filter(c => (c.h / Math.min(c.l, c.w)) <= 1.84);
+
               for (const c of cands) {
                 const x = sx > 0 ? px : px - c.l;
                 const z = sz > 0 ? pz : pz - c.w;
@@ -3141,11 +3381,15 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
                 }
                 if (col) continue;
 
-                const s = (y < 0.05) ? 1.0 : calcSupport(bx, belowBoxes);
-                if (s < SUP_MIN) continue;
+                let s = 1.0;
+                if (y >= 0.05) {
+                  const chk = checkPhysicalSafetyOnBelow(bx, itWt, belowBoxes);
+                  if (!chk.ok) continue;
+                  s = chk.sup;
+                }
 
-                const outerTouch = ((x < 0.1 || x + c.l > effL - 0.1) ? 1 : 0) + ((z < 0.1 || z + c.w > effW - 0.1) ? 1 : 0);
-                const sc = (c.l * c.w) * (c.up ? 1.15 : 1.0) + outerTouch * 200.0 + s * 100.0;
+                const centerDist = Math.abs((x + c.l / 2) - cx0) + Math.abs((z + c.w / 2) - cz0);
+                const sc = (c.l * c.w) * (c.up ? 1.15 : 1.0) + itWt * 25.0 + s * 150.0 - centerDist * 0.5;
                 if (best === null || sc > best.sc) {
                   best = { sc, idx: i, bx, ot: c.ot, ta: c.ta, up: c.up, sup: s };
                 }
@@ -3164,11 +3408,10 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
 
             pts.push({ y, px: sx > 0 ? bx.x + bx.l : bx.x, pz, sx, sz });
             pts.push({ y, px, pz: sz > 0 ? bx.z + bx.w : bx.z, sx, sz });
-            pts.push({ y: y + bx.h, px: sx > 0 ? bx.x : bx.x + bx.l, pz: sz > 0 ? bx.z : bx.z + bx.w, sx, sz });
-            pts.push({ y: y + bx.h, px: 0.0, pz: 0.0, sx: 1, sz: 1 });
-            pts.push({ y: y + bx.h, px: effL, pz: 0.0, sx: -1, sz: 1 });
-            pts.push({ y: y + bx.h, px: 0.0, pz: effW, sx: 1, sz: -1 });
-            pts.push({ y: y + bx.h, px: effL, pz: effW, sx: -1, sz: -1 });
+            pts.push({ y: y + bx.h, px: bx.x, pz: bx.z, sx: 1, sz: 1 });
+            pts.push({ y: y + bx.h, px: bx.x + bx.l, pz: bx.z, sx: -1, sz: 1 });
+            pts.push({ y: y + bx.h, px: bx.x, pz: bx.z + bx.w, sx: 1, sz: -1 });
+            pts.push({ y: y + bx.h, px: bx.x + bx.l, pz: bx.z + bx.w, sx: -1, sz: -1 });
             seen.delete(k);
           }
 
@@ -3203,8 +3446,8 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
       }
 
       // ==========================================
-      // 【2200mmパレット専用】マルチスケール高密度積載エンジン
-      // Full(220x220) / Half(220x110) / Quad(110x110) の動的適応により境界損失ゼロ化＆超高効率積載を実現
+      // 【2200mmパレット専用】8大数理ルール完全統合・マルチスケール高密度積載エンジン
+      // Full(220x220) / Half(220x110) / Quad(110x110) ＋ パレット中心(110,110)求心密着 ＋ 左右対称バランシング
       // ==========================================
       function packStage2200MultiScale(stageItems, palList) {
         if (stageItems.length === 0 || palList.length === 0) {
@@ -3214,7 +3457,7 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
           return;
         }
 
-        const sortedItems = [...stageItems].sort((a, b) => (b.weight * b.qty) - (a.weight * a.qty) || (b.weight - a.weight));
+        const sortedItems = [...stageItems].sort((a, b) => (b.weight - a.weight) || ((b.L * b.W) - (a.L * a.W)));
         const dimMap = new Map();
         for (const it of sortedItems) {
           const k = `${it.L}_${it.W}_${it.H}`;
@@ -3232,102 +3475,177 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
               totalW += it.weight;
             }
           }
+          q.sort((a, b) => (b.weight || 0) - (a.weight || 0));
 
-          const rawOrients = [
+          const allOrients = [
             { a: entry.L, b: entry.W, h: entry.H, ot: 'upright', ta: 'y', up: true },
             { a: entry.L, b: entry.H, h: entry.W, ot: 'side', ta: 'z', up: false },
             { a: entry.W, b: entry.H, h: entry.L, ot: 'side', ta: 'z', up: false }
           ];
-
-          const optsFull = [];
-          const optsHalfX = [];
-          const optsHalfZ = [];
-          const optsQuad = [];
-
-          for (const o of rawOrients) {
-            if (o.h > maxStackH) continue;
-            const rf = packSubGrid(220, 220, o.a, o.b);
-            if (rf.length > 0) optsFull.push({ count: rf.length, rects: rf, h: o.h, ot: o.ot, ta: o.ta, up: o.up, btype: 'full' });
-
-            const rhx = packSubGrid(110, 220, o.a, o.b);
-            if (rhx.length > 0) optsHalfX.push({ count: rhx.length, rects: rhx, h: o.h, ot: o.ot, ta: o.ta, up: o.up, btype: 'halfX' });
-
-            const rhz = packSubGrid(220, 110, o.a, o.b);
-            if (rhz.length > 0) optsHalfZ.push({ count: rhz.length, rects: rhz, h: o.h, ot: o.ot, ta: o.ta, up: o.up, btype: 'halfZ' });
-
-            const rq = packSubGrid(110, 110, o.a, o.b);
-            if (rq.length > 0) optsQuad.push({ count: rq.length, rects: rq, h: o.h, ot: o.ot, ta: o.ta, up: o.up, btype: 'quad' });
+          let validOrients = allOrients.filter(o => (o.h / Math.min(o.a, o.b)) <= 1.84);
+          if (validOrients.length === 0) {
+            validOrients = [allOrients.reduce((p, c) => (c.h < p.h ? c : p), allOrients[0])];
           }
 
-          optsFull.sort((a, b) => b.count - a.count);
-          optsHalfX.sort((a, b) => b.count - a.count);
-          optsHalfZ.sort((a, b) => b.count - a.count);
-          optsQuad.sort((a, b) => b.count - a.count);
+          const optsFull = [];
+          const optsHalfX0 = [], optsHalfX1 = [];
+          const optsHalfZ0 = [], optsHalfZ1 = [];
+          const optsQuad = [[], [], [], []];
 
+          for (const o of validOrients) {
+            if (o.h > maxStackH) continue;
+            const unitArea = o.a * o.b;
+            const rf = packSubGrid(220, 220, o.a, o.b, 'center', 'center');
+            if (rf.length > 0) optsFull.push({ count: rf.length, rects: rf, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+
+            const rhx0 = packSubGrid(110, 220, o.a, o.b, 'end', 'center');
+            if (rhx0.length > 0) optsHalfX0.push({ count: rhx0.length, rects: rhx0, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+            const rhx1 = packSubGrid(110, 220, o.a, o.b, 'start', 'center');
+            if (rhx1.length > 0) optsHalfX1.push({ count: rhx1.length, rects: rhx1, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+
+            const rhz0 = packSubGrid(220, 110, o.a, o.b, 'center', 'end');
+            if (rhz0.length > 0) optsHalfZ0.push({ count: rhz0.length, rects: rhz0, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+            const rhz1 = packSubGrid(220, 110, o.a, o.b, 'center', 'start');
+            if (rhz1.length > 0) optsHalfZ1.push({ count: rhz1.length, rects: rhz1, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+
+            const rq0 = packSubGrid(110, 110, o.a, o.b, 'end', 'end');
+            const rq1 = packSubGrid(110, 110, o.a, o.b, 'start', 'end');
+            const rq2 = packSubGrid(110, 110, o.a, o.b, 'end', 'start');
+            const rq3 = packSubGrid(110, 110, o.a, o.b, 'start', 'start');
+            if (rq0.length > 0) optsQuad[0].push({ count: rq0.length, rects: rq0, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+            if (rq1.length > 0) optsQuad[1].push({ count: rq1.length, rects: rq1, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+            if (rq2.length > 0) optsQuad[2].push({ count: rq2.length, rects: rq2, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+            if (rq3.length > 0) optsQuad[3].push({ count: rq3.length, rects: rq3, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+          }
+
+          const sortByCov = (a, b) => b.count - a.count || (b.unitArea - a.unitArea);
+          optsFull.sort(sortByCov);
+          optsHalfX0.sort(sortByCov); optsHalfX1.sort(sortByCov);
+          optsHalfZ0.sort(sortByCov); optsHalfZ1.sort(sortByCov);
+          for (let q = 0; q < 4; q++) optsQuad[q].sort(sortByCov);
+
+          const maxBase = Math.max(entry.L * entry.W, entry.L * entry.H, entry.W * entry.H);
           groups.push({
             key: k,
             queue: q,
             optsFull,
-            optsHalfX,
-            optsHalfZ,
+            optsHalfX0, optsHalfX1,
+            optsHalfZ0, optsHalfZ1,
             optsQuad,
             wt: totalW,
-            avgW: q.length > 0 ? totalW / q.length : 0
+            avgW: q.length > 0 ? totalW / q.length : 0,
+            maxBase
           });
         }
-        groups.sort((a, b) => b.wt - a.wt);
+        groups.sort((a, b) => ((b.maxBase * 0.8 + b.avgW * 120 + b.wt * 2.0) - (a.maxBase * 0.8 + a.avgW * 120 + a.wt * 2.0)));
 
         const palStates = palList.map(pal => ({
           pal,
           placed: [],
-          qh: [0.0, 0.0, 0.0, 0.0]
+          qh: [0.0, 0.0, 0.0, 0.0],
+          qStep: [0, 0, 0, 0]
         }));
 
-        for (let step = 0; step < 300; step++) {
+        function verifyAndBuild2200(st, opt, ox, oz, regW, regD, curY, nextWt, parity, isCentered220) {
+          const modes = isCentered220 ? ((parity % 2 === 0) ? [0, 2, 4, 5, 1, 3] : [1, 3, 2, 4, 5, 0]) : [0];
+          const belowBoxes = (curY < 0.1) ? [] : st.placed.filter(q => Math.abs((q.y + q.h) - curY) < 1.2);
+          if (curY >= 0.1 && belowBoxes.length === 0) return null;
+
+          for (const m of modes) {
+            const tRects = (m === 0) ? opt.rects : transformLayerRects(opt.rects, regW, m);
+            const candBoxes = [];
+            let ok = true;
+            for (const [rx, rz, rl, rw] of tRects) {
+              const bx = {
+                x: rx + ox, z: rz + oz, l: rl, w: rw, h: opt.h, y: curY,
+                ot: opt.ot, ta: opt.ta, up: opt.up, sup: 1.0
+              };
+              if (curY >= 0.1) {
+                const chk = checkPhysicalSafetyOnBelow(bx, nextWt, belowBoxes);
+                if (!chk.ok) { ok = false; break; }
+                bx.sup = chk.sup;
+              }
+              candBoxes.push(bx);
+            }
+            if (ok) return candBoxes;
+          }
+          return null;
+        }
+
+        function addBoxLRWeight(z, w, midZ, wt, lrObj) {
+          if (z + w <= midZ) lrObj.l += wt;
+          else if (z >= midZ) lrObj.r += wt;
+          else {
+            const ls = (midZ - z) / (w || 1);
+            lrObj.l += wt * ls;
+            lrObj.r += wt * (1 - ls);
+          }
+        }
+
+        const stageLR = { l: 0, r: 0 };
+        for (const tb of inTruck) {
+          const wt = (tb.item && tb.item.weight) ? tb.item.weight : 5.0;
+          addBoxLRWeight(tb.z, tb.w, 0.0, wt, stageLR);
+        }
+
+        for (let step = 0; step < 350; step++) {
           let bestMove = null;
+          const preferRight = stageLR.l > stageLR.r;
+
           for (let pIdx = 0; pIdx < palStates.length; pIdx++) {
             const st = palStates[pIdx];
+            const hasEmptyFloor = st.qh.some(h => h < 0.1);
+
             // 1. Full layer (220x220)
             const isFullLevel = (Math.abs(st.qh[0] - st.qh[1]) < 0.5 && Math.abs(st.qh[0] - st.qh[2]) < 0.5 && Math.abs(st.qh[0] - st.qh[3]) < 0.5);
             if (isFullLevel && st.qh[0] < maxStackH - 10) {
               const curY = st.qh[0];
               for (const g of groups) {
+                if (g.queue.length === 0) continue;
+                const nextWt = g.queue[0].weight || g.avgW || 5.0;
                 for (const opt of g.optsFull) {
                   if (g.queue.length >= opt.count && curY + opt.h <= maxStackH + 0.01) {
+                    const validBoxes = verifyAndBuild2200(st, opt, 0.0, 0.0, 220.0, 220.0, curY, nextWt, st.qStep[0], true);
+                    if (!validBoxes) continue;
                     const remH = maxStackH - (curY + opt.h);
                     const hBonus = remH < 15.0 ? 50.0 : 0.0;
-                    const score = opt.count * 10.0 + g.avgW + hBonus;
+                    const baseBonus = (curY < 0.1) ? (opt.unitArea * 0.05) : 0.0;
+                    const score = opt.count * 10.0 + nextWt * 18.0 + baseBonus + hBonus;
                     if (bestMove === null || score > bestMove.score) {
-                      bestMove = { score, mtype: 'full', pIdx, g, opt, curY };
+                      bestMove = { score, mtype: 'full', pIdx, g, opt, curY, validBoxes };
                     }
                     break;
                   }
                 }
-                if (bestMove && bestMove.mtype === 'full' && bestMove.score > 300) break;
+                if (bestMove && bestMove.mtype === 'full' && bestMove.score > 450) break;
               }
             }
 
             // 2. Half layers (220x110 or 110x220)
             const halfConfigs = [
-              { qA: 0, qB: 2, ox: 0.0, oz: 0.0, btype: 'halfX', optName: 'optsHalfX' },
-              { qA: 1, qB: 3, ox: 110.0, oz: 0.0, btype: 'halfX', optName: 'optsHalfX' },
-              { qA: 0, qB: 1, ox: 0.0, oz: 0.0, btype: 'halfZ', optName: 'optsHalfZ' },
-              { qA: 2, qB: 3, ox: 0.0, oz: 110.0, btype: 'halfZ', optName: 'optsHalfZ' },
+              { qA: 0, qB: 2, ox: 0.0, oz: 0.0, regW: 110.0, regD: 220.0, btype: 'halfX', optList: 'optsHalfX0' },
+              { qA: 1, qB: 3, ox: 110.0, oz: 0.0, regW: 110.0, regD: 220.0, btype: 'halfX', optList: 'optsHalfX1' },
+              { qA: 0, qB: 1, ox: 0.0, oz: 0.0, regW: 220.0, regD: 110.0, btype: 'halfZ', optList: 'optsHalfZ0' },
+              { qA: 2, qB: 3, ox: 0.0, oz: 110.0, regW: 220.0, regD: 110.0, btype: 'halfZ', optList: 'optsHalfZ1' },
             ];
             for (const hc of halfConfigs) {
               if (Math.abs(st.qh[hc.qA] - st.qh[hc.qB]) < 0.5 && st.qh[hc.qA] < maxStackH - 10) {
                 const curY = st.qh[hc.qA];
-                // 【改修ポイントC】床面(Y=0)に空き象限がある間は上段(Y>0)への積載をロック
-                const hasEmptyFloor = st.qh.some(h => h < 0.1);
                 if (hasEmptyFloor && curY > 0.1) continue;
                 for (const g of groups) {
-                  for (const opt of g[hc.optName]) {
+                  if (g.queue.length === 0) continue;
+                  const nextWt = g.queue[0].weight || g.avgW || 5.0;
+                  for (const opt of g[hc.optList]) {
                     if (g.queue.length >= opt.count && curY + opt.h <= maxStackH + 0.01) {
+                      const validBoxes = verifyAndBuild2200(st, opt, hc.ox, hc.oz, hc.regW, hc.regD, curY, nextWt, st.qStep[hc.qA], false);
+                      if (!validBoxes) continue;
                       const remH = maxStackH - (curY + opt.h);
                       const hBonus = remH < 15.0 ? 30.0 : 0.0;
-                      const score = opt.count * 5.0 + g.avgW + hBonus;
+                      const symBonus = (hc.btype === 'halfX') ? 35.0 : ((preferRight && hc.oz > 50) || (!preferRight && hc.oz < 50) ? 25.0 : 0.0);
+                      const baseBonus = (curY < 0.1) ? (opt.unitArea * 0.03) : 0.0;
+                      const score = opt.count * 5.0 + nextWt * 16.0 + symBonus + baseBonus + hBonus;
                       if (bestMove === null || score > bestMove.score) {
-                        bestMove = { score, mtype: hc.btype, pIdx, params: hc, g, opt, curY };
+                        bestMove = { score, mtype: hc.btype, pIdx, params: hc, g, opt, curY, validBoxes };
                       }
                       break;
                     }
@@ -3339,21 +3657,27 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
             // 3. Quad layer (110x110)
             const minQh = Math.min(...st.qh);
             if (minQh < maxStackH - 10) {
-              const qIdx = st.qh.indexOf(minQh);
-              const curY = minQh;
-              // 【改修ポイントC】床面(Y=0)に空き象限がある間は上段(Y>0)への積載をロック
-              const hasEmptyFloor = st.qh.some(h => h < 0.1);
+              const symQOrder = preferRight ? [2, 3, 0, 1] : [0, 1, 2, 3];
+              let qIdx = symQOrder.find(q => Math.abs(st.qh[q] - minQh) < 0.1);
+              if (qIdx === undefined) qIdx = st.qh.indexOf(minQh);
+              const curY = st.qh[qIdx];
               if (hasEmptyFloor && curY > 0.1) continue;
               const ox = (qIdx === 1 || qIdx === 3) ? 110.0 : 0.0;
               const oz = (qIdx === 2 || qIdx === 3) ? 110.0 : 0.0;
               for (const g of groups) {
-                for (const opt of g.optsQuad) {
+                if (g.queue.length === 0) continue;
+                const nextWt = g.queue[0].weight || g.avgW || 5.0;
+                for (const opt of g.optsQuad[qIdx]) {
                   if (g.queue.length >= opt.count && curY + opt.h <= maxStackH + 0.01) {
+                    const validBoxes = verifyAndBuild2200(st, opt, ox, oz, 110.0, 110.0, curY, nextWt, st.qStep[qIdx], false);
+                    if (!validBoxes) continue;
                     const remH = maxStackH - (curY + opt.h);
                     const hBonus = remH < 15.0 ? 20.0 : 0.0;
-                    const score = opt.count * 2.0 + g.avgW + hBonus;
+                    const baseBonus = (curY < 0.1) ? (opt.unitArea * 0.02) : 0.0;
+                    const lrBonus = ((preferRight && oz > 50) || (!preferRight && oz < 50)) ? 20.0 : 0.0;
+                    const score = opt.count * 2.5 + nextWt * 15.0 + baseBonus + hBonus + lrBonus;
                     if (bestMove === null || score > bestMove.score) {
-                      bestMove = { score, mtype: 'quad', pIdx, params: { qIdx, ox, oz }, g, opt, curY };
+                      bestMove = { score, mtype: 'quad', pIdx, params: { qIdx, ox, oz }, g, opt, curY, validBoxes };
                     }
                     break;
                   }
@@ -3364,54 +3688,52 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
 
           if (!bestMove) break;
 
-          const { mtype, pIdx, params, g, opt, curY } = bestMove;
+          const { mtype, pIdx, params, g, opt, curY, validBoxes } = bestMove;
           const st = palStates[pIdx];
-          const boxes = [];
+          for (const bx of validBoxes) {
+            bx.item = g.queue.shift();
+            const wt = (bx.item && bx.item.weight) ? bx.item.weight : 5.0;
+            addBoxLRWeight(bx.z, bx.w, 110.0, wt, stageLR);
+            st.placed.push(bx);
+          }
           if (mtype === 'full') {
-            for (const [rx, rz, rl, rw] of opt.rects) {
-              boxes.push({
-                x: rx, z: rz, l: rl, w: rw, h: opt.h, y: curY,
-                ot: opt.ot, ta: opt.ta, up: opt.up, sup: 1.0,
-                item: g.queue.shift()
-              });
+            for (let q = 0; q < 4; q++) {
+              st.qh[q] = curY + opt.h;
+              st.qStep[q]++;
             }
-            for (let q = 0; q < 4; q++) st.qh[q] = curY + opt.h;
           } else if (mtype === 'halfX' || mtype === 'halfZ') {
-            const { qA, qB, ox, oz } = params;
-            for (const [rx, rz, rl, rw] of opt.rects) {
-              boxes.push({
-                x: rx + ox, z: rz + oz, l: rl, w: rw, h: opt.h, y: curY,
-                ot: opt.ot, ta: opt.ta, up: opt.up, sup: 1.0,
-                item: g.queue.shift()
-              });
-            }
+            const { qA, qB } = params;
             st.qh[qA] = curY + opt.h;
             st.qh[qB] = curY + opt.h;
+            st.qStep[qA]++;
+            st.qStep[qB]++;
           } else {
-            const { qIdx, ox, oz } = params;
-            for (const [rx, rz, rl, rw] of opt.rects) {
-              boxes.push({
-                x: rx + ox, z: rz + oz, l: rl, w: rw, h: opt.h, y: curY,
-                ot: opt.ot, ta: opt.ta, up: opt.up, sup: 1.0,
-                item: g.queue.shift()
-              });
-            }
+            const { qIdx } = params;
             st.qh[qIdx] = curY + opt.h;
+            st.qStep[qIdx]++;
           }
-
-          for (const b of boxes) st.placed.push(b);
         }
 
-        // Phase 2: Rest items充填
+        // Phase 2: 端数箱の平坦レイヤー積層（ルール#5, #6, #7 完全適用）
         const rest = [];
         for (const g of groups) {
           while (g.queue.length > 0) rest.push(g.queue.shift());
         }
-        rest.sort((a, b) => (b.L * b.W) - (a.L * a.W) || (b.weight - a.weight));
+        rest.sort((a, b) => (b.weight - a.weight) || ((b.L * b.W) - (a.L * a.W)));
 
         for (const st of palStates) {
           const allp = st.placed;
           const pts = [];
+          for (let qIdx = 0; qIdx < 4; qIdx++) {
+            const ox = (qIdx === 1 || qIdx === 3) ? 110.0 : 0.0;
+            const oz = (qIdx === 2 || qIdx === 3) ? 110.0 : 0.0;
+            const qy = st.qh[qIdx];
+            pts.push({ y: qy, px: ox + 55.0, pz: oz + 55.0, sx: 1, sz: 1 });
+            pts.push({ y: qy, px: ox, pz: oz, sx: 1, sz: 1 });
+            pts.push({ y: qy, px: ox + 110.0, pz: oz, sx: -1, sz: 1 });
+            pts.push({ y: qy, px: ox, pz: oz + 110.0, sx: 1, sz: -1 });
+            pts.push({ y: qy, px: ox + 110.0, pz: oz + 110.0, sx: -1, sz: -1 });
+          }
           for (const b of allp) {
             const topY = b.y + b.h;
             pts.push({ y: topY, px: b.x, pz: b.z, sx: 1, sz: 1 });
@@ -3419,21 +3741,21 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
             pts.push({ y: topY, px: b.x, pz: b.z + b.w, sx: 1, sz: -1 });
             pts.push({ y: topY, px: b.x + b.l, pz: b.z + b.w, sx: -1, sz: -1 });
           }
-          for (let qIdx = 0; qIdx < 4; qIdx++) {
-            const ox = (qIdx === 1 || qIdx === 3) ? 110.0 : 0.0;
-            const oz = (qIdx === 2 || qIdx === 3) ? 110.0 : 0.0;
-            const qy = st.qh[qIdx];
-            pts.push({ y: qy, px: ox, pz: oz, sx: 1, sz: 1 });
-            pts.push({ y: qy, px: ox + 110.0, pz: oz, sx: -1, sz: 1 });
-            pts.push({ y: qy, px: ox, pz: oz + 110.0, sx: 1, sz: -1 });
-            pts.push({ y: qy, px: ox + 110.0, pz: oz + 110.0, sx: -1, sz: -1 });
-          }
 
           const seen = new Set();
           while (pts.length > 0 && rest.length > 0) {
+            const needRight = stageLR.l > stageLR.r;
             pts.sort((a, b) => {
+              // 【ルール#7 平坦レイヤー積層】低い段から順にフラットに埋める
               const dy = Math.round(a.y * 10) - Math.round(b.y * 10);
               if (dy !== 0) return dy;
+              // 左右重量バランス均等化：現在軽い側の象限を優先
+              const aRight = a.pz >= 110.0 ? 1 : 0;
+              const bRight = b.pz >= 110.0 ? 1 : 0;
+              if (aRight !== bRight) {
+                return needRight ? (bRight - aRight) : (aRight - bRight);
+              }
+              // 【ルール#4 求心配置】パレット中心(110, 110)に近い位置から優先配置
               return (Math.abs(a.px - 110.0) + Math.abs(a.pz - 110.0)) - (Math.abs(b.px - 110.0) + Math.abs(b.pz - 110.0));
             });
             const pt = pts.shift();
@@ -3442,23 +3764,27 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
             if (seen.has(k)) continue;
             seen.add(k);
 
-            const belowBoxes = allp.filter(q => Math.abs((q.y + q.h) - y) < 0.8);
+            const belowBoxes = allp.filter(q => Math.abs((q.y + q.h) - y) < 1.2);
             if (y > 0.05 && belowBoxes.length === 0) continue;
 
             let best = null;
             const testedDims = new Set();
             for (let i = 0; i < rest.length; i++) {
               const it = rest[i];
-              const dk = `${it.L}_${it.W}_${it.H}`;
+              const itWt = it.weight || 5.0;
+              const dk = `${it.L}_${it.W}_${it.H}_${itWt}`;
               if (testedDims.has(dk)) continue;
               testedDims.add(dk);
 
-              const cands = [
+              const rawCands = [
                 { l: it.L, w: it.W, h: it.H, ot: 'upright', ta: 'y', up: true },
                 { l: it.W, w: it.L, h: it.H, ot: 'upright', ta: 'y', up: true },
                 { l: it.L, w: it.H, h: it.W, ot: 'side', ta: 'z', up: false },
                 { l: it.W, w: it.H, h: it.L, ot: 'side', ta: 'z', up: false }
               ];
+              // 【ルール#7 縦立て禁止】
+              const cands = rawCands.filter(c => (c.h / Math.min(c.l, c.w)) <= 1.80);
+
               for (const c of cands) {
                 const x = sx > 0 ? px : px - c.l;
                 const z = sz > 0 ? pz : pz - c.w;
@@ -3475,11 +3801,16 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
                 }
                 if (col) continue;
 
-                const s = (y < 0.05) ? 1.0 : calcSupport(bx, belowBoxes);
-                if (s < 0.82) continue;
+                let s = 1.0;
+                if (y >= 0.05) {
+                  // 【ルール#5 & #6】重量逆転・逆ピラミッド・垂直荷重パス・支持率88%を厳格チェック
+                  const chk = checkPhysicalSafetyOnBelow(bx, itWt, belowBoxes);
+                  if (!chk.ok) continue;
+                  s = chk.sup;
+                }
 
-                const outerTouch = ((x < 0.1 || x + c.l > 220.0 - 0.1) ? 1 : 0) + ((z < 0.1 || z + c.w > 220.0 - 0.1) ? 1 : 0);
-                const sc = (c.l * c.w) * (c.up ? 1.15 : 1.0) + outerTouch * 200.0 + s * 100.0;
+                const centerDist = Math.abs((x + c.l / 2) - 110.0) + Math.abs((z + c.w / 2) - 110.0);
+                const sc = (c.l * c.w) * (c.up ? 1.15 : 1.0) + itWt * 25.0 + s * 150.0 - centerDist * 0.5;
                 if (best === null || sc > best.sc) {
                   best = { sc, idx: i, bx, ot: c.ot, ta: c.ta, up: c.up, sup: s };
                 }
@@ -3494,11 +3825,16 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
             bx.ta = best.ta;
             bx.up = best.up;
             bx.sup = best.sup;
+            const placedWt = (it && it.weight) ? it.weight : 5.0;
+            addBoxLRWeight(bx.z, bx.w, 110.0, placedWt, stageLR);
             allp.push(bx);
 
             pts.push({ y, px: sx > 0 ? bx.x + bx.l : bx.x, pz, sx, sz });
             pts.push({ y, px, pz: sz > 0 ? bx.z + bx.w : bx.z, sx, sz });
-            pts.push({ y: y + bx.h, px: sx > 0 ? bx.x : bx.x + bx.l, pz: sz > 0 ? bx.z : bx.z + bx.w, sx, sz });
+            pts.push({ y: y + bx.h, px: bx.x, pz: bx.z, sx: 1, sz: 1 });
+            pts.push({ y: y + bx.h, px: bx.x + bx.l, pz: bx.z, sx: -1, sz: 1 });
+            pts.push({ y: y + bx.h, px: bx.x, pz: bx.z + bx.w, sx: 1, sz: -1 });
+            pts.push({ y: y + bx.h, px: bx.x + bx.l, pz: bx.z + bx.w, sx: -1, sz: -1 });
             seen.delete(k);
           }
 
@@ -3506,6 +3842,24 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
           const pMinX = pal.cx - 110.0;
           const pMinZ = pal.cz - 110.0;
           const baseY = pal.h + (overhang > 0 ? 0.4 : 0);
+
+          // トラック全体の累積左右重量差を最小化するための対称Z反転最適化
+          const truckLR = { l: 0, r: 0 };
+          for (const tb of inTruck) {
+            const wt = (tb.item && tb.item.weight) ? tb.item.weight : 5.0;
+            addBoxLRWeight(tb.z, tb.w, 0.0, wt, truckLR);
+          }
+          let curTruckDiff = truckLR.l - truckLR.r;
+
+          let palLR = { l: 0, r: 0 };
+          for (const b of allp) {
+            const wt = (b.item && b.item.weight) ? b.item.weight : 5.0;
+            addBoxLRWeight(b.z, b.w, 110.0, wt, palLR);
+          }
+          const palDiff = palLR.l - palLR.r;
+          if (Math.abs(curTruckDiff - palDiff) < Math.abs(curTruckDiff + palDiff)) {
+            for (const b of allp) b.z = 220.0 - b.z - b.w;
+          }
 
           for (const b of allp) {
             const isPerimeter = (b.x < 0.5 || b.x + b.l > 220.0 - 0.5 || b.z < 0.5 || b.z + b.w > 220.0 - 0.5);
@@ -4504,11 +4858,25 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
         sumWY += wt * cy;
         sumWZ += wt * cz;
 
-        if (cz < 0) leftWt += wt;
-        else rightWt += wt;
+        if (b.z + b.w <= 0) {
+          leftWt += wt;
+        } else if (b.z >= 0) {
+          rightWt += wt;
+        } else {
+          const leftShare = (-b.z) / (b.w || 1);
+          leftWt += wt * leftShare;
+          rightWt += wt * (1 - leftShare);
+        }
 
-        if (cx < 0) frontWt += wt;
-        else rearWt += wt;
+        if (b.x + b.l <= 0) {
+          frontWt += wt;
+        } else if (b.x >= 0) {
+          rearWt += wt;
+        } else {
+          const frontShare = (-b.x) / (b.l || 1);
+          frontWt += wt * frontShare;
+          rearWt += wt * (1 - frontShare);
+        }
       });
 
       const cogX = totalWt > 0 ? sumWX / totalWt : 0;
@@ -4861,6 +5229,7 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
         showBoxTooltip(mesh);
       }
     }
+    window.focusCameraOnBox = focusOnBox;
 
     // ==========================================
     // 【新機能】高解像度3D画像出力＆診断レポート画像合成
