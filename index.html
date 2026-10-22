@@ -83,7 +83,7 @@
           <div>
             <div class="flex items-center gap-2">
               <span class="font-extrabold text-slate-800 text-sm">出荷便セレクター</span>
-              <span id="batchCountBadge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200">5 便管理中</span>
+              <span id="batchCountBadge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200">48 便管理中</span>
             </div>
             <div class="text-[11px] text-slate-500">クリックで便の3D積載状況・KPIを瞬時切り替え（日次100便規模対応）</div>
           </div>
@@ -106,9 +106,9 @@
             <i data-lucide="plus" class="w-3.5 h-3.5"></i> 便追加
           </button>
 
-          <!-- 100便デモデータ生成ボタン -->
-          <button onclick="generate100BatchesDemo()" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1 transition cursor-pointer" title="日次約100便規模の現場実務データを自動生成">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-600"></i> 100便一括生成
+          <!-- 2026年9月 全48便実績データ読込ボタン -->
+          <button onclick="loadActual48Batches()" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1 transition cursor-pointer" title="2026年9月出庫実績 全48便（34,220ケース）を初期状態に再読込">
+            <i data-lucide="database" class="w-3.5 h-3.5 text-indigo-600"></i> 9月実績全48便リセット
           </button>
         </div>
       </div>
@@ -117,6 +117,107 @@
       <div id="batchTabContainer" class="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
         <!-- 動的にタブボタンが挿入されます -->
       </div>
+
+      <!-- 【新設】2026年9月 出庫実績 全48便 便別積載効率・手積みvsパレット比較ダッシュボード -->
+      <details id="all48TripsDashboardDetails" open class="mt-3 pt-3 border-t border-slate-200 group">
+        <summary class="cursor-pointer list-none flex flex-col lg:flex-row lg:items-center justify-between gap-2 select-none bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-sm hover:bg-slate-800 transition">
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <span class="px-2 py-0.5 bg-amber-400 text-slate-950 font-extrabold text-[11px] rounded-md">2026年9月実績 全48便</span>
+            <span class="font-extrabold text-xs sm:text-sm text-white">📊 便ごと積載効率・3Dシミュレーション見える化ボード（手積み vs 1100パレット vs 2200パレット）</span>
+            <span id="activeTripQuickBadge" class="px-2 py-0.5 bg-blue-600/40 border border-blue-400/40 text-blue-200 rounded text-[11px] font-mono">現在表示中: #1 2026/09/01 7601</span>
+          </div>
+          <div class="flex items-center gap-2 self-end lg:self-auto">
+            <span class="text-[11px] text-amber-300 font-semibold">💡 表の「手積み」「1100P」「2200P」セルをクリックすると3D荷台が瞬時に切り替わります</span>
+            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded border border-slate-600 text-slate-300">開閉 ▼</span>
+          </div>
+        </summary>
+
+        <div class="mt-3 space-y-3">
+          <!-- 全48便 3モード比較サマリーKPIカード -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <div class="text-[11px] font-bold text-slate-500 flex justify-between items-center">
+                <span>📋 2026年9月 出庫実績総計</span>
+                <span class="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded text-[10px] font-bold">全151明細 / 43品目</span>
+              </div>
+              <div class="text-base font-extrabold text-slate-900 mt-1">全 48 便 / 34,220 <span class="text-xs font-normal">cs</span></div>
+              <div class="text-[11px] text-slate-500 mt-0.5">定期31便(10t) + 臨時17便(10臨片) | 平均才数率 <b class="text-slate-800">99.6%</b></div>
+            </div>
+
+            <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-3 cursor-pointer hover:bg-indigo-100/60 transition" onclick="setPackingMode('highDensity')">
+              <div class="text-[11px] font-bold text-indigo-800 flex justify-between items-center">
+                <span>📦 ① 手積み（高密度バラ積み）</span>
+                <span class="px-1.5 py-0.5 bg-indigo-600 text-white rounded text-[10px] font-bold">46/48便 完全格納</span>
+              </div>
+              <div class="text-base font-extrabold text-indigo-950 mt-1">平均積載率 99.8% <span class="text-xs font-semibold text-indigo-700">(34,123 cs)</span></div>
+              <div class="text-[11px] text-indigo-700 mt-0.5">1,700才満車便でもデッドスペース最小化でほぼ100%格納</div>
+            </div>
+
+            <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3 cursor-pointer hover:bg-blue-100/60 transition" onclick="setPackingMode('p1100')">
+              <div class="text-[11px] font-bold text-blue-800 flex justify-between items-center">
+                <span>🟦 ② 1100×1100mm パレット (16枚)</span>
+                <span class="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px] font-bold">標準T11型</span>
+              </div>
+              <div class="text-base font-extrabold text-blue-950 mt-1">平均積載率 59.1% <span class="text-xs font-semibold text-blue-700">(19,898 cs)</span></div>
+              <div class="text-[11px] text-blue-700 mt-0.5">大型紙パンツ箱の110cm端数ロスにより平均40.9%積み残し</div>
+            </div>
+
+            <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 cursor-pointer hover:bg-emerald-100/60 transition" onclick="setPackingMode('p2200')">
+              <div class="text-[11px] font-bold text-emerald-800 flex justify-between items-center">
+                <span>🟩 ③ 2200×2200mm 大型パレット (4枚)</span>
+                <span class="px-1.5 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold">1100比 +11.7pt優位</span>
+              </div>
+              <div class="text-base font-extrabold text-emerald-950 mt-1">平均積載率 70.8% <span class="text-xs font-semibold text-emerald-700">(24,213 cs)</span></div>
+              <div class="text-[11px] text-emerald-700 mt-0.5">1100パレット比で <b class="underline">+4,315 cs 多く格納</b>（境界デッドスペース解消）</div>
+            </div>
+          </div>
+
+          <!-- フィルター＆アクションバー -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-100 p-2 rounded-xl border border-slate-200 text-xs">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="font-bold text-slate-600 px-1.5">絞り込み:</span>
+              <button onclick="setInlineTripFilter('all')" id="inlineFilter_all" class="px-2.5 py-1 rounded-lg font-bold bg-blue-600 text-white shadow-2xs cursor-pointer transition">すべて (48便)</button>
+              <button onclick="setInlineTripFilter('regular')" id="inlineFilter_regular" class="px-2.5 py-1 rounded-lg font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">定期便 7601-7603 (31便)</button>
+              <button onclick="setInlineTripFilter('extra')" id="inlineFilter_extra" class="px-2.5 py-1 rounded-lg font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">臨時便 7661-7671 (17便)</button>
+              <button onclick="setInlineTripFilter('single')" id="inlineFilter_single" class="px-2.5 py-1 rounded-lg font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">単一SKU便 (7便)</button>
+              <button onclick="setInlineTripFilter('multi')" id="inlineFilter_multi" class="px-2.5 py-1 rounded-lg font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">多品種混載便 (41便)</button>
+              <button onclick="setInlineTripFilter('p2200win')" id="inlineFilter_p2200win" class="px-2.5 py-1 rounded-lg font-semibold bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200 cursor-pointer transition">🟩 2200P大幅優位 (+15pt〜)</button>
+            </div>
+            <div class="flex items-center gap-2 self-end sm:self-auto">
+              <button onclick="exportAll48TripsComparisonCSV()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer transition">
+                📥 全48便比較CSV出力
+              </button>
+              <button onclick="loadOriginalSampleBatches()" class="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg text-[11px] cursor-pointer transition" title="初期サンプル5便データへ切り替え">
+                基準サンプル便へ切替
+              </button>
+            </div>
+          </div>
+
+          <!-- 全48便 横並び比較テーブル -->
+          <div class="max-h-80 overflow-y-auto rounded-xl border border-slate-200 shadow-inner bg-white custom-scrollbar">
+            <table class="w-full text-left border-collapse text-[11px]">
+              <thead>
+                <tr class="bg-slate-800 text-white font-bold sticky top-0 z-10 shadow-xs">
+                  <th class="py-2 px-2 text-center w-8">#</th>
+                  <th class="py-2 px-2.5">出荷日 / 便No</th>
+                  <th class="py-2 px-2">便種・車種</th>
+                  <th class="py-2 px-2.5">品目数・主要積載銘柄</th>
+                  <th class="py-2 px-2 text-right">出庫数</th>
+                  <th class="py-2 px-2 text-right">出庫才数(率)</th>
+                  <th class="py-2 px-2 text-right">総重量(率)</th>
+                  <th class="py-2 px-2.5 text-center bg-indigo-900/90 border-l border-slate-700">📦 手積み(バラ)<br><span class="text-[9px] font-normal text-indigo-200">クリックで3D表示</span></th>
+                  <th class="py-2 px-2.5 text-center bg-blue-900/90 border-l border-slate-700">🟦 1100パレット(16枚)<br><span class="text-[9px] font-normal text-blue-200">クリックで3D表示</span></th>
+                  <th class="py-2 px-2.5 text-center bg-emerald-900/90 border-l border-slate-700">🟩 2200パレット(4枚)<br><span class="text-[9px] font-normal text-emerald-200">クリックで3D表示</span></th>
+                  <th class="py-2 px-2 text-center border-l border-slate-700">1100→2200<br>改善効果</th>
+                </tr>
+              </thead>
+              <tbody id="inline48TripsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <!-- JSで動的描画 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
     </div>
 
     <!-- KPI & トラック情報サマリー -->
@@ -864,15 +965,15 @@
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10">
-              <th class="py-2.5 px-3">便番号 / 便名</th>
-              <th class="py-2.5 px-3">出荷先</th>
-              <th class="py-2.5 px-3">車種</th>
-              <th class="py-2.5 px-3 text-right">総ケース</th>
-              <th class="py-2.5 px-3 text-right">荷台格納</th>
-              <th class="py-2.5 px-3 text-right">積み残し</th>
-              <th class="py-2.5 px-3 text-right">積載率</th>
-              <th class="py-2.5 px-3 text-center">判定状態</th>
-              <th class="py-2.5 px-3 text-center">アクション</th>
+              <th class="py-2.5 px-3">出荷日 / 便番号</th>
+              <th class="py-2.5 px-3">品目数・主要銘柄</th>
+              <th class="py-2.5 px-3">出庫才数(率)</th>
+              <th class="py-2.5 px-3 text-right">出庫ケース</th>
+              <th class="py-2.5 px-3 text-right text-indigo-700">📦 手積み格納</th>
+              <th class="py-2.5 px-3 text-right text-blue-700">🟦 1100P格納</th>
+              <th class="py-2.5 px-3 text-right text-emerald-700">🟩 2200P格納</th>
+              <th class="py-2.5 px-3 text-center">現在モード判定</th>
+              <th class="py-2.5 px-3 text-center">3D表示切替</th>
             </tr>
           </thead>
           <tbody id="batchSummaryTableBody" class="divide-y divide-slate-100">
@@ -1190,11 +1291,27 @@
       return baseItems;
     }
 
+    // 2026年9月 出庫実績 全48便データ（実3Dシミュレーション結果付き）
+    const ACTUAL_48_BATCHES_DATA = [{"id": "2026/09/01 便7601 (１０ｔ車)", "date": "2026/09/01", "shortDate": "09/01", "tripNo": "7601", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/01 便7601", "dest": "１０ｔ車・5品目 (1700才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "08:30", "truckType": "lowFloor10t", "totalSaisu": 1699.89, "saisuRate": 100.0, "cargoItems": [{"id": "sku_84760_0", "sku": "84760", "name": "ライフリーうす型軽快パンツＬ３０枚", "L": 35.1, "W": 42.6, "H": 40.6, "weight": 4.08, "qty": 462, "saisu": 1007.16, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_85427_1", "sku": "85427", "name": "チャームナップ安心の少量用消臭タイプ２０枚", "L": 28.2, "W": 50.0, "H": 37.3, "weight": 4.81, "qty": 300, "saisu": 567.0, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_11722_2", "sku": "11722", "name": "チャームナップ安心の少量用２２枚", "L": 29.6, "W": 52.5, "H": 39.1, "weight": 5.37, "qty": 31, "saisu": 67.89, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_90391_3", "sku": "90391", "name": "チャームナップ長時間快適用３２枚", "L": 26.5, "W": 46.9, "H": 34.9, "weight": 5.0, "qty": 28, "saisu": 43.68, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_44887_4", "sku": "44887", "name": "チャームナップ長時間快適用２２枚", "L": 24.1, "W": 42.8, "H": 31.8, "weight": 3.6, "qty": 12, "saisu": 14.16, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 833, "overflow": 0, "rate": 100}, "p1100": {"loaded": 443, "overflow": 390, "rate": 53.2}, "p2200": {"loaded": 623, "overflow": 210, "rate": 74.8}, "wallBuilding": {"loaded": 779, "overflow": 54, "rate": 93.5}}}, {"id": "2026/09/01 便7602 (１０ｔ車)", "date": "2026/09/01", "shortDate": "09/01", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/01 便7602", "dest": "１０ｔ車・2品目 (1701才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1701.44, "saisuRate": 100.1, "cargoItems": [{"id": "sku_52556_0", "sku": "52556", "name": "ライフリーうす型軽快パンツＭ３２枚", "L": 39.4, "W": 62.5, "H": 25.7, "weight": 4.08, "qty": 598, "saisu": 1363.44, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_17969_1", "sku": "17969", "name": "ＧライフリーＳＣコンフォートナイトスーパー４５", "L": 43.2, "W": 53.5, "H": 40.7, "weight": 11.01, "qty": 100, "saisu": 338.0, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 698, "overflow": 0, "rate": 100}, "p1100": {"loaded": 452, "overflow": 246, "rate": 64.8}, "p2200": {"loaded": 468, "overflow": 230, "rate": 67}, "wallBuilding": {"loaded": 604, "overflow": 94, "rate": 86.5}}}, {"id": "2026/09/02 便7601 (１０ｔ車)", "date": "2026/09/02", "shortDate": "09/02", "tripNo": "7601", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/02 便7601", "dest": "１０ｔ車・3品目 (1701才)", "mainItem": "ライフリーさわやかパッド 他", "depTime": "08:30", "truckType": "lowFloor10t", "totalSaisu": 1701.31, "saisuRate": 100.1, "cargoItems": [{"id": "sku_50534_0", "sku": "50534", "name": "ライフリーさわやかパッド２０ｃｃ６９枚", "L": 33.6, "W": 40.5, "H": 44.4, "weight": 5.46, "qty": 400, "saisu": 868.0, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_50597_1", "sku": "50597", "name": "ライフリーさわやかパッド４５ｃｃ３０枚", "L": 28.0, "W": 36.5, "H": 33.0, "weight": 3.34, "qty": 288, "saisu": 351.36, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_85427_2", "sku": "85427", "name": "チャームナップ安心の少量用消臭タイプ２０枚", "L": 28.2, "W": 50.0, "H": 37.3, "weight": 4.81, "qty": 255, "saisu": 481.95, "color": "#6d28d9", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 943, "overflow": 0, "rate": 100}, "p1100": {"loaded": 420, "overflow": 523, "rate": 44.5}, "p2200": {"loaded": 660, "overflow": 283, "rate": 70}, "wallBuilding": {"loaded": 904, "overflow": 39, "rate": 95.9}}}, {"id": "2026/09/02 便7602 (１０ｔ車)", "date": "2026/09/02", "shortDate": "09/02", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/02 便7602", "dest": "１０ｔ車・2品目 (1701才)", "mainItem": "ライフリーさわやかパッド 他", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1701.46, "saisuRate": 100.1, "cargoItems": [{"id": "sku_50752_0", "sku": "50752", "name": "ライフリーさわやかパッド８０ｃｃ４５枚", "L": 35.5, "W": 44.1, "H": 37.3, "weight": 6.64, "qty": 780, "saisu": 1638.0, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_72751_1", "sku": "72751", "name": "ＧライフリーリハビリパンツレギュラーＬ２４枚", "L": 41.0, "W": 56.5, "H": 40.0, "weight": 6.45, "qty": 19, "saisu": 63.46, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 799, "overflow": 0, "rate": 100}, "p1100": {"loaded": 470, "overflow": 329, "rate": 58.8}, "p2200": {"loaded": 600, "overflow": 199, "rate": 75.1}, "wallBuilding": {"loaded": 780, "overflow": 19, "rate": 97.6}}}, {"id": "2026/09/02 便7661 (１０臨片)", "date": "2026/09/02", "shortDate": "09/02", "tripNo": "7661", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/02 便7661", "dest": "１０臨片・3品目 (1700才)", "mainItem": "チャームナップ中量用消臭 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1699.88, "saisuRate": 100.0, "cargoItems": [{"id": "sku_70624_0", "sku": "70624", "name": "チャームナップ中量用消臭タイプ３４枚", "L": 40.4, "W": 52.0, "H": 19.0, "weight": 4.3, "qty": 747, "saisu": 1075.68, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_50597_1", "sku": "50597", "name": "ライフリーさわやかパッド４５ｃｃ３０枚", "L": 28.0, "W": 36.5, "H": 33.0, "weight": 3.34, "qty": 250, "saisu": 305.0, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_52556_2", "sku": "52556", "name": "ライフリーうす型軽快パンツＭ３２枚", "L": 39.4, "W": 62.5, "H": 25.7, "weight": 4.08, "qty": 140, "saisu": 319.2, "color": "#6d28d9", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 1061, "overflow": 76, "rate": 93.3}, "p1100": {"loaded": 652, "overflow": 485, "rate": 57.3}, "p2200": {"loaded": 652, "overflow": 485, "rate": 57.3}, "wallBuilding": {"loaded": 1121, "overflow": 16, "rate": 98.6}}}, {"id": "2026/09/02 便7662 (１０臨片)", "date": "2026/09/02", "shortDate": "09/02", "tripNo": "7662", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/02 便7662", "dest": "１０臨片・3品目 (1700才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1700.02, "saisuRate": 100.0, "cargoItems": [{"id": "sku_52556_0", "sku": "52556", "name": "ライフリーうす型軽快パンツＭ３２枚", "L": 39.4, "W": 62.5, "H": 25.7, "weight": 4.08, "qty": 461, "saisu": 1051.08, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_96262_1", "sku": "96262", "name": "ライフリーうす型軽快パンツＭ４０枚", "L": 42.4, "W": 67.1, "H": 27.7, "weight": 5.1, "qty": 226, "saisu": 639.58, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_90391_2", "sku": "90391", "name": "チャームナップ長時間快適用３２枚", "L": 26.5, "W": 46.9, "H": 34.9, "weight": 5.0, "qty": 6, "saisu": 9.36, "color": "#6d28d9", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 693, "overflow": 0, "rate": 100}, "p1100": {"loaded": 480, "overflow": 213, "rate": 69.3}, "p2200": {"loaded": 480, "overflow": 213, "rate": 69.3}, "wallBuilding": {"loaded": 619, "overflow": 74, "rate": 89.3}}}, {"id": "2026/09/03 便7602 (１０ｔ車)", "date": "2026/09/03", "shortDate": "09/03", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/03 便7602", "dest": "１０ｔ車・2品目 (1702才)", "mainItem": "チャームナップ消臭・抗菌 他", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1702.05, "saisuRate": 100.1, "cargoItems": [{"id": "sku_81396_0", "sku": "81396", "name": "チャームナップ消臭・抗菌タイプ３０ｃｃ２０枚", "L": 28.2, "W": 50.0, "H": 37.3, "weight": 4.79, "qty": 670, "saisu": 1266.3, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_39387_1", "sku": "39387", "name": "チャームナップ長時間快適用１６枚", "L": 31.5, "W": 40.9, "H": 37.8, "weight": 5.17, "qty": 249, "saisu": 435.75, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 919, "overflow": 0, "rate": 100}, "p1100": {"loaded": 448, "overflow": 471, "rate": 48.7}, "p2200": {"loaded": 563, "overflow": 356, "rate": 61.3}, "wallBuilding": {"loaded": 843, "overflow": 76, "rate": 91.7}}}, {"id": "2026/09/04 便7601 (１０ｔ車)", "date": "2026/09/04", "shortDate": "09/04", "tripNo": "7601", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/04 便7601", "dest": "１０ｔ車・5品目 (1701才)", "mainItem": "ムーニーマンマシュマロ肌 他", "depTime": "08:30", "truckType": "lowFloor10t", "totalSaisu": 1700.65, "saisuRate": 100.0, "cargoItems": [{"id": "sku_20085_0", "sku": "20085", "name": "ムーニーマンマシュマロ肌ごこち男の子Ｌ４４枚", "L": 33.5, "W": 49.5, "H": 43.5, "weight": 6.5, "qty": 259, "saisu": 673.4, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_20099_1", "sku": "20099", "name": "ムーニーマンマシュマロ肌ごこち女の子Ｌ４４枚", "L": 42.3, "W": 57.0, "H": 30.0, "weight": 6.5, "qty": 251, "saisu": 652.6, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_50685_2", "sku": "50685", "name": "ライフリーさわやかパッド４５ｃｃ４５枚", "L": 32.7, "W": 42.6, "H": 38.5, "weight": 5.18, "qty": 79, "saisu": 152.47, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_50540_3", "sku": "50540", "name": "ライフリーさわやかパッド４５ｃｃ２２枚", "L": 26.9, "W": 35.1, "H": 31.8, "weight": 2.47, "qty": 65, "saisu": 70.2, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_51460_4", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 51, "saisu": 151.98, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 705, "overflow": 0, "rate": 100}, "p1100": {"loaded": 420, "overflow": 285, "rate": 59.6}, "p2200": {"loaded": 465, "overflow": 240, "rate": 66}, "wallBuilding": {"loaded": 614, "overflow": 91, "rate": 87.1}}}, {"id": "2026/09/04 便7602 (１０ｔ車)", "date": "2026/09/04", "shortDate": "09/04", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/04 便7602", "dest": "１０ｔ車・1品目 (1699才)", "mainItem": "Ｇライフリーリハビリパン (単一SKU)", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1699.36, "saisuRate": 100.0, "cargoItems": [{"id": "sku_15246_0", "sku": "15246", "name": "ＧライフリーリハビリパンツレギュラーＭ２６枚", "L": 41.4, "W": 57.1, "H": 40.4, "weight": 6.55, "qty": 494, "saisu": 1699.36, "color": "#0284c7", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 494, "overflow": 0, "rate": 100}, "p1100": {"loaded": 320, "overflow": 174, "rate": 64.8}, "p2200": {"loaded": 400, "overflow": 94, "rate": 81}, "wallBuilding": {"loaded": 494, "overflow": 0, "rate": 100}}}, {"id": "2026/09/04 便7661 (１０臨片)", "date": "2026/09/04", "shortDate": "09/04", "tripNo": "7661", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/04 便7661", "dest": "１０臨片・5品目 (1701才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1701.02, "saisuRate": 100.1, "cargoItems": [{"id": "sku_52556_0", "sku": "52556", "name": "ライフリーうす型軽快パンツＭ３２枚", "L": 39.4, "W": 62.5, "H": 25.7, "weight": 4.08, "qty": 331, "saisu": 754.68, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_20099_1", "sku": "20099", "name": "ムーニーマンマシュマロ肌ごこち女の子Ｌ４４枚", "L": 42.3, "W": 57.0, "H": 30.0, "weight": 6.5, "qty": 167, "saisu": 434.2, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_72751_2", "sku": "72751", "name": "ＧライフリーリハビリパンツレギュラーＬ２４枚", "L": 41.0, "W": 56.5, "H": 40.0, "weight": 6.45, "qty": 100, "saisu": 334.0, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_51460_3", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 51, "saisu": 151.98, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_84760_4", "sku": "84760", "name": "ライフリーうす型軽快パンツＬ３０枚", "L": 35.1, "W": 42.6, "H": 40.6, "weight": 4.08, "qty": 12, "saisu": 26.16, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 661, "overflow": 0, "rate": 100}, "p1100": {"loaded": 412, "overflow": 249, "rate": 62.3}, "p2200": {"loaded": 452, "overflow": 209, "rate": 68.4}, "wallBuilding": {"loaded": 615, "overflow": 46, "rate": 93}}}, {"id": "2026/09/04 便7662 (１０臨片)", "date": "2026/09/04", "shortDate": "09/04", "tripNo": "7662", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/04 便7662", "dest": "１０臨片・5品目 (1703才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1703.14, "saisuRate": 100.2, "cargoItems": [{"id": "sku_84760_0", "sku": "84760", "name": "ライフリーうす型軽快パンツＬ３０枚", "L": 35.1, "W": 42.6, "H": 40.6, "weight": 4.08, "qty": 337, "saisu": 734.66, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_96262_1", "sku": "96262", "name": "ライフリーうす型軽快パンツＭ４０枚", "L": 42.4, "W": 67.1, "H": 27.7, "weight": 5.1, "qty": 254, "saisu": 718.82, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_93864_2", "sku": "93864", "name": "チャームナップ中量用３８枚", "L": 30.5, "W": 52.0, "H": 26.9, "weight": 4.71, "qty": 58, "saisu": 88.74, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_54774_3", "sku": "54774", "name": "Ｇライフリー長時間ＳｋｉｎＣｏｎｄｉｔｉｏｎ４８", "L": 36.6, "W": 57.8, "H": 39.2, "weight": 11.1, "qty": 38, "saisu": 113.24, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_51460_4", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 16, "saisu": 47.68, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 698, "overflow": 5, "rate": 99.3}, "p1100": {"loaded": 439, "overflow": 264, "rate": 62.4}, "p2200": {"loaded": 439, "overflow": 264, "rate": 62.4}, "wallBuilding": {"loaded": 672, "overflow": 31, "rate": 95.6}}}, {"id": "2026/09/07 便7601 (１０ｔ車)", "date": "2026/09/07", "shortDate": "09/07", "tripNo": "7601", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/07 便7601", "dest": "１０ｔ車・5品目 (1702才)", "mainItem": "ムーニーマンマシュマロ肌 他", "depTime": "08:30", "truckType": "lowFloor10t", "totalSaisu": 1701.56, "saisuRate": 100.1, "cargoItems": [{"id": "sku_20128_0", "sku": "20128", "name": "ムーニーマンマシュマロ肌ごこち女の子ビッグ３８枚", "L": 30.0, "W": 49.1, "H": 41.5, "weight": 6.2, "qty": 377, "saisu": 829.4, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_93864_1", "sku": "93864", "name": "チャームナップ中量用３８枚", "L": 30.5, "W": 52.0, "H": 26.9, "weight": 4.71, "qty": 370, "saisu": 566.1, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_50685_2", "sku": "50685", "name": "ライフリーさわやかパッド４５ｃｃ４５枚", "L": 32.7, "W": 42.6, "H": 38.5, "weight": 5.18, "qty": 82, "saisu": 158.26, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_51460_3", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 47, "saisu": 140.06, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_59946_4", "sku": "59946", "name": "ムーニーマンマシュマロ肌ごこち男の子Ｌ４４枚×２", "L": 33.5, "W": 45.1, "H": 23.8, "weight": 3.49, "qty": 6, "saisu": 7.74, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 866, "overflow": 16, "rate": 98.2}, "p1100": {"loaded": 458, "overflow": 424, "rate": 51.9}, "p2200": {"loaded": 699, "overflow": 183, "rate": 79.3}, "wallBuilding": {"loaded": 803, "overflow": 79, "rate": 91}}}, {"id": "2026/09/07 便7602 (１０ｔ車)", "date": "2026/09/07", "shortDate": "09/07", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/07 便7602", "dest": "１０ｔ車・1品目 (1699才)", "mainItem": "Ｇライフリーうす型快適パ (単一SKU)", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1699.2, "saisuRate": 100.0, "cargoItems": [{"id": "sku_18533_0", "sku": "18533", "name": "Ｇライフリーうす型快適パンツレギュラーＭ３０枚", "L": 39.9, "W": 48.4, "H": 46.1, "weight": 5.57, "qty": 531, "saisu": 1699.2, "color": "#0284c7", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 531, "overflow": 0, "rate": 100}, "p1100": {"loaded": 320, "overflow": 211, "rate": 60.3}, "p2200": {"loaded": 384, "overflow": 147, "rate": 72.3}, "wallBuilding": {"loaded": 531, "overflow": 0, "rate": 100}}}, {"id": "2026/09/07 便7671 (１０臨片)", "date": "2026/09/07", "shortDate": "09/07", "tripNo": "7671", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/07 便7671", "dest": "１０臨片・5品目 (1600才)", "mainItem": "ムーニーマンマシュマロ肌 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1599.94, "saisuRate": 94.1, "cargoItems": [{"id": "sku_20099_0", "sku": "20099", "name": "ムーニーマンマシュマロ肌ごこち女の子Ｌ４４枚", "L": 42.3, "W": 57.0, "H": 30.0, "weight": 6.5, "qty": 259, "saisu": 673.4, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_15246_1", "sku": "15246", "name": "ＧライフリーリハビリパンツレギュラーＭ２６枚", "L": 41.4, "W": 57.1, "H": 40.4, "weight": 6.55, "qty": 177, "saisu": 608.88, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_50540_2", "sku": "50540", "name": "ライフリーさわやかパッド４５ｃｃ２２枚", "L": 26.9, "W": 35.1, "H": 31.8, "weight": 2.47, "qty": 85, "saisu": 91.8, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_51460_3", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 47, "saisu": 140.06, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_20128_4", "sku": "20128", "name": "ムーニーマンマシュマロ肌ごこち女の子ビッグ３８枚", "L": 30.0, "W": 49.1, "H": 41.5, "weight": 6.2, "qty": 39, "saisu": 85.8, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 607, "overflow": 0, "rate": 100}, "p1100": {"loaded": 400, "overflow": 207, "rate": 65.9}, "p2200": {"loaded": 400, "overflow": 207, "rate": 65.9}, "wallBuilding": {"loaded": 607, "overflow": 0, "rate": 100}}}, {"id": "2026/09/08 便7602 (１０ｔ車)", "date": "2026/09/08", "shortDate": "09/08", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/08 便7602", "dest": "１０ｔ車・1品目 (1702才)", "mainItem": "チャームナップ吸水さらフ (単一SKU)", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1701.96, "saisuRate": 100.1, "cargoItems": [{"id": "sku_93196_0", "sku": "93196", "name": "チャームナップ吸水さらフィ７０ｃｃ３２枚", "L": 22.7, "W": 50.2, "H": 38.0, "weight": 5.15, "qty": 1091, "saisu": 1701.96, "color": "#0284c7", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 1091, "overflow": 0, "rate": 100}, "p1100": {"loaded": 576, "overflow": 515, "rate": 52.8}, "p2200": {"loaded": 864, "overflow": 227, "rate": 79.2}, "wallBuilding": {"loaded": 984, "overflow": 107, "rate": 90.2}}}, {"id": "2026/09/09 便7601 (１０ｔ車)", "date": "2026/09/09", "shortDate": "09/09", "tripNo": "7601", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/09 便7601", "dest": "１０ｔ車・5品目 (1700才)", "mainItem": "ムーニーマンマシュマロ肌 他", "depTime": "08:30", "truckType": "lowFloor10t", "totalSaisu": 1699.82, "saisuRate": 100.0, "cargoItems": [{"id": "sku_20128_0", "sku": "20128", "name": "ムーニーマンマシュマロ肌ごこち女の子ビッグ３８枚", "L": 30.0, "W": 49.1, "H": 41.5, "weight": 6.2, "qty": 235, "saisu": 517.0, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_20099_1", "sku": "20099", "name": "ムーニーマンマシュマロ肌ごこち女の子Ｌ４４枚", "L": 42.3, "W": 57.0, "H": 30.0, "weight": 6.5, "qty": 170, "saisu": 442.0, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_50726_2", "sku": "50726", "name": "ライフリーさわやかパッド８０ｃｃ２０枚", "L": 26.9, "W": 35.1, "H": 31.8, "weight": 3.01, "qty": 132, "saisu": 142.56, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_51460_3", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 117, "saisu": 348.66, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_18533_4", "sku": "18533", "name": "Ｇライフリーうす型快適パンツレギュラーＭ３０枚", "L": 39.9, "W": 48.4, "H": 46.1, "weight": 5.57, "qty": 78, "saisu": 249.6, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 732, "overflow": 0, "rate": 100}, "p1100": {"loaded": 396, "overflow": 336, "rate": 54.1}, "p2200": {"loaded": 513, "overflow": 219, "rate": 70.1}, "wallBuilding": {"loaded": 628, "overflow": 104, "rate": 85.8}}}, {"id": "2026/09/09 便7602 (１０ｔ車)", "date": "2026/09/09", "shortDate": "09/09", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/09 便7602", "dest": "１０ｔ車・2品目 (1701才)", "mainItem": "チャームナップ中量用３８ 他", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1701.06, "saisuRate": 100.1, "cargoItems": [{"id": "sku_93864_0", "sku": "93864", "name": "チャームナップ中量用３８枚", "L": 30.5, "W": 52.0, "H": 26.9, "weight": 4.71, "qty": 724, "saisu": 1107.72, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_10425_1", "sku": "10425", "name": "チャームナップ中量用１８枚", "L": 32.5, "W": 55.5, "H": 28.7, "weight": 4.79, "qty": 319, "saisu": 593.34, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 1043, "overflow": 0, "rate": 100}, "p1100": {"loaded": 672, "overflow": 371, "rate": 64.4}, "p2200": {"loaded": 778, "overflow": 265, "rate": 74.6}, "wallBuilding": {"loaded": 1040, "overflow": 3, "rate": 99.7}}}, {"id": "2026/09/09 便7661 (１０臨片)", "date": "2026/09/09", "shortDate": "09/09", "tripNo": "7661", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/09 便7661", "dest": "１０臨片・5品目 (1701才)", "mainItem": "ムーニーマンマシュマロ肌 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1701.08, "saisuRate": 100.1, "cargoItems": [{"id": "sku_20099_0", "sku": "20099", "name": "ムーニーマンマシュマロ肌ごこち女の子Ｌ４４枚", "L": 42.3, "W": 57.0, "H": 30.0, "weight": 6.5, "qty": 235, "saisu": 611.0, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_72751_1", "sku": "72751", "name": "ＧライフリーリハビリパンツレギュラーＬ２４枚", "L": 41.0, "W": 56.5, "H": 40.0, "weight": 6.45, "qty": 119, "saisu": 397.46, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_82773_2", "sku": "82773", "name": "ＧライフリーＳＣコンフォートナイトエクストラ３６", "L": 37.4, "W": 57.6, "H": 43.6, "weight": 14.81, "qty": 100, "saisu": 338.0, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_54774_3", "sku": "54774", "name": "Ｇライフリー長時間ＳｋｉｎＣｏｎｄｉｔｉｏｎ４８", "L": 36.6, "W": 57.8, "H": 39.2, "weight": 11.1, "qty": 81, "saisu": 241.38, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_51460_4", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 38, "saisu": 113.24, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 573, "overflow": 0, "rate": 100}, "p1100": {"loaded": 384, "overflow": 189, "rate": 67}, "p2200": {"loaded": 384, "overflow": 189, "rate": 67}, "wallBuilding": {"loaded": 573, "overflow": 0, "rate": 100}}}, {"id": "2026/09/10 便7602 (１０ｔ車)", "date": "2026/09/10", "shortDate": "09/10", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/10 便7602", "dest": "１０ｔ車・2品目 (1701才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1700.93, "saisuRate": 100.1, "cargoItems": [{"id": "sku_96262_0", "sku": "96262", "name": "ライフリーうす型軽快パンツＭ４０枚", "L": 42.4, "W": 67.1, "H": 27.7, "weight": 5.1, "qty": 567, "saisu": 1604.61, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_15246_1", "sku": "15246", "name": "ＧライフリーリハビリパンツレギュラーＭ２６枚", "L": 41.4, "W": 57.1, "H": 40.4, "weight": 6.55, "qty": 28, "saisu": 96.32, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 595, "overflow": 0, "rate": 100}, "p1100": {"loaded": 448, "overflow": 147, "rate": 75.3}, "p2200": {"loaded": 448, "overflow": 147, "rate": 75.3}, "wallBuilding": {"loaded": 586, "overflow": 9, "rate": 98.5}}}, {"id": "2026/09/11 便7601 (１０ｔ車)", "date": "2026/09/11", "shortDate": "09/11", "tripNo": "7601", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/11 便7601", "dest": "１０ｔ車・5品目 (1701才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "08:30", "truckType": "lowFloor10t", "totalSaisu": 1700.68, "saisuRate": 100.0, "cargoItems": [{"id": "sku_84760_0", "sku": "84760", "name": "ライフリーうす型軽快パンツＬ３０枚", "L": 35.1, "W": 42.6, "H": 40.6, "weight": 4.08, "qty": 318, "saisu": 693.24, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_72751_1", "sku": "72751", "name": "ＧライフリーリハビリパンツレギュラーＬ２４枚", "L": 41.0, "W": 56.5, "H": 40.0, "weight": 6.45, "qty": 134, "saisu": 447.56, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_51460_2", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 122, "saisu": 363.56, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_50540_3", "sku": "50540", "name": "ライフリーさわやかパッド４５ｃｃ２２枚", "L": 26.9, "W": 35.1, "H": 31.8, "weight": 2.47, "qty": 85, "saisu": 91.8, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_93196_4", "sku": "93196", "name": "チャームナップ吸水さらフィ７０ｃｃ３２枚", "L": 22.7, "W": 50.2, "H": 38.0, "weight": 5.15, "qty": 67, "saisu": 104.52, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 726, "overflow": 0, "rate": 100}, "p1100": {"loaded": 376, "overflow": 350, "rate": 51.8}, "p2200": {"loaded": 435, "overflow": 291, "rate": 59.9}, "wallBuilding": {"loaded": 641, "overflow": 85, "rate": 88.3}}}, {"id": "2026/09/11 便7602 (１０ｔ車)", "date": "2026/09/11", "shortDate": "09/11", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/11 便7602", "dest": "１０ｔ車・1品目 (1701才)", "mainItem": "ライフリーうす型軽快パン (単一SKU)", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1700.83, "saisuRate": 100.0, "cargoItems": [{"id": "sku_96262_0", "sku": "96262", "name": "ライフリーうす型軽快パンツＭ４０枚", "L": 42.4, "W": 67.1, "H": 27.7, "weight": 5.1, "qty": 601, "saisu": 1700.83, "color": "#0284c7", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 601, "overflow": 0, "rate": 100}, "p1100": {"loaded": 448, "overflow": 153, "rate": 74.5}, "p2200": {"loaded": 448, "overflow": 153, "rate": 74.5}, "wallBuilding": {"loaded": 594, "overflow": 7, "rate": 98.8}}}, {"id": "2026/09/11 便7661 (１０臨片)", "date": "2026/09/11", "shortDate": "09/11", "tripNo": "7661", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/11 便7661", "dest": "１０臨片・4品目 (1701才)", "mainItem": "Ｇライフリーリハビリパン 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1701.44, "saisuRate": 100.1, "cargoItems": [{"id": "sku_15246_0", "sku": "15246", "name": "ＧライフリーリハビリパンツレギュラーＭ２６枚", "L": 41.4, "W": 57.1, "H": 40.4, "weight": 6.55, "qty": 237, "saisu": 815.28, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_20085_1", "sku": "20085", "name": "ムーニーマンマシュマロ肌ごこち男の子Ｌ４４枚", "L": 33.5, "W": 49.5, "H": 43.5, "weight": 6.5, "qty": 192, "saisu": 499.2, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_51460_2", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 122, "saisu": 363.56, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_93196_3", "sku": "93196", "name": "チャームナップ吸水さらフィ７０ｃｃ３２枚", "L": 22.7, "W": 50.2, "H": 38.0, "weight": 5.15, "qty": 15, "saisu": 23.4, "color": "#2563eb", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 566, "overflow": 0, "rate": 100}, "p1100": {"loaded": 340, "overflow": 226, "rate": 60.1}, "p2200": {"loaded": 340, "overflow": 226, "rate": 60.1}, "wallBuilding": {"loaded": 522, "overflow": 44, "rate": 92.2}}}, {"id": "2026/09/14 便7601 (１０ｔ車)", "date": "2026/09/14", "shortDate": "09/14", "tripNo": "7601", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/14 便7601", "dest": "１０ｔ車・5品目 (1703才)", "mainItem": "Ｇライフリーうす型快適パ 他", "depTime": "08:30", "truckType": "lowFloor10t", "totalSaisu": 1702.65, "saisuRate": 100.2, "cargoItems": [{"id": "sku_18533_0", "sku": "18533", "name": "Ｇライフリーうす型快適パンツレギュラーＭ３０枚", "L": 39.9, "W": 48.4, "H": 46.1, "weight": 5.57, "qty": 224, "saisu": 716.8, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_20099_1", "sku": "20099", "name": "ムーニーマンマシュマロ肌ごこち女の子Ｌ４４枚", "L": 42.3, "W": 57.0, "H": 30.0, "weight": 6.5, "qty": 175, "saisu": 455.0, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_20085_2", "sku": "20085", "name": "ムーニーマンマシュマロ肌ごこち男の子Ｌ４４枚", "L": 33.5, "W": 49.5, "H": 43.5, "weight": 6.5, "qty": 123, "saisu": 319.8, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_20128_3", "sku": "20128", "name": "ムーニーマンマシュマロ肌ごこち女の子ビッグ３８枚", "L": 30.0, "W": 49.1, "H": 41.5, "weight": 6.2, "qty": 93, "saisu": 204.6, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_59946_4", "sku": "59946", "name": "ムーニーマンマシュマロ肌ごこち男の子Ｌ４４枚×２", "L": 33.5, "W": 45.1, "H": 23.8, "weight": 3.49, "qty": 5, "saisu": 6.45, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 620, "overflow": 0, "rate": 100}, "p1100": {"loaded": 388, "overflow": 232, "rate": 62.6}, "p2200": {"loaded": 474, "overflow": 146, "rate": 76.5}, "wallBuilding": {"loaded": 607, "overflow": 13, "rate": 97.9}}}, {"id": "2026/09/14 便7602 (１０ｔ車)", "date": "2026/09/14", "shortDate": "09/14", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/14 便7602", "dest": "１０ｔ車・2品目 (1700才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1700.5, "saisuRate": 100.0, "cargoItems": [{"id": "sku_96262_0", "sku": "96262", "name": "ライフリーうす型軽快パンツＭ４０枚", "L": 42.4, "W": 67.1, "H": 27.7, "weight": 5.1, "qty": 484, "saisu": 1369.72, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_51460_1", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 111, "saisu": 330.78, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 595, "overflow": 0, "rate": 100}, "p1100": {"loaded": 432, "overflow": 163, "rate": 72.6}, "p2200": {"loaded": 432, "overflow": 163, "rate": 72.6}, "wallBuilding": {"loaded": 561, "overflow": 34, "rate": 94.3}}}, {"id": "2026/09/14 便7661 (１０臨片)", "date": "2026/09/14", "shortDate": "09/14", "tripNo": "7661", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/14 便7661", "dest": "１０臨片・5品目 (1701才)", "mainItem": "チャームナップ吸水さらフ 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1700.7, "saisuRate": 100.0, "cargoItems": [{"id": "sku_31226_0", "sku": "31226", "name": "チャームナップ吸水さらフィ５０ｃｃ３８枚", "L": 22.6, "W": 49.9, "H": 37.8, "weight": 4.71, "qty": 300, "saisu": 459.0, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_18533_1", "sku": "18533", "name": "Ｇライフリーうす型快適パンツレギュラーＭ３０枚", "L": 39.9, "W": 48.4, "H": 46.1, "weight": 5.57, "qty": 156, "saisu": 499.2, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_72474_2", "sku": "72474", "name": "チャームナップ消臭・抗菌タイプ３０ｃｃ４０枚", "L": 33.0, "W": 44.8, "H": 30.5, "weight": 4.62, "qty": 150, "saisu": 243.0, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_87124_3", "sku": "87124", "name": "チャームナップ吸水さらフィ３０ｃｃ２２枚", "L": 25.4, "W": 56.2, "H": 42.6, "weight": 5.37, "qty": 150, "saisu": 328.5, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_57662_4", "sku": "57662", "name": "チャームナップ吸水さらフィ３０ｃｃ４４枚", "L": 23.4, "W": 51.8, "H": 39.2, "weight": 5.05, "qty": 100, "saisu": 171.0, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 856, "overflow": 0, "rate": 100}, "p1100": {"loaded": 440, "overflow": 416, "rate": 51.4}, "p2200": {"loaded": 600, "overflow": 256, "rate": 70.1}, "wallBuilding": {"loaded": 810, "overflow": 46, "rate": 94.6}}}, {"id": "2026/09/14 便7662 (１０臨片)", "date": "2026/09/14", "shortDate": "09/14", "tripNo": "7662", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/14 便7662", "dest": "１０臨片・5品目 (1700才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1699.86, "saisuRate": 100.0, "cargoItems": [{"id": "sku_52556_0", "sku": "52556", "name": "ライフリーうす型軽快パンツＭ３２枚", "L": 39.4, "W": 62.5, "H": 25.7, "weight": 4.08, "qty": 561, "saisu": 1279.08, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_50726_1", "sku": "50726", "name": "ライフリーさわやかパッド８０ｃｃ２０枚", "L": 26.9, "W": 35.1, "H": 31.8, "weight": 3.01, "qty": 125, "saisu": 135.0, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_50540_2", "sku": "50540", "name": "ライフリーさわやかパッド４５ｃｃ２２枚", "L": 26.9, "W": 35.1, "H": 31.8, "weight": 2.47, "qty": 70, "saisu": 75.6, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_84760_3", "sku": "84760", "name": "ライフリーうす型軽快パンツＬ３０枚", "L": 35.1, "W": 42.6, "H": 40.6, "weight": 4.08, "qty": 61, "saisu": 132.98, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_50685_4", "sku": "50685", "name": "ライフリーさわやかパッド４５ｃｃ４５枚", "L": 32.7, "W": 42.6, "H": 38.5, "weight": 5.18, "qty": 40, "saisu": 77.2, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 857, "overflow": 0, "rate": 100}, "p1100": {"loaded": 512, "overflow": 345, "rate": 59.7}, "p2200": {"loaded": 532, "overflow": 325, "rate": 62.1}, "wallBuilding": {"loaded": 659, "overflow": 198, "rate": 76.9}}}, {"id": "2026/09/14 便7671 (１０臨片)", "date": "2026/09/14", "shortDate": "09/14", "tripNo": "7671", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/14 便7671", "dest": "１０臨片・5品目 (1581才)", "mainItem": "Ｇライフリーうす型快適パ 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1581.28, "saisuRate": 93.0, "cargoItems": [{"id": "sku_18533_0", "sku": "18533", "name": "Ｇライフリーうす型快適パンツレギュラーＭ３０枚", "L": 39.9, "W": 48.4, "H": 46.1, "weight": 5.57, "qty": 154, "saisu": 492.8, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_15246_1", "sku": "15246", "name": "ＧライフリーリハビリパンツレギュラーＭ２６枚", "L": 41.4, "W": 57.1, "H": 40.4, "weight": 6.55, "qty": 119, "saisu": 409.36, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_51460_2", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 103, "saisu": 306.94, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_54774_3", "sku": "54774", "name": "Ｇライフリー長時間ＳｋｉｎＣｏｎｄｉｔｉｏｎ４８", "L": 36.6, "W": 57.8, "H": 39.2, "weight": 11.1, "qty": 68, "saisu": 202.64, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_89876_4", "sku": "89876", "name": "Ｇライフリーうす型快適パンツレギュラーＬ２８枚", "L": 46.4, "W": 73.0, "H": 28.4, "weight": 5.65, "qty": 49, "saisu": 169.54, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 493, "overflow": 0, "rate": 100}, "p1100": {"loaded": 312, "overflow": 181, "rate": 63.3}, "p2200": {"loaded": 336, "overflow": 157, "rate": 68.2}, "wallBuilding": {"loaded": 493, "overflow": 0, "rate": 100}}}, {"id": "2026/09/15 便7602 (１０ｔ車)", "date": "2026/09/15", "shortDate": "09/15", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/15 便7602", "dest": "１０ｔ車・2品目 (1702才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1701.68, "saisuRate": 100.1, "cargoItems": [{"id": "sku_52556_0", "sku": "52556", "name": "ライフリーうす型軽快パンツＭ３２枚", "L": 39.4, "W": 62.5, "H": 25.7, "weight": 4.08, "qty": 513, "saisu": 1169.64, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_96262_1", "sku": "96262", "name": "ライフリーうす型軽快パンツＭ４０枚", "L": 42.4, "W": 67.1, "H": 27.7, "weight": 5.1, "qty": 188, "saisu": 532.04, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 701, "overflow": 0, "rate": 100}, "p1100": {"loaded": 484, "overflow": 217, "rate": 69}, "p2200": {"loaded": 496, "overflow": 205, "rate": 70.8}, "wallBuilding": {"loaded": 621, "overflow": 80, "rate": 88.6}}}, {"id": "2026/09/15 便7661 (１０臨片)", "date": "2026/09/15", "shortDate": "09/15", "tripNo": "7661", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/15 便7661", "dest": "１０臨片・5品目 (1698才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1697.61, "saisuRate": 99.9, "cargoItems": [{"id": "sku_84760_0", "sku": "84760", "name": "ライフリーうす型軽快パンツＬ３０枚", "L": 35.1, "W": 42.6, "H": 40.6, "weight": 4.08, "qty": 312, "saisu": 680.16, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_96262_1", "sku": "96262", "name": "ライフリーうす型軽快パンツＭ４０枚", "L": 42.4, "W": 67.1, "H": 27.7, "weight": 5.1, "qty": 163, "saisu": 461.29, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_82773_2", "sku": "82773", "name": "ＧライフリーＳＣコンフォートナイトエクストラ３６", "L": 37.4, "W": 57.6, "H": 43.6, "weight": 14.81, "qty": 100, "saisu": 338.0, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_54774_3", "sku": "54774", "name": "Ｇライフリー長時間ＳｋｉｎＣｏｎｄｉｔｉｏｎ４８", "L": 36.6, "W": 57.8, "H": 39.2, "weight": 11.1, "qty": 63, "saisu": 187.74, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_85950_4", "sku": "85950", "name": "ＧライフリーＳＣコンフォートナイトウルトラ４２", "L": 42.2, "W": 62.8, "H": 35.5, "weight": 12.81, "qty": 9, "saisu": 30.42, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 647, "overflow": 0, "rate": 100}, "p1100": {"loaded": 381, "overflow": 266, "rate": 58.9}, "p2200": {"loaded": 381, "overflow": 266, "rate": 58.9}, "wallBuilding": {"loaded": 622, "overflow": 25, "rate": 96.1}}}, {"id": "2026/09/16 便7602 (１０ｔ車)", "date": "2026/09/16", "shortDate": "09/16", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/16 便7602", "dest": "１０ｔ車・1品目 (1699才)", "mainItem": "Ｇライフリーうす型快適パ (単一SKU)", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1699.2, "saisuRate": 100.0, "cargoItems": [{"id": "sku_18533_0", "sku": "18533", "name": "Ｇライフリーうす型快適パンツレギュラーＭ３０枚", "L": 39.9, "W": 48.4, "H": 46.1, "weight": 5.57, "qty": 531, "saisu": 1699.2, "color": "#0284c7", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 531, "overflow": 0, "rate": 100}, "p1100": {"loaded": 320, "overflow": 211, "rate": 60.3}, "p2200": {"loaded": 384, "overflow": 147, "rate": 72.3}, "wallBuilding": {"loaded": 531, "overflow": 0, "rate": 100}}}, {"id": "2026/09/17 便7601 (１０ｔ車)", "date": "2026/09/17", "shortDate": "09/17", "tripNo": "7601", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/17 便7601", "dest": "１０ｔ車・4品目 (1700才)", "mainItem": "Ｇライフリーうす型快適パ 他", "depTime": "08:30", "truckType": "lowFloor10t", "totalSaisu": 1700.06, "saisuRate": 100.0, "cargoItems": [{"id": "sku_18533_0", "sku": "18533", "name": "Ｇライフリーうす型快適パンツレギュラーＭ３０枚", "L": 39.9, "W": 48.4, "H": 46.1, "weight": 5.57, "qty": 326, "saisu": 1043.2, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_72751_1", "sku": "72751", "name": "ＧライフリーリハビリパンツレギュラーＬ２４枚", "L": 41.0, "W": 56.5, "H": 40.0, "weight": 6.45, "qty": 163, "saisu": 544.42, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_54774_2", "sku": "54774", "name": "Ｇライフリー長時間ＳｋｉｎＣｏｎｄｉｔｉｏｎ４８", "L": 36.6, "W": 57.8, "H": 39.2, "weight": 11.1, "qty": 22, "saisu": 65.56, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_89964_3", "sku": "89964", "name": "ライフリーうす型軽快パンツＭ２２枚", "L": 41.4, "W": 54.3, "H": 36.2, "weight": 5.52, "qty": 16, "saisu": 46.88, "color": "#2563eb", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 527, "overflow": 0, "rate": 100}, "p1100": {"loaded": 320, "overflow": 207, "rate": 60.7}, "p2200": {"loaded": 381, "overflow": 146, "rate": 72.3}, "wallBuilding": {"loaded": 527, "overflow": 0, "rate": 100}}}, {"id": "2026/09/17 便7661 (１０臨片)", "date": "2026/09/17", "shortDate": "09/17", "tripNo": "7661", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/17 便7661", "dest": "１０臨片・3品目 (1701才)", "mainItem": "Ｇライフリーうす型快適パ 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1700.88, "saisuRate": 100.1, "cargoItems": [{"id": "sku_89876_0", "sku": "89876", "name": "Ｇライフリーうす型快適パンツレギュラーＬ２８枚", "L": 46.4, "W": 73.0, "H": 28.4, "weight": 5.65, "qty": 295, "saisu": 1020.7, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_18533_1", "sku": "18533", "name": "Ｇライフリーうす型快適パンツレギュラーＭ３０枚", "L": 39.9, "W": 48.4, "H": 46.1, "weight": 5.57, "qty": 193, "saisu": 617.6, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_54774_2", "sku": "54774", "name": "Ｇライフリー長時間ＳｋｉｎＣｏｎｄｉｔｉｏｎ４8", "L": 36.6, "W": 57.8, "H": 39.2, "weight": 11.1, "qty": 21, "saisu": 62.58, "color": "#6d28d9", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 509, "overflow": 0, "rate": 100}, "p1100": {"loaded": 224, "overflow": 285, "rate": 44}, "p2200": {"loaded": 325, "overflow": 184, "rate": 63.9}, "wallBuilding": {"loaded": 509, "overflow": 0, "rate": 100}}}, {"id": "2026/09/18 便7602 (１０ｔ車)", "date": "2026/09/18", "shortDate": "09/18", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/18 便7602", "dest": "１０ｔ車・2品目 (1701才)", "mainItem": "Ｇライフリーうす型快適パ 他", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1700.86, "saisuRate": 100.1, "cargoItems": [{"id": "sku_89876_0", "sku": "89876", "name": "Ｇライフリーうす型快適パンツレギュラーＬ２８枚", "L": 46.4, "W": 73.0, "H": 28.4, "weight": 5.65, "qty": 310, "saisu": 1072.6, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_96262_1", "sku": "96262", "name": "ライフリーうす型軽快パンツＭ４０枚", "L": 42.4, "W": 67.1, "H": 27.7, "weight": 5.1, "qty": 222, "saisu": 628.26, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 532, "overflow": 0, "rate": 100}, "p1100": {"loaded": 224, "overflow": 308, "rate": 42.1}, "p2200": {"loaded": 332, "overflow": 200, "rate": 62.4}, "wallBuilding": {"loaded": 528, "overflow": 4, "rate": 99.2}}}, {"id": "2026/09/18 便7603 (１０ｔ車)", "date": "2026/09/18", "shortDate": "09/18", "tripNo": "7603", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/18 便7603", "dest": "１０ｔ車・2品目 (1701才)", "mainItem": "ライフリーさわやかパッド 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1700.61, "saisuRate": 100.0, "cargoItems": [{"id": "sku_50493_0", "sku": "50493", "name": "ライフリーさわやかパッド２０ｃｃ３２枚", "L": 27.7, "W": 51.6, "H": 37.2, "weight": 5.14, "qty": 385, "saisu": 735.35, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_72751_1", "sku": "72751", "name": "ＧライフリーリハビリパンツレギュラーＬ２４枚", "L": 41.0, "W": 56.5, "H": 40.0, "weight": 6.45, "qty": 289, "saisu": 965.26, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 674, "overflow": 0, "rate": 100}, "p1100": {"loaded": 336, "overflow": 338, "rate": 49.9}, "p2200": {"loaded": 436, "overflow": 238, "rate": 64.7}, "wallBuilding": {"loaded": 648, "overflow": 26, "rate": 96.1}}}, {"id": "2026/09/23 便7602 (１０ｔ車)", "date": "2026/09/23", "shortDate": "09/23", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/23 便7602", "dest": "１０ｔ車・3品目 (1700才)", "mainItem": "ムーニーマンマシュマロ肌 他", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1700.12, "saisuRate": 100.0, "cargoItems": [{"id": "sku_20085_0", "sku": "20085", "name": "ムーニーマンマシュマロ肌ごこち男の子Ｌ４４枚", "L": 33.5, "W": 49.5, "H": 43.5, "weight": 6.5, "qty": 319, "saisu": 829.4, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_20099_1", "sku": "20099", "name": "ムーニーマンマシュマロ肌ごこち女の子Ｌ４４枚", "L": 42.3, "W": 57.0, "H": 30.0, "weight": 6.5, "qty": 278, "saisu": 722.8, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_15246_2", "sku": "15246", "name": "ＧライフリーリハビリパンツレギュラーＭ２６枚", "L": 41.4, "W": 57.1, "H": 40.4, "weight": 6.55, "qty": 43, "saisu": 147.92, "color": "#6d28d9", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 640, "overflow": 0, "rate": 100}, "p1100": {"loaded": 416, "overflow": 224, "rate": 65}, "p2200": {"loaded": 443, "overflow": 197, "rate": 69.2}, "wallBuilding": {"loaded": 607, "overflow": 33, "rate": 94.8}}}, {"id": "2026/09/24 便7602 (１０ｔ車)", "date": "2026/09/24", "shortDate": "09/24", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/24 便7602", "dest": "１０ｔ車・2品目 (1700才)", "mainItem": "Ｇライフリーうす型快適パ 他", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1700.48, "saisuRate": 100.0, "cargoItems": [{"id": "sku_18533_0", "sku": "18533", "name": "Ｇライフリーうす型快適パンツレギュラーＭ３０枚", "L": 39.9, "W": 48.4, "H": 46.1, "weight": 5.57, "qty": 454, "saisu": 1452.8, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_15246_1", "sku": "15246", "name": "ＧライフリーリハビリパンツレギュラーＭ２６枚", "L": 41.4, "W": 57.1, "H": 40.4, "weight": 6.55, "qty": 72, "saisu": 247.68, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 526, "overflow": 0, "rate": 100}, "p1100": {"loaded": 320, "overflow": 206, "rate": 60.8}, "p2200": {"loaded": 384, "overflow": 142, "rate": 73}, "wallBuilding": {"loaded": 526, "overflow": 0, "rate": 100}}}, {"id": "2026/09/25 便7601 (１０ｔ車)", "date": "2026/09/25", "shortDate": "09/25", "tripNo": "7601", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/25 便7601", "dest": "１０ｔ車・4品目 (1701才)", "mainItem": "ムーニーマンマシュマロ肌 他", "depTime": "08:30", "truckType": "lowFloor10t", "totalSaisu": 1700.68, "saisuRate": 100.0, "cargoItems": [{"id": "sku_20100_0", "sku": "20100", "name": "ムーニーマンマシュマロ肌ごこち男の子ビッグ３８枚", "L": 30.0, "W": 49.1, "H": 41.5, "weight": 6.2, "qty": 280, "saisu": 616.0, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_50597_1", "sku": "50597", "name": "ライフリーさわやかパッド４５ｃｃ３０枚", "L": 28.0, "W": 36.5, "H": 33.0, "weight": 3.34, "qty": 247, "saisu": 301.34, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_84760_2", "sku": "84760", "name": "ライフリーうす型軽快パンツＬ３０枚", "L": 35.1, "W": 42.6, "H": 40.6, "weight": 4.08, "qty": 233, "saisu": 507.94, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_31226_3", "sku": "31226", "name": "チャームナップ吸水さらフィ５０ｃｃ３８枚", "L": 22.6, "W": 49.9, "H": 37.8, "weight": 4.71, "qty": 180, "saisu": 275.4, "color": "#2563eb", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 940, "overflow": 0, "rate": 100}, "p1100": {"loaded": 484, "overflow": 456, "rate": 51.5}, "p2200": {"loaded": 721, "overflow": 219, "rate": 76.7}, "wallBuilding": {"loaded": 904, "overflow": 36, "rate": 96.2}}}, {"id": "2026/09/25 便7602 (１０ｔ車)", "date": "2026/09/25", "shortDate": "09/25", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/25 便7602", "dest": "１０ｔ車・2品目 (1700才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1700.15, "saisuRate": 100.0, "cargoItems": [{"id": "sku_96262_0", "sku": "96262", "name": "ライフリーうす型軽快パンツＭ４０枚", "L": 42.4, "W": 67.1, "H": 27.7, "weight": 5.1, "qty": 521, "saisu": 1474.43, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_52556_1", "sku": "52556", "name": "ライフリーうす型軽快パンツＭ３２枚", "L": 39.4, "W": 62.5, "H": 25.7, "weight": 4.08, "qty": 99, "saisu": 225.72, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 620, "overflow": 0, "rate": 100}, "p1100": {"loaded": 448, "overflow": 172, "rate": 72.3}, "p2200": {"loaded": 448, "overflow": 172, "rate": 72.3}, "wallBuilding": {"loaded": 594, "overflow": 26, "rate": 95.8}}}, {"id": "2026/09/25 便7661 (１０臨片)", "date": "2026/09/25", "shortDate": "09/25", "tripNo": "7661", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/25 便7661", "dest": "１０臨片・5品目 (1702才)", "mainItem": "ライフリーうす型軽快パン 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1702.3, "saisuRate": 100.1, "cargoItems": [{"id": "sku_89964_0", "sku": "89964", "name": "ライフリーうす型軽快パンツＭ２２枚", "L": 41.4, "W": 54.3, "H": 36.2, "weight": 5.52, "qty": 238, "saisu": 697.34, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_84760_1", "sku": "84760", "name": "ライフリーうす型軽快パンツＬ３０枚", "L": 35.1, "W": 42.6, "H": 40.6, "weight": 4.08, "qty": 178, "saisu": 388.04, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_52556_2", "sku": "52556", "name": "ライフリーうす型軽快パンツＭ３２枚", "L": 39.4, "W": 62.5, "H": 25.7, "weight": 4.08, "qty": 127, "saisu": 289.56, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_20128_3", "sku": "20128", "name": "ムーニーマンマシュマロ肌ごこち女の子ビッグ３８枚", "L": 30.0, "W": 49.1, "H": 41.5, "weight": 6.2, "qty": 111, "saisu": 244.2, "color": "#2563eb", "deliveryStage": 1}, {"id": "sku_50540_4", "sku": "50540", "name": "ライフリーさわやかパッド４５ｃｃ２２枚", "L": 26.9, "W": 35.1, "H": 31.8, "weight": 2.47, "qty": 77, "saisu": 83.16, "color": "#c2410c", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 731, "overflow": 0, "rate": 100}, "p1100": {"loaded": 416, "overflow": 315, "rate": 56.9}, "p2200": {"loaded": 538, "overflow": 193, "rate": 73.6}, "wallBuilding": {"loaded": 619, "overflow": 112, "rate": 84.7}}}, {"id": "2026/09/28 便7602 (１０ｔ車)", "date": "2026/09/28", "shortDate": "09/28", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/28 便7602", "dest": "１０ｔ車・1品目 (1699才)", "mainItem": "Ｇライフリーうす型快適パ (単一SKU)", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1699.2, "saisuRate": 100.0, "cargoItems": [{"id": "sku_18533_0", "sku": "18533", "name": "Ｇライフリーうす型快適パンツレギュラーＭ３０枚", "L": 39.9, "W": 48.4, "H": 46.1, "weight": 5.57, "qty": 531, "saisu": 1699.2, "color": "#0284c7", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 531, "overflow": 0, "rate": 100}, "p1100": {"loaded": 320, "overflow": 211, "rate": 60.3}, "p2200": {"loaded": 384, "overflow": 147, "rate": 72.3}, "wallBuilding": {"loaded": 531, "overflow": 0, "rate": 100}}}, {"id": "2026/09/28 便7671 (１０臨片)", "date": "2026/09/28", "shortDate": "09/28", "tripNo": "7671", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/28 便7671", "dest": "１０臨片・4品目 (1600才)", "mainItem": "ムーニーマンマシュマロ肌 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1599.88, "saisuRate": 94.1, "cargoItems": [{"id": "sku_20099_0", "sku": "20099", "name": "ムーニーマンマシュマロ肌ごこち女の子Ｌ４４枚", "L": 42.3, "W": 57.0, "H": 30.0, "weight": 6.5, "qty": 539, "saisu": 1401.4, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_51460_1", "sku": "51460", "name": "Ｇライフリー長時間安心さらさらパッドプレミアム４８", "L": 40.5, "W": 60.2, "H": 34.0, "weight": 10.8, "qty": 46, "saisu": 137.08, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_20085_2", "sku": "20085", "name": "ムーニーマンマシュマロ肌ごこち男の子Ｌ４４枚", "L": 33.5, "W": 49.5, "H": 43.5, "weight": 6.5, "qty": 16, "saisu": 41.6, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_20100_3", "sku": "20100", "name": "ムーニーマンマシュマロ肌ごこち男の子ビッグ３８枚", "L": 30.0, "W": 49.1, "H": 41.5, "weight": 6.2, "qty": 9, "saisu": 19.8, "color": "#2563eb", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 610, "overflow": 0, "rate": 100}, "p1100": {"loaded": 440, "overflow": 170, "rate": 72.1}, "p2200": {"loaded": 476, "overflow": 134, "rate": 78}, "wallBuilding": {"loaded": 610, "overflow": 0, "rate": 100}}}, {"id": "2026/09/29 便7601 (１０ｔ車)", "date": "2026/09/29", "shortDate": "09/29", "tripNo": "7601", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/29 便7601", "dest": "１０ｔ車・2品目 (1702才)", "mainItem": "ライフリーさわやかパッド 他", "depTime": "08:30", "truckType": "lowFloor10t", "totalSaisu": 1701.76, "saisuRate": 100.1, "cargoItems": [{"id": "sku_50731_0", "sku": "50731", "name": "ライフリーさわやかパッド８０ｃｃ３０枚", "L": 29.2, "W": 38.1, "H": 34.5, "weight": 4.35, "qty": 944, "saisu": 1302.72, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_15246_1", "sku": "15246", "name": "ＧライフリーリハビリパンツレギュラーＭ２６枚", "L": 41.4, "W": 57.1, "H": 40.4, "weight": 6.55, "qty": 116, "saisu": 399.04, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 1060, "overflow": 0, "rate": 100}, "p1100": {"loaded": 610, "overflow": 450, "rate": 57.5}, "p2200": {"loaded": 944, "overflow": 116, "rate": 89.1}, "wallBuilding": {"loaded": 1060, "overflow": 0, "rate": 100}}}, {"id": "2026/09/29 便7602 (１０ｔ車)", "date": "2026/09/29", "shortDate": "09/29", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/29 便7602", "dest": "１０ｔ車・1品目 (1699才)", "mainItem": "Ｇライフリーリハビリパン (単一SKU)", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1699.36, "saisuRate": 100.0, "cargoItems": [{"id": "sku_15246_0", "sku": "15246", "name": "ＧライフリーリハビリパンツレギュラーＭ２６枚", "L": 41.4, "W": 57.1, "H": 40.4, "weight": 6.55, "qty": 494, "saisu": 1699.36, "color": "#0284c7", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 494, "overflow": 0, "rate": 100}, "p1100": {"loaded": 320, "overflow": 174, "rate": 64.8}, "p2200": {"loaded": 400, "overflow": 94, "rate": 81}, "wallBuilding": {"loaded": 494, "overflow": 0, "rate": 100}}}, {"id": "2026/09/29 便7661 (１０臨片)", "date": "2026/09/29", "shortDate": "09/29", "tripNo": "7661", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/29 便7661", "dest": "１０臨片・2品目 (1700才)", "mainItem": "Ｇライフリーうす型快適パ 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1700.4, "saisuRate": 100.0, "cargoItems": [{"id": "sku_18533_0", "sku": "18533", "name": "Ｇライフリーうす型快適パンツレギュラーＭ３０枚", "L": 39.9, "W": 48.4, "H": 46.1, "weight": 5.57, "qty": 403, "saisu": 1289.6, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_20085_1", "sku": "20085", "name": "ムーニーマンマシュマロ肌ごこち男の子Ｌ４４枚", "L": 33.5, "W": 49.5, "H": 43.5, "weight": 6.5, "qty": 158, "saisu": 410.8, "color": "#0f766e", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 561, "overflow": 0, "rate": 100}, "p1100": {"loaded": 344, "overflow": 217, "rate": 61.3}, "p2200": {"loaded": 384, "overflow": 177, "rate": 68.4}, "wallBuilding": {"loaded": 548, "overflow": 13, "rate": 97.7}}}, {"id": "2026/09/30 便7601 (１０ｔ車)", "date": "2026/09/30", "shortDate": "09/30", "tripNo": "7601", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/30 便7601", "dest": "１０ｔ車・3品目 (1700才)", "mainItem": "ライフリーさわやかパッド 他", "depTime": "08:30", "truckType": "lowFloor10t", "totalSaisu": 1700.45, "saisuRate": 100.0, "cargoItems": [{"id": "sku_25045_0", "sku": "25045", "name": "ライフリーさわやかパッド２０ｃｃ６９枚", "L": 33.6, "W": 40.5, "H": 44.4, "weight": 5.41, "qty": 400, "saisu": 868.0, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_32962_1", "sku": "32962", "name": "ライフリーさわやかパッド４５ｃｃ４５枚", "L": 32.7, "W": 42.6, "H": 38.5, "weight": 5.09, "qty": 271, "saisu": 523.03, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_70347_2", "sku": "70347", "name": "ライフリーさわやかパッド２０ｃｃ３２枚", "L": 27.7, "W": 51.6, "H": 37.2, "weight": 5.1, "qty": 162, "saisu": 309.42, "color": "#6d28d9", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 833, "overflow": 0, "rate": 100}, "p1100": {"loaded": 408, "overflow": 425, "rate": 49}, "p2200": {"loaded": 620, "overflow": 213, "rate": 74.4}, "wallBuilding": {"loaded": 790, "overflow": 43, "rate": 94.8}}}, {"id": "2026/09/30 便7602 (１０ｔ車)", "date": "2026/09/30", "shortDate": "09/30", "tripNo": "7602", "vehicleName": "１０ｔ車", "category": "定期便", "code": "09/30 便7602", "dest": "１０ｔ車・1品目 (1702才)", "mainItem": "ムーニーマンマシュマロ肌 (単一SKU)", "depTime": "10:00", "truckType": "lowFloor10t", "totalSaisu": 1701.63, "saisuRate": 100.1, "cargoItems": [{"id": "sku_20023_0", "sku": "20023", "name": "ムーニーマンマシュマロ肌ごこちＭたっち５２枚", "L": 30.0, "W": 49.0, "H": 41.4, "weight": 5.7, "qty": 777, "saisu": 1701.63, "color": "#0284c7", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 777, "overflow": 0, "rate": 100}, "p1100": {"loaded": 448, "overflow": 329, "rate": 57.7}, "p2200": {"loaded": 640, "overflow": 137, "rate": 82.4}, "wallBuilding": {"loaded": 744, "overflow": 33, "rate": 95.8}}}, {"id": "2026/09/30 便7661 (１０臨片)", "date": "2026/09/30", "shortDate": "09/30", "tripNo": "7661", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/30 便7661", "dest": "１０臨片・4品目 (1702才)", "mainItem": "ライフリーさわやかパッド 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1701.56, "saisuRate": 100.1, "cargoItems": [{"id": "sku_13136_0", "sku": "13136", "name": "ライフリーさわやかパッド８０ｃｃ２０枚", "L": 26.9, "W": 35.1, "H": 31.8, "weight": 2.95, "qty": 700, "saisu": 756.0, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_32962_1", "sku": "32962", "name": "ライフリーさわやかパッド４５ｃｃ４５枚", "L": 32.7, "W": 42.6, "H": 38.5, "weight": 5.09, "qty": 329, "saisu": 634.97, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_20023_2", "sku": "20023", "name": "ムーニーマンマシュマロ肌ごこちＭたっち５２枚", "L": 30.0, "W": 49.0, "H": 41.4, "weight": 5.7, "qty": 91, "saisu": 199.29, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_50752_3", "sku": "50752", "name": "ライフリーさわやかパッド８０ｃｃ４５枚", "L": 35.5, "W": 44.1, "H": 37.3, "weight": 6.64, "qty": 53, "saisu": 111.3, "color": "#2563eb", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 1173, "overflow": 0, "rate": 100}, "p1100": {"loaded": 411, "overflow": 762, "rate": 35}, "p2200": {"loaded": 700, "overflow": 473, "rate": 59.7}, "wallBuilding": {"loaded": 1083, "overflow": 90, "rate": 92.3}}}, {"id": "2026/09/30 便7662 (１０臨片)", "date": "2026/09/30", "shortDate": "09/30", "tripNo": "7662", "vehicleName": "１０臨片", "category": "臨時便", "code": "09/30 便7662", "dest": "１０臨片・4品目 (1698才)", "mainItem": "ムーニーマンマシュマロ肌 他", "depTime": "13:00", "truckType": "lowFloor10t", "totalSaisu": 1698.14, "saisuRate": 99.9, "cargoItems": [{"id": "sku_20023_0", "sku": "20023", "name": "ムーニーマンマシュマロ肌ごこちＭたっち５２枚", "L": 30.0, "W": 49.0, "H": 41.4, "weight": 5.7, "qty": 341, "saisu": 746.79, "color": "#0284c7", "deliveryStage": 1}, {"id": "sku_89964_1", "sku": "89964", "name": "ライフリーうす型軽快パンツＭ２２枚", "L": 41.4, "W": 54.3, "H": 36.2, "weight": 5.52, "qty": 179, "saisu": 524.47, "color": "#0f766e", "deliveryStage": 1}, {"id": "sku_15246_2", "sku": "15246", "name": "ＧライフリーリハビリパンツレギュラーＭ２６枚", "L": 41.4, "W": 57.1, "H": 40.4, "weight": 6.55, "qty": 114, "saisu": 392.16, "color": "#6d28d9", "deliveryStage": 1}, {"id": "sku_50534_3", "sku": "50534", "name": "ライフリーさわやかパッド２０ｃｃ６９枚", "L": 33.6, "W": 40.5, "H": 44.4, "weight": 5.46, "qty": 16, "saisu": 34.72, "color": "#2563eb", "deliveryStage": 1}], "simMetrics": {"highDensity": {"loaded": 650, "overflow": 0, "rate": 100}, "p1100": {"loaded": 366, "overflow": 284, "rate": 56.3}, "p2200": {"loaded": 527, "overflow": 123, "rate": 81.1}, "wallBuilding": {"loaded": 623, "overflow": 27, "rate": 95.8}}}];
+
     let multiBatchData = {
       activeBatchIndex: 0,
       filterSearch: "",
       summaryFilter: "all",
-      batches: [
+      inlineFilter: "all",
+      batches: JSON.parse(JSON.stringify(ACTUAL_48_BATCHES_DATA))
+    };
+
+    function loadActual48Batches() {
+      multiBatchData.batches = JSON.parse(JSON.stringify(ACTUAL_48_BATCHES_DATA));
+      multiBatchData.activeBatchIndex = 0;
+      switchBatch(0, true);
+      renderInline48TripsTable();
+      showToast('📊 2026年9月実績 全48便（34,220ケース）を読み込みました！', 'success');
+    }
+
+    function loadOriginalSampleBatches() {
+      multiBatchData.batches = [
         {
           id: "便6511 (幹線6511 - 愛知RDC)",
           code: "幹線6511",
@@ -1236,11 +1353,16 @@
           truckType: "lowFloor10t",
           cargoItems: generateSampleBatchItems("広島", 480, 4)
         }
-      ]
-    };
+      ];
+      multiBatchData.activeBatchIndex = 0;
+      switchBatch(0, true);
+      renderInline48TripsTable();
+      showToast('基準サンプル5便データへ切り替えました。', 'info');
+    }
 
-    // 指定便の積載メトリクス計算（高速集計）
-    function calculateBatchMetrics(batch) {
+    // 指定便の積載メトリクス計算（実3Dシミュレーション結果 simMetrics 対応）
+    function calculateBatchMetrics(batch, modeOverride = null) {
+      const mode = modeOverride || packingMode;
       const t = VEHICLE_PRESETS[batch.truckType || 'lowFloor10t'] || VEHICLE_PRESETS.lowFloor10t;
       const totalQty = (batch.cargoItems || []).reduce((sum, i) => sum + (i.qty || 0), 0);
       const totalVol = (batch.cargoItems || []).reduce((sum, i) => sum + (i.L * i.W * i.H * (i.qty || 0)), 0) / 1000000;
@@ -1250,56 +1372,41 @@
       let loaded = totalQty;
       let overflow = 0;
 
-      if (packingMode === 'highDensity') {
-        // バラ積み：792csまで100%全数格納可能
-        const maxCapacity = Math.floor(maxTruckVol / 0.058); // 約800cs
-        if (totalQty > maxCapacity) {
-          overflow = totalQty - maxCapacity;
-          loaded = maxCapacity;
-        } else {
-          overflow = 0;
-          loaded = totalQty;
-        }
-      } else if (packingMode === 'p1100') {
-        // 1100mmパレット (16枚)
-        // 安全基準(OH0/215cm)時は約556cs、高積(OH2.5/235cm)時は約629cs
-        let palCapacity = 556;
-        if (palletOptions.maxHeight >= 235 && palletOptions.overhang >= 2.5) {
-          palCapacity = 629;
-        } else if (palletOptions.maxHeight >= 235 || palletOptions.overhang >= 2.5) {
-          palCapacity = 590;
-        }
-        if (totalQty > palCapacity) {
-          overflow = totalQty - palCapacity;
-          loaded = palCapacity;
-        } else {
-          overflow = 0;
-          loaded = totalQty;
-        }
-      } else if (packingMode === 'p2200') {
-        // 2200mmパレット (4枚)
-        let palCapacity = 585;
-        if (palletOptions.maxHeight >= 235 && palletOptions.overhang >= 2.5) {
-          palCapacity = 638;
-        } else if (palletOptions.maxHeight >= 235 || palletOptions.overhang >= 2.5) {
-          palCapacity = 610;
-        }
-        if (totalQty > palCapacity) {
-          overflow = totalQty - palCapacity;
-          loaded = palCapacity;
-        } else {
-          overflow = 0;
-          loaded = totalQty;
+      // 事前実測3Dシミュレーション結果(simMetrics)がある場合は実測値を返す
+      if (batch.simMetrics) {
+        const mKey = (mode === 'highDensity' || mode === 'p1100' || mode === 'p2200') ? mode : 'wallBuilding';
+        const sm = batch.simMetrics[mKey] || batch.simMetrics.highDensity;
+        if (sm && typeof sm.loaded === 'number') {
+          const origTotal = sm.loaded + (sm.overflow || 0);
+          if (totalQty === origTotal) {
+            loaded = sm.loaded;
+            overflow = sm.overflow || 0;
+          } else {
+            loaded = Math.min(totalQty, sm.loaded);
+            overflow = Math.max(0, totalQty - loaded);
+          }
         }
       } else {
-        // 従来ウォール積み
-        const maxCapacity = 690;
-        if (totalQty > maxCapacity) {
-          overflow = totalQty - maxCapacity;
-          loaded = maxCapacity;
+        if (mode === 'highDensity') {
+          const maxCapacity = Math.floor(maxTruckVol / 0.058);
+          loaded = Math.min(totalQty, maxCapacity);
+          overflow = Math.max(0, totalQty - loaded);
+        } else if (mode === 'p1100') {
+          let palCapacity = 556;
+          if (palletOptions.maxHeight >= 235 && palletOptions.overhang >= 2.5) palCapacity = 629;
+          else if (palletOptions.maxHeight >= 235 || palletOptions.overhang >= 2.5) palCapacity = 590;
+          loaded = Math.min(totalQty, palCapacity);
+          overflow = Math.max(0, totalQty - loaded);
+        } else if (mode === 'p2200') {
+          let palCapacity = 585;
+          if (palletOptions.maxHeight >= 235 && palletOptions.overhang >= 2.5) palCapacity = 638;
+          else if (palletOptions.maxHeight >= 235 || palletOptions.overhang >= 2.5) palCapacity = 610;
+          loaded = Math.min(totalQty, palCapacity);
+          overflow = Math.max(0, totalQty - loaded);
         } else {
-          overflow = 0;
-          loaded = totalQty;
+          const maxCapacity = 690;
+          loaded = Math.min(totalQty, maxCapacity);
+          overflow = Math.max(0, totalQty - loaded);
         }
       }
 
@@ -1318,6 +1425,164 @@
         weightRate,
         isOk: overflow === 0
       };
+    }
+
+    // 特定の便＆積載モードへ1クリックで切り替えて3Dビューへスクロール
+    function switchBatchAndMode(idx, mode, scrollTo3D = false) {
+      if (mode && packingMode !== mode) {
+        packingMode = mode;
+        const btnHD = document.getElementById('modeBtnHighDensity');
+        const btnP11 = document.getElementById('modeBtnP1100');
+        const btnP22 = document.getElementById('modeBtnP2200');
+        const btnStd = document.getElementById('modeBtnStandard');
+        const optBar = document.getElementById('palletOptionBar');
+        const activeCls = "px-3 py-1.5 text-xs font-bold rounded-md transition flex items-center gap-1.5 cursor-pointer bg-blue-600 text-white shadow-xs";
+        const inactiveCls = "px-3 py-1.5 text-xs font-bold rounded-md transition flex items-center gap-1.5 cursor-pointer text-slate-600 hover:text-slate-900";
+        if (btnHD) btnHD.className = mode === 'highDensity' ? activeCls : inactiveCls;
+        if (btnP11) btnP11.className = mode === 'p1100' ? activeCls : inactiveCls;
+        if (btnP22) btnP22.className = mode === 'p2200' ? activeCls : inactiveCls;
+        if (btnStd) btnStd.className = mode === 'standard' ? activeCls : inactiveCls;
+        if (optBar) {
+          if (mode === 'p1100' || mode === 'p2200') optBar.classList.remove('hidden');
+          else optBar.classList.add('hidden');
+        }
+      }
+      switchBatch(idx, false);
+      if (scrollTo3D) {
+        const canvasEl = document.getElementById('threeCanvas');
+        if (canvasEl) canvasEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function setInlineTripFilter(f) {
+      multiBatchData.inlineFilter = f;
+      const filters = ['all', 'regular', 'extra', 'single', 'multi', 'p2200win'];
+      filters.forEach(k => {
+        const btn = document.getElementById('inlineFilter_' + k);
+        if (!btn) return;
+        if (k === f) {
+          btn.className = "px-2.5 py-1 rounded-lg font-bold bg-blue-600 text-white shadow-2xs cursor-pointer transition";
+        } else {
+          btn.className = "px-2.5 py-1 rounded-lg font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition";
+        }
+      });
+      renderInline48TripsTable();
+    }
+
+    // メイン画面の「全48便 便別状況見える化ボード」テーブル描画
+    function renderInline48TripsTable() {
+      const tbody = document.getElementById('inline48TripsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const f = multiBatchData.inlineFilter || 'all';
+      const query = (multiBatchData.filterSearch || '').toLowerCase();
+
+      multiBatchData.batches.forEach((batch, idx) => {
+        const matchSearch = !query ||
+          (batch.id && batch.id.toLowerCase().includes(query)) ||
+          (batch.code && batch.code.toLowerCase().includes(query)) ||
+          (batch.dest && batch.dest.toLowerCase().includes(query));
+        if (!matchSearch) return;
+
+        const mHD = calculateBatchMetrics(batch, 'highDensity');
+        const mP11 = calculateBatchMetrics(batch, 'p1100');
+        const mP22 = calculateBatchMetrics(batch, 'p2200');
+        const skuCnt = batch.skuCount || (batch.cargoItems ? batch.cargoItems.length : 1);
+        const isRegular = batch.category === '定期便' || batch.tripType === '定期便' || (batch.tripNo && String(batch.tripNo).startsWith('760'));
+        const isExtra = batch.category === '臨時便' || batch.tripType === '臨時便' || (batch.tripNo && (String(batch.tripNo).startsWith('766') || String(batch.tripNo).startsWith('767')));
+        const diff22_11 = mP22.loaded - mP11.loaded;
+        const diffPt = Math.round((mP22.loadRate - mP11.loadRate) * 10) / 10;
+
+        if (f === 'regular' && !isRegular) return;
+        if (f === 'extra' && !isExtra) return;
+        if (f === 'single' && skuCnt !== 1) return;
+        if (f === 'multi' && skuCnt <= 1) return;
+        if (f === 'p2200win' && diffPt < 15.0) return;
+
+        const isActive = idx === multiBatchData.activeBatchIndex;
+        const tr = document.createElement('tr');
+        tr.className = isActive
+          ? 'bg-blue-50/90 font-semibold border-l-4 border-l-blue-600 transition'
+          : 'hover:bg-slate-50 transition';
+
+        const mainItemName = (batch.cargoItems && batch.cargoItems[0]) ? batch.cargoItems[0].name : (batch.dest || '-');
+        const saisuStr = batch.totalSaisu ? `${Math.round(batch.totalSaisu).toLocaleString()}才 (${batch.saisuRate}%)` : `${mHD.totalVol}m³`;
+        const wtStr = batch.totalWeight ? `${Math.round(batch.totalWeight).toLocaleString()}kg (${batch.weightRate}%)` : `${mHD.totalWeight.toLocaleString()}kg (${mHD.weightRate}%)`;
+        const vehicleBadge = isExtra
+          ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">臨時・10臨片</span>'
+          : '<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px]">定期・10t車</span>';
+
+        const activeModeRing = (m) => (isActive && packingMode === m) ? 'ring-2 ring-blue-500 bg-white shadow-2xs' : '';
+
+        tr.innerHTML = `
+          <td class="py-1.5 px-2 text-center font-mono text-slate-400">${idx + 1}</td>
+          <td class="py-1.5 px-2.5 cursor-pointer" onclick="switchBatch(${idx})">
+            <div class="font-extrabold text-slate-900 flex items-center gap-1">
+              ${isActive ? '<span class="w-2 h-2 rounded-full bg-blue-600 inline-block"></span>' : ''}
+              <span>${batch.code || batch.id}</span>
+            </div>
+          </td>
+          <td class="py-1.5 px-2">${vehicleBadge}</td>
+          <td class="py-1.5 px-2.5 max-w-[220px] truncate" title="${batch.dest || mainItemName}">
+            <span class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 font-bold text-[10px] mr-1">${skuCnt}品目</span>
+            <span class="text-slate-600">${mainItemName}</span>
+          </td>
+          <td class="py-1.5 px-2 text-right font-mono font-bold text-slate-900">${mHD.totalQty.toLocaleString()} cs</td>
+          <td class="py-1.5 px-2 text-right font-mono text-slate-600">${saisuStr}</td>
+          <td class="py-1.5 px-2 text-right font-mono text-slate-600">${wtStr}</td>
+          <td class="py-1.5 px-2 text-center border-l border-slate-100 cursor-pointer hover:bg-indigo-50 transition ${activeModeRing('highDensity')}" onclick="switchBatchAndMode(${idx}, 'highDensity')" title="クリックでこの便の手積み3Dシミュレーションを表示">
+            <div class="font-mono font-extrabold ${mHD.overflow === 0 ? 'text-emerald-600' : 'text-indigo-700'}">${mHD.loaded.toLocaleString()} cs (${mHD.loadRate}%)</div>
+            <div class="text-[10px] ${mHD.overflow === 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}">${mHD.overflow === 0 ? '✅ 全数格納' : '残 ' + mHD.overflow + 'cs'}</div>
+          </td>
+          <td class="py-1.5 px-2 text-center border-l border-slate-100 cursor-pointer hover:bg-blue-50 transition ${activeModeRing('p1100')}" onclick="switchBatchAndMode(${idx}, 'p1100')" title="クリックでこの便の1100mmパレット3Dシミュレーションを表示">
+            <div class="font-mono font-bold text-blue-700">${mP11.loaded.toLocaleString()} cs (${mP11.loadRate}%)</div>
+            <div class="text-[10px] text-slate-400">残 ${mP11.overflow}cs</div>
+          </td>
+          <td class="py-1.5 px-2 text-center border-l border-slate-100 cursor-pointer hover:bg-emerald-50 transition ${activeModeRing('p2200')}" onclick="switchBatchAndMode(${idx}, 'p2200')" title="クリックでこの便の2200mmパレット3Dシミュレーションを表示">
+            <div class="font-mono font-extrabold text-emerald-700">${mP22.loaded.toLocaleString()} cs (${mP22.loadRate}%)</div>
+            <div class="text-[10px] text-slate-400">残 ${mP22.overflow}cs</div>
+          </td>
+          <td class="py-1.5 px-2 text-center border-l border-slate-100 font-mono">
+            ${diff22_11 > 0
+              ? `<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-extrabold text-[10px]">+${diff22_11}cs (+${diffPt}pt)</span>`
+              : `<span class="text-slate-400 text-[10px]">±0cs (同数)</span>`
+            }
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const curBatch = multiBatchData.batches[multiBatchData.activeBatchIndex];
+      const badgeEl = document.getElementById('activeTripQuickBadge');
+      if (badgeEl && curBatch) {
+        const modeLabel = packingMode === 'highDensity' ? '手積み(バラ)' : (packingMode === 'p1100' ? '1100パレット' : (packingMode === 'p2200' ? '2200パレット' : '標準'));
+        badgeEl.innerText = `現在表示中: #${multiBatchData.activeBatchIndex + 1} ${curBatch.code || curBatch.id} [${modeLabel}]`;
+      }
+    }
+
+    // 全48便の比較結果CSVエクスポート
+    function exportAll48TripsComparisonCSV() {
+      let csv = "\uFEFF";
+      csv += "No,出荷日,便番号,便種,車格,品目数,総ケース数(cs),出庫才数(才),才数積載率(%),総重量(kg),重量積載率(%),手積み格納数(cs),手積み積載率(%),手積み積み残し(cs),1100P格納数(cs),1100P積載率(%),1100P積み残し(cs),2200P格納数(cs),2200P積載率(%),2200P積み残し(cs),2200P対1100P増加数(cs),主要銘柄\r\n";
+      multiBatchData.batches.forEach((b, i) => {
+        const mHD = calculateBatchMetrics(b, 'highDensity');
+        const mP11 = calculateBatchMetrics(b, 'p1100');
+        const mP22 = calculateBatchMetrics(b, 'p2200');
+        const skuCnt = b.skuCount || (b.cargoItems ? b.cargoItems.length : 1);
+        const safeDest = `"${(b.dest || '').replace(/"/g, '""')}"`;
+        csv += `${i + 1},${b.date || '-'},${b.tripNo || b.code},${b.tripType || '定期便'},${b.vehicleLabel || '10t車'},${skuCnt},${mHD.totalQty},${b.totalSaisu || '-'},${b.saisuRate || '-'},${mHD.totalWeight},${b.weightRate || mHD.weightRate},${mHD.loaded},${mHD.loadRate},${mHD.overflow},${mP11.loaded},${mP11.loadRate},${mP11.overflow},${mP22.loaded},${mP22.loadRate},${mP22.overflow},${mP22.loaded - mP11.loaded},${safeDest}\r\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `2026年9月_全48便_3D積載シミュレーション比較一覧.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast('全48便の3モード比較CSVを出力しました！', 'success');
     }
 
     // タブ描画
@@ -1342,7 +1607,7 @@
         const metrics = calculateBatchMetrics(batch);
 
         const tabBtn = document.createElement('button');
-        tabBtn.className = `px-3.5 py-2 text-xs font-bold rounded-xl transition flex items-center gap-2 flex-shrink-0 cursor-pointer shadow-2xs ${
+        tabBtn.className = `px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer shadow-2xs ${
           isActive
             ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400/50'
             : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
@@ -1350,12 +1615,12 @@
 
         let badgeHtml = '';
         if (metrics.overflow === 0) {
-          badgeHtml = `<span class="px-1.5 py-0.5 text-[10px] rounded-full font-extrabold ${isActive ? 'bg-emerald-400 text-slate-900' : 'bg-emerald-100 text-emerald-800'}">✅ OK</span>`;
+          badgeHtml = `<span class="px-1.5 py-0.5 text-[10px] rounded-full font-extrabold ${isActive ? 'bg-emerald-400 text-slate-900' : 'bg-emerald-100 text-emerald-800'}">✅ ${metrics.loaded}cs</span>`;
         } else {
-          badgeHtml = `<span class="px-1.5 py-0.5 text-[10px] rounded-full font-extrabold ${isActive ? 'bg-red-400 text-slate-900' : 'bg-red-100 text-red-700'} animate-pulse">⚠️ 残${metrics.overflow}cs</span>`;
+          badgeHtml = `<span class="px-1.5 py-0.5 text-[10px] rounded-full font-extrabold ${isActive ? 'bg-amber-300 text-slate-900' : 'bg-amber-100 text-amber-800'}">${metrics.loaded}/${metrics.totalQty}cs (${metrics.loadRate}%)</span>`;
         }
 
-        const dispTitle = batch.code ? `${batch.code} [${batch.dest || ''}]` : batch.id;
+        const dispTitle = batch.code ? `#${idx + 1} ${batch.code}` : batch.id;
         tabBtn.innerHTML = `<span>${dispTitle}</span> ${badgeHtml}`;
         tabBtn.onclick = () => switchBatch(idx);
         container.appendChild(tabBtn);
@@ -1363,6 +1628,7 @@
 
       const badge = document.getElementById('batchCountBadge');
       if (badge) badge.innerText = `${multiBatchData.batches.length} 便管理中`;
+      renderInline48TripsTable();
     }
 
     function filterBatchTabs() {
@@ -1386,42 +1652,13 @@
       renderBatchTabs();
       updateDashboard();
       if (!silent) {
-        showToast(`便を切り替えました: ${batch.code || batch.id} (${batch.dest || ''})`, 'info');
+        showToast(`便を切り替えました: #${idx + 1} ${batch.code || batch.id} (${batch.dest || ''})`, 'info');
       }
     }
 
     // 100便一括デモ生成
     function generate100BatchesDemo() {
-      const regions = [
-        "愛知RDC", "大阪メディカルDC", "福岡ロジ", "東北仙台DC", "広島RDC",
-        "北海道札幌DC", "北陸金沢DC", "新潟中央DC", "静岡掛川DC", "四国坂出DC",
-        "北関東群馬DC", "南関東八王子DC", "千葉湾岸DC", "京浜川崎DC", "京都南部DC"
-      ];
-      const trucks = ["lowFloor10t", "lowFloor10t", "lowFloor10t", "standard4t"];
-
-      multiBatchData.batches = [];
-      for (let i = 1; i <= 100; i++) {
-        const codeNum = 6500 + i;
-        const reg = regions[(i - 1) % regions.length];
-        const trk = trucks[(i - 1) % trucks.length];
-        const h = 7 + Math.floor(i / 10);
-        const m = (i * 12) % 60;
-        const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        const targetQty = 380 + ((i * 37) % 460); // 380〜840cs
-
-        multiBatchData.batches.push({
-          id: `便${codeNum} (${reg})`,
-          code: `幹線${codeNum}`,
-          dest: reg,
-          depTime: timeStr,
-          truckType: trk,
-          cargoItems: generateSampleBatchItems(reg, targetQty, i)
-        });
-      }
-
-      multiBatchData.activeBatchIndex = 0;
-      switchBatch(0);
-      showToast('🎉 日次100便の現場実務データを一括生成しました！タブまたは「全便集計サマリー」から全便を確認できます。', 'success');
+      loadActual48Batches();
     }
 
     // 全便集計サマリーモーダル
@@ -1459,6 +1696,9 @@
 
       multiBatchData.batches.forEach((batch, idx) => {
         const m = calculateBatchMetrics(batch);
+        const mHD = calculateBatchMetrics(batch, 'highDensity');
+        const mP11 = calculateBatchMetrics(batch, 'p1100');
+        const mP22 = calculateBatchMetrics(batch, 'p2200');
         totalCases += m.totalQty;
         if (m.isOk) okCount++; else warnCount++;
 
@@ -1471,24 +1711,25 @@
         
         tr.innerHTML = `
           <td class="py-2.5 px-3">
-            <div class="font-bold text-slate-800">${batch.code || batch.id}</div>
-            <div class="text-[10px] text-slate-400">${batch.depTime || '--:--'} 発</div>
+            <div class="font-bold text-slate-800">#${idx + 1} ${batch.code || batch.id}</div>
+            <div class="text-[10px] text-slate-400">${batch.tripType || '定期便'} / ${batch.vehicleLabel || '10t車'}</div>
           </td>
-          <td class="py-2.5 px-3 font-semibold text-slate-700">${batch.dest || '-'}</td>
-          <td class="py-2.5 px-3 text-slate-500">${(VEHICLE_PRESETS[batch.truckType] || {}).name || batch.truckType}</td>
-          <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">${m.totalQty.toLocaleString()}</td>
-          <td class="py-2.5 px-3 text-right font-mono text-emerald-600 font-bold">${m.loaded.toLocaleString()}</td>
-          <td class="py-2.5 px-3 text-right font-mono ${m.overflow > 0 ? 'text-red-600 font-extrabold' : 'text-slate-400'}">${m.overflow > 0 ? `+${m.overflow}` : '0'}</td>
-          <td class="py-2.5 px-3 text-right font-mono font-bold ${m.loadRate >= 90 ? 'text-emerald-600' : 'text-amber-600'}">${m.loadRate}%</td>
+          <td class="py-2.5 px-3 font-semibold text-slate-700 max-w-[220px] truncate" title="${batch.dest || '-'}">${batch.dest || '-'}</td>
+          <td class="py-2.5 px-3 text-slate-500">${batch.totalSaisu ? batch.totalSaisu + '才 (' + batch.saisuRate + '%)' : ((VEHICLE_PRESETS[batch.truckType] || {}).name || batch.truckType)}</td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">${m.totalQty.toLocaleString()} cs</td>
+          <td class="py-2.5 px-3 text-right font-mono text-indigo-700 font-bold">${mHD.loaded.toLocaleString()} (${mHD.loadRate}%)</td>
+          <td class="py-2.5 px-3 text-right font-mono text-blue-700 font-bold">${mP11.loaded.toLocaleString()} (${mP11.loadRate}%)</td>
+          <td class="py-2.5 px-3 text-right font-mono text-emerald-700 font-bold">${mP22.loaded.toLocaleString()} (${mP22.loadRate}%)</td>
           <td class="py-2.5 px-3 text-center">
             ${m.isOk 
               ? '<span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">✅ 完全格納</span>'
-              : `<span class="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded-full font-extrabold animate-pulse">⚠️ 残${m.overflow}cs</span>`
+              : `<span class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-extrabold">現在モード残${m.overflow}cs</span>`
             }
           </td>
           <td class="py-2.5 px-3 text-center space-x-1" onclick="event.stopPropagation()">
-            <button onclick="switchBatch(${idx}); closeBatchSummaryModal();" class="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[11px] font-bold transition">表示</button>
-            ${m.overflow > 0 ? `<button onclick="openCargoTransferModalFromBatch(${idx});" class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[11px] font-bold transition">回送</button>` : ''}
+            <button onclick="switchBatchAndMode(${idx}, 'highDensity'); closeBatchSummaryModal();" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-bold transition cursor-pointer">手積み3D</button>
+            <button onclick="switchBatchAndMode(${idx}, 'p1100'); closeBatchSummaryModal();" class="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-bold transition cursor-pointer">1100P</button>
+            <button onclick="switchBatchAndMode(${idx}, 'p2200'); closeBatchSummaryModal();" class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold transition cursor-pointer">2200P</button>
           </td>
         `;
         tr.onclick = () => {
@@ -1658,21 +1899,37 @@
     let currentPlacedBoxes = [];
     let currentPallets = [];
 
-    window.onload = function() {
-      lucide.createIcons();
-      initThreeJS();
+    function initApp() {
+      if (window.__appInitialized) return;
+      window.__appInitialized = true;
+      try { if (typeof lucide !== 'undefined') lucide.createIcons(); } catch (e) {}
+      try { initThreeJS(); } catch (e) { console.warn('ThreeJS init warning:', e); }
       switchBatch(0, true);
-      
       window.addEventListener('resize', onWindowResize);
-    };
+    }
+    window.onload = initApp;
+    document.addEventListener('DOMContentLoaded', initApp);
 
     function initThreeJS() {
       const canvas = document.getElementById('threeCanvas');
       const container = canvas.parentElement;
 
-      // 1. Scene
+      // 1. Scene & Group containers (WebGL有無に関わらず先に初期化)
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x0b1120); // slate-950
+
+      truckGroup = new THREE.Group();
+      cargoGroup = new THREE.Group();
+      wallMeshGroup = new THREE.Group();
+      palletGroup = new THREE.Group();
+      gapGroup = new THREE.Group();
+      gapGroup.visible = showGaps;
+      
+      truckGroup.add(wallMeshGroup);
+      truckGroup.add(palletGroup);
+      truckGroup.add(gapGroup);
+      truckGroup.add(cargoGroup);
+      scene.add(truckGroup);
 
       // 2. Camera
       camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 6000);
@@ -1700,20 +1957,6 @@
       const dirLight2 = new THREE.DirectionalLight(0x93c5fd, 0.4);
       dirLight2.position.set(-600, -300, -600);
       scene.add(dirLight2);
-
-      // グループコンテナ
-      truckGroup = new THREE.Group();
-      cargoGroup = new THREE.Group();
-      wallMeshGroup = new THREE.Group();
-      palletGroup = new THREE.Group();
-      gapGroup = new THREE.Group();
-      gapGroup.visible = showGaps;
-      
-      truckGroup.add(wallMeshGroup);
-      truckGroup.add(palletGroup);
-      truckGroup.add(gapGroup);
-      truckGroup.add(cargoGroup);
-      scene.add(truckGroup);
 
       raycaster = new THREE.Raycaster();
       mouse = new THREE.Vector2();
@@ -1786,6 +2029,7 @@
       }
 
       lucide.createIcons();
+      renderBatchTabs();
       updateDashboard();
     }
 
@@ -2417,8 +2661,8 @@ function getOrientationsWithPyramidScore(item, curY, usableH) {
   });
 }
 function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX) {
-  const usableW = truckW - 2.0;
-  const usableH = truckH - 2.0;
+  const usableW = truckW - 1.0;
+  const usableH = truckH - 0.8;
   const minZ = -usableW / 2;
   const maxZ = usableW / 2;
   const largeBoxes = [];
@@ -2449,8 +2693,18 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
     if (largeBoxes.length > 0) {
       const firstBox = largeBoxes[0];
       const fOrs = getOrientationsWithPyramidScore(firstBox, 0, usableH);
-      const goodOrs = fOrs.filter(o => o.h >= 20 && o.h <= 52 && o.w <= usableW && o.pyramidPenalty < 100);
-      targetDepth = (goodOrs.length > 0 ? goodOrs[0] : fOrs[0]).l;
+      const goodOrs = fOrs.filter(o => o.h >= 18 && o.h <= 55 && o.w <= usableW && o.pyramidPenalty < 150);
+      const candOrs = goodOrs.length > 0 ? [...goodOrs] : fOrs.filter(o => o.w <= usableW && o.h <= usableH);
+      candOrs.sort((a, b) => {
+        const colsA = Math.floor((usableW + 0.2) / (a.w + 0.1));
+        const rowsA = Math.floor((usableH + 0.2) / (a.h + 0.1));
+        const colsB = Math.floor((usableW + 0.2) / (b.w + 0.1));
+        const rowsB = Math.floor((usableH + 0.2) / (b.h + 0.1));
+        const effA = (colsA * a.w) * (rowsA * a.h) * (a.upright ? 1.05 : 1.0);
+        const effB = (colsB * b.w) * (rowsB * b.h) * (b.upright ? 1.05 : 1.0);
+        return effB - effA;
+      });
+      targetDepth = (candOrs.length > 0 ? candOrs[0] : fOrs[0]).l;
     } else if (smallBoxes.length > 0) {
       const firstBox = smallBoxes[0];
       const fOrs = getOrientationsWithPyramidScore(firstBox, 0, usableH);
@@ -2500,9 +2754,12 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
               if (bWt > prevWeight) {
                 inversionPenalty += (bWt - prevWeight) * 60.0;
               }
+              // 残り高さに対する段数フィット性（同じ平積み姿勢で最後まで無駄なく積める向きを優先）
+              const fitRows = Math.max(1, Math.floor((remH + 0.3) / (o.h + 0.1)));
+              const colRemAfter = remH - fitRows * o.h;
               // 下段では高重量・大底面積ほど高評価（スコア減算）
-              const baseBonus = (curY < usableH * 0.45) ? -(o.baseArea * 0.04 + bWt * 8.0) : -(bWt * 2.0);
-              const score = depthDiff * 2.0 + (remH - o.h) * 0.4 + o.pyramidPenalty + inversionPenalty + baseBonus;
+              const baseBonus = (curY < usableH * 0.45) ? -(o.baseArea * 0.04 + bWt * 8.0) : -(o.baseArea * 0.02 + bWt * 2.0);
+              const score = depthDiff * 2.5 + colRemAfter * 0.45 + o.pyramidPenalty + inversionPenalty + baseBonus;
               if (score < bestScore) {
                 bestScore = score;
                 bestI = i;
@@ -3086,8 +3343,8 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
                       for (const r of g) {
                         rects.push([hx0 + r[0], hz0 + r[1], r[2], r[3]]);
                       }
-                    } else if (holeW > MAX_PINHOLE && holeD > MAX_PINHOLE) {
-                      // 【ルール#3 ピンホール上限制約(<=15.0cm)】中央に15cm超の大穴が開く風車は禁止
+                    } else if (holeW > Math.max(MAX_PINHOLE, Math.min(a, b) * 0.68) && holeD > Math.max(MAX_PINHOLE, Math.min(a, b) * 0.68)) {
+                      // 【ルール#3 ピンホール上限制約】上段箱が踏み抜く大穴が開く風車は禁止（大箱は短辺の68%まで許容し直下支持率88%で検証）
                       continue;
                     } else {
                       holePenalty = (holeW + holeD) * 1.5;
@@ -3516,9 +3773,43 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
             if (rq1.length > 0) optsQuad[1].push({ count: rq1.length, rects: rq1, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
             if (rq2.length > 0) optsQuad[2].push({ count: rq2.length, rects: rq2, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
             if (rq3.length > 0) optsQuad[3].push({ count: rq3.length, rects: rq3, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+
+            // 110x110風車パターンで箱数が増える場合（大型紙パンツ箱の4箱風車など）はQuad/Half/Fullすべてに追加
+            const rPin = bestPinwheelPattern(o.a, o.b, 110.0, false);
+            if (rPin.length >= rq0.length && rPin.length > 0) {
+              for (let q = 0; q < 4; q++) {
+                optsQuad[q].push({ count: rPin.length, rects: rPin, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+              }
+              const rPinHX = [...rPin, ...rPin.map(([x, z, l, w]) => [x, z + 110.0, l, w])];
+              optsHalfX0.push({ count: rPinHX.length, rects: rPinHX, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+              optsHalfX1.push({ count: rPinHX.length, rects: rPinHX, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+              const rPinHZ = [...rPin, ...rPin.map(([x, z, l, w]) => [x + 110.0, z, l, w])];
+              optsHalfZ0.push({ count: rPinHZ.length, rects: rPinHZ, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+              optsHalfZ1.push({ count: rPinHZ.length, rects: rPinHZ, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+              const rPinFull = [
+                ...rPin,
+                ...rPin.map(([x, z, l, w]) => [x + 110.0, z, l, w]),
+                ...rPin.map(([x, z, l, w]) => [x, z + 110.0, l, w]),
+                ...rPin.map(([x, z, l, w]) => [x + 110.0, z + 110.0, l, w])
+              ];
+              optsFull.push({ count: rPinFull.length, rects: rPinFull, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+            }
+            // 220x220大判風車パターン探索（2200mmパレット特有の19箱風車等を抽出）
+            if (Math.min(o.a, o.b) >= 24.0) {
+              const rPin220 = bestPinwheelPattern(o.a, o.b, 220.0, false);
+              if (rPin220.length > rf.length) {
+                optsFull.push({ count: rPin220.length, rects: rPin220, h: o.h, ot: o.ot, ta: o.ta, up: o.up, unitArea });
+              }
+            }
           }
 
-          const sortByCov = (a, b) => b.count - a.count || (b.unitArea - a.unitArea);
+          // 1層あたり面積充填率 × 積載可能段数 × 正置優先ボーナスでソート（薄立てによる段数ロスを防止）
+          const maxFaceG = Math.max(entry.L * entry.W, entry.L * entry.H, entry.W * entry.H);
+          const sortByCov = (a, b) => {
+            const stackA = Math.max(1, Math.floor((maxStackH + 0.01) / a.h)) * a.count * (a.up ? 1.06 : 1.0) * (a.unitArea >= maxFaceG * 0.9 ? 1.08 : 0.95);
+            const stackB = Math.max(1, Math.floor((maxStackH + 0.01) / b.h)) * b.count * (b.up ? 1.06 : 1.0) * (b.unitArea >= maxFaceG * 0.9 ? 1.08 : 0.95);
+            return (stackB - stackA) || (b.count - a.count) || (b.unitArea - a.unitArea);
+          };
           optsFull.sort(sortByCov);
           optsHalfX0.sort(sortByCov); optsHalfX1.sort(sortByCov);
           optsHalfZ0.sort(sortByCov); optsHalfZ1.sort(sortByCov);
@@ -3887,8 +4178,30 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
       }
 
       if (isP2200) {
-        packStage2200MultiScale(stage1Items, palletsS1);
-        packStage2200MultiScale(stage2Items, palletsS2);
+        const runStageBest2200 = (stItems, pList) => {
+          const snapTruck = [...inTruck];
+          const snapOverflow = [...overflow];
+          packStage2200MultiScale(stItems, pList);
+          const multiTruck = [...inTruck];
+          const multiOverflow = [...overflow];
+
+          // 4象限独立積層（110x110×4区画シームレス分割）とも比較し、異種SKU混載時の積載数低下を防止
+          inTruck.length = 0; inTruck.push(...snapTruck);
+          overflow.length = 0; overflow.push(...snapOverflow);
+          const quadPals = pList.flatMap(pal => [
+            { id: pal.id, parentPalId: pal.id, cx: pal.cx - 55.0, cz: pal.cz - 55.0, l: 110.0, w: 110.0, h: pal.h },
+            { id: pal.id, parentPalId: pal.id, cx: pal.cx + 55.0, cz: pal.cz - 55.0, l: 110.0, w: 110.0, h: pal.h },
+            { id: pal.id, parentPalId: pal.id, cx: pal.cx - 55.0, cz: pal.cz + 55.0, l: 110.0, w: 110.0, h: pal.h },
+            { id: pal.id, parentPalId: pal.id, cx: pal.cx + 55.0, cz: pal.cz + 55.0, l: 110.0, w: 110.0, h: pal.h }
+          ]);
+          packStageRobot(stItems, quadPals);
+          if (multiTruck.length >= inTruck.length) {
+            inTruck.length = 0; inTruck.push(...multiTruck);
+            overflow.length = 0; overflow.push(...multiOverflow);
+          }
+        };
+        runStageBest2200(stage1Items, palletsS1);
+        runStageBest2200(stage2Items, palletsS2);
       } else {
         packStageRobot(stage1Items, palletsS1);
         packStageRobot(stage2Items, palletsS2);
