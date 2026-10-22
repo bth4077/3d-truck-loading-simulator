@@ -70,145 +70,691 @@
     </div>
   </header>
 
-  <!-- メインコンテンツ -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <!-- メインコンテンツ（左右2ペイン構成：左ペイン41.7% [lg:col-span-5] / 右ペイン58.3% [lg:col-span-7]） -->
+  <main class="flex-1 max-w-[1760px] w-full mx-auto px-3 sm:px-5 py-4">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
-    <!-- 【複数便（マルチ便）タブセレクター & 全便集計バー】 -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3.5">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5 pb-2.5 border-b border-slate-100">
-        <div class="flex items-center gap-2.5">
-          <div class="p-1.5 bg-blue-600 text-white rounded-lg shadow-2xs">
-            <i data-lucide="layers" class="w-4 h-4"></i>
-          </div>
-          <div>
+      <!-- ===================================================================== -->
+      <!-- 【左ペイン（幅 40%〜45%：lg:col-span-5）】                            -->
+      <!-- ① 出荷便セレクター / 全体サマリー（全48便集計）                      -->
+      <!-- ② 積載品目リスト（SKU明細テーブル・品目追加/編集）                   -->
+      <!-- ③ 積載バランス診断＆NG項目解析インスペクター                         -->
+      <!-- ===================================================================== -->
+      <div class="lg:col-span-5 space-y-4 min-w-0">
+
+        <!-- 左ペイン①：出荷便セレクター ＆ 全体サマリー（全48便集計） -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5 pb-2.5 border-b border-slate-100">
             <div class="flex items-center gap-2">
-              <span class="font-extrabold text-slate-800 text-sm">出荷便セレクター</span>
-              <span id="batchCountBadge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200">48 便管理中</span>
-            </div>
-            <div class="text-[11px] text-slate-500">クリックで便の3D積載状況・KPIを瞬時切り替え（日次100便規模対応）</div>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2 flex-wrap">
-          <!-- 便検索インプット -->
-          <div class="relative">
-            <input type="text" id="tabSearchInput" oninput="filterBatchTabs()" placeholder="便番号・出荷先検索..." class="text-xs pl-7 pr-2.5 py-1.5 rounded-lg border border-slate-200 focus:border-blue-500 outline-none w-36 sm:focus:w-48 transition-all bg-slate-50 focus:bg-white">
-            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2"></i>
-          </div>
-
-          <!-- 全便集計サマリーボタン -->
-          <button onclick="openBatchSummaryModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-2xs flex items-center gap-1.5 transition cursor-pointer">
-            <i data-lucide="layout-list" class="w-3.5 h-3.5 text-amber-400"></i> 全便集計サマリー
-          </button>
-
-          <!-- 便追加ボタン -->
-          <button onclick="openNewBatchModal()" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow-2xs flex items-center gap-1 transition cursor-pointer">
-            <i data-lucide="plus" class="w-3.5 h-3.5"></i> 便追加
-          </button>
-
-          <!-- 2026年9月 全48便実績データ読込ボタン -->
-          <button onclick="loadActual48Batches()" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1 transition cursor-pointer" title="2026年9月出庫実績 全48便（34,220ケース）を初期状態に再読込">
-            <i data-lucide="database" class="w-3.5 h-3.5 text-indigo-600"></i> 9月実績全48便リセット
-          </button>
-        </div>
-      </div>
-
-      <!-- 横スクロール タブコンテナ -->
-      <div id="batchTabContainer" class="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-        <!-- 動的にタブボタンが挿入されます -->
-      </div>
-
-      <!-- 【新設】2026年9月 出庫実績 全48便 便別積載効率・手積みvsパレット比較ダッシュボード -->
-      <details id="all48TripsDashboardDetails" open class="mt-3 pt-3 border-t border-slate-200 group">
-        <summary class="cursor-pointer list-none flex flex-col lg:flex-row lg:items-center justify-between gap-2 select-none bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-sm hover:bg-slate-800 transition">
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <span class="px-2 py-0.5 bg-amber-400 text-slate-950 font-extrabold text-[11px] rounded-md">2026年9月実績 全48便</span>
-            <span class="font-extrabold text-xs sm:text-sm text-white">📊 便ごと積載効率・3Dシミュレーション見える化ボード（手積み vs 1100パレット vs 2200パレット）</span>
-            <span id="activeTripQuickBadge" class="px-2 py-0.5 bg-blue-600/40 border border-blue-400/40 text-blue-200 rounded text-[11px] font-mono">現在表示中: #1 2026/09/01 7601</span>
-          </div>
-          <div class="flex items-center gap-2 self-end lg:self-auto">
-            <span class="text-[11px] text-amber-300 font-semibold">💡 表の「手積み」「1100P」「2200P」セルをクリックすると3D荷台が瞬時に切り替わります</span>
-            <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded border border-slate-600 text-slate-300">開閉 ▼</span>
-          </div>
-        </summary>
-
-        <div class="mt-3 space-y-3">
-          <!-- 全48便 3モード比較サマリーKPIカード -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
-              <div class="text-[11px] font-bold text-slate-500 flex justify-between items-center">
-                <span>📋 2026年9月 出庫実績総計</span>
-                <span class="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded text-[10px] font-bold">全151明細 / 43品目</span>
+              <div class="p-1.5 bg-blue-600 text-white rounded-lg shadow-2xs">
+                <i data-lucide="layers" class="w-4 h-4"></i>
               </div>
-              <div class="text-base font-extrabold text-slate-900 mt-1">全 48 便 / 34,220 <span class="text-xs font-normal">cs</span></div>
-              <div class="text-[11px] text-slate-500 mt-0.5">定期31便(10t) + 臨時17便(10臨片) | 平均才数率 <b class="text-slate-800">99.6%</b></div>
-            </div>
-
-            <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-3 cursor-pointer hover:bg-indigo-100/60 transition" onclick="setPackingMode('highDensity')">
-              <div class="text-[11px] font-bold text-indigo-800 flex justify-between items-center">
-                <span>📦 ① 手積み（高密度バラ積み）</span>
-                <span class="px-1.5 py-0.5 bg-indigo-600 text-white rounded text-[10px] font-bold">46/48便 完全格納</span>
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="font-extrabold text-slate-800 text-sm">出荷便セレクター</span>
+                  <span id="batchCountBadge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200">48 便管理中</span>
+                </div>
+                <div class="text-[10px] text-slate-500">クリックで便の3D積載状況・KPI・下部比較表を連動切替</div>
               </div>
-              <div class="text-base font-extrabold text-indigo-950 mt-1">平均積載率 99.8% <span class="text-xs font-semibold text-indigo-700">(34,123 cs)</span></div>
-              <div class="text-[11px] text-indigo-700 mt-0.5">1,700才満車便でもデッドスペース最小化でほぼ100%格納</div>
             </div>
 
-            <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3 cursor-pointer hover:bg-blue-100/60 transition" onclick="setPackingMode('p1100')">
-              <div class="text-[11px] font-bold text-blue-800 flex justify-between items-center">
-                <span>🟦 ② 1100×1100mm パレット (16枚)</span>
-                <span class="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px] font-bold">標準T11型</span>
-              </div>
-              <div class="text-base font-extrabold text-blue-950 mt-1">平均積載率 65.3% <span class="text-xs font-semibold text-blue-700">(22,378 cs)</span></div>
-              <div class="text-[11px] text-blue-700 mt-0.5">大型紙パンツ箱の110cm端数ロスにより平均34.7%積み残し</div>
-            </div>
-
-            <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 cursor-pointer hover:bg-emerald-100/60 transition" onclick="setPackingMode('p2200')">
-              <div class="text-[11px] font-bold text-emerald-800 flex justify-between items-center">
-                <span>🟩 ③ 2200×2200mm 大型パレット (4枚)</span>
-                <span class="px-1.5 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold">1100比 +7.8pt優位</span>
-              </div>
-              <div class="text-base font-extrabold text-emerald-950 mt-1">平均積載率 73.1% <span class="text-xs font-semibold text-emerald-700">(24,987 cs)</span></div>
-              <div class="text-[11px] text-emerald-700 mt-0.5">1100パレット比で <b class="underline">+2,609 cs 多く格納</b>（境界デッドスペース解消）</div>
-            </div>
-          </div>
-
-          <!-- フィルター＆アクションバー -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-100 p-2 rounded-xl border border-slate-200 text-xs">
             <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="font-bold text-slate-600 px-1.5">絞り込み:</span>
-              <button onclick="setInlineTripFilter('all')" id="inlineFilter_all" class="px-2.5 py-1 rounded-lg font-bold bg-blue-600 text-white shadow-2xs cursor-pointer transition">すべて (48便)</button>
-              <button onclick="setInlineTripFilter('regular')" id="inlineFilter_regular" class="px-2.5 py-1 rounded-lg font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">定期便 7601-7603 (31便)</button>
-              <button onclick="setInlineTripFilter('extra')" id="inlineFilter_extra" class="px-2.5 py-1 rounded-lg font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">臨時便 7661-7671 (17便)</button>
-              <button onclick="setInlineTripFilter('single')" id="inlineFilter_single" class="px-2.5 py-1 rounded-lg font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">単一SKU便 (7便)</button>
-              <button onclick="setInlineTripFilter('multi')" id="inlineFilter_multi" class="px-2.5 py-1 rounded-lg font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">多品種混載便 (41便)</button>
-              <button onclick="setInlineTripFilter('p2200win')" id="inlineFilter_p2200win" class="px-2.5 py-1 rounded-lg font-semibold bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200 cursor-pointer transition">🟩 2200P大幅優位 (+15pt〜)</button>
-            </div>
-            <div class="flex items-center gap-2 self-end sm:self-auto">
-              <button onclick="exportAll48TripsComparisonCSV()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer transition">
-                📥 全48便比較CSV出力
+              <div class="relative">
+                <input type="text" id="tabSearchInput" oninput="filterBatchTabs()" placeholder="便番号・銘柄検索..." class="text-xs pl-6 pr-2 py-1 rounded-lg border border-slate-200 focus:border-blue-500 outline-none w-32 transition-all bg-slate-50 focus:bg-white">
+                <i data-lucide="search" class="w-3 h-3 text-slate-400 absolute left-2 top-1.5"></i>
+              </div>
+              <button onclick="openBatchSummaryModal()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-bold rounded-lg shadow-2xs flex items-center gap-1 transition cursor-pointer" title="全便一覧モーダルを開く">
+                <i data-lucide="layout-list" class="w-3 h-3 text-amber-400"></i> 全便集計
               </button>
-              <button onclick="loadOriginalSampleBatches()" class="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg text-[11px] cursor-pointer transition" title="初期サンプル5便データへ切り替え">
-                基準サンプル便へ切替
+              <button onclick="openNewBatchModal()" class="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold rounded-lg shadow-2xs flex items-center gap-0.5 transition cursor-pointer">
+                <i data-lucide="plus" class="w-3 h-3"></i> 便追加
+              </button>
+              <button onclick="loadActual48Batches()" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-semibold rounded-lg flex items-center gap-0.5 transition cursor-pointer" title="2026年9月出庫実績 全48便（34,220ケース）を初期状態に再読込">
+                <i data-lucide="database" class="w-3 h-3 text-indigo-600"></i> 9月全48便
               </button>
             </div>
           </div>
 
-          <!-- 全48便 横並び比較テーブル -->
-          <div class="max-h-80 overflow-y-auto rounded-xl border border-slate-200 shadow-inner bg-white custom-scrollbar">
-            <table class="w-full text-left border-collapse text-[11px]">
+          <!-- 横スクロール タブコンテナ -->
+          <div id="batchTabContainer" class="flex items-center gap-1.5 overflow-x-auto pb-1.5 custom-scrollbar">
+            <!-- 動的にタブボタンが挿入されます -->
+          </div>
+
+          <!-- 全48便 3モード比較サマリーKPIカード（2×2グリッド） -->
+          <div class="grid grid-cols-2 gap-2 mt-2.5 pt-2.5 border-t border-slate-100 text-xs">
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+              <div class="text-[10px] font-bold text-slate-500 flex justify-between items-center">
+                <span>📋 2026年9月 出庫総計</span>
+                <span class="px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded text-[9px] font-bold">151明細/43品目</span>
+              </div>
+              <div class="text-sm font-extrabold text-slate-900 mt-0.5">全 48 便 / 34,220 <span class="text-[10px] font-normal">cs</span></div>
+              <div class="text-[10px] text-slate-500 mt-0.5">定期31便 + 臨時17便 | 平均才数率 <b class="text-slate-800">99.6%</b></div>
+            </div>
+
+            <div class="bg-indigo-50/70 border border-indigo-200 rounded-lg p-2.5 cursor-pointer hover:bg-indigo-100/60 transition" onclick="setPackingMode('highDensity')">
+              <div class="text-[10px] font-bold text-indigo-800 flex justify-between items-center">
+                <span>📦 ① 手積み（バラ）</span>
+                <span class="px-1.5 py-0.2 bg-indigo-600 text-white rounded text-[9px] font-bold">46/48便 完納</span>
+              </div>
+              <div class="text-sm font-extrabold text-indigo-950 mt-0.5">平均 99.8% <span class="text-[10px] font-semibold text-indigo-700">(34,123 cs)</span></div>
+              <div class="text-[10px] text-indigo-700 mt-0.5">1,700才満車便でもほぼ100%格納</div>
+            </div>
+
+            <div class="bg-blue-50/70 border border-blue-200 rounded-lg p-2.5 cursor-pointer hover:bg-blue-100/60 transition" onclick="setPackingMode('p1100')">
+              <div class="text-[10px] font-bold text-blue-800 flex justify-between items-center">
+                <span>🟦 ② 1100パレット (16枚)</span>
+                <span class="px-1.5 py-0.2 bg-blue-600 text-white rounded text-[9px] font-bold">標準T11型</span>
+              </div>
+              <div class="text-sm font-extrabold text-blue-950 mt-0.5">平均 65.3% <span class="text-[10px] font-semibold text-blue-700">(22,378 cs)</span></div>
+              <div class="text-[10px] text-blue-700 mt-0.5">110cm端数ロスで平均34.7%積み残し</div>
+            </div>
+
+            <div class="bg-emerald-50/70 border border-emerald-200 rounded-lg p-2.5 cursor-pointer hover:bg-emerald-100/60 transition" onclick="setPackingMode('p2200')">
+              <div class="text-[10px] font-bold text-emerald-800 flex justify-between items-center">
+                <span>🟩 ③ 2200パレット (4枚)</span>
+                <span class="px-1.5 py-0.2 bg-emerald-600 text-white rounded text-[9px] font-bold">+7.8pt優位</span>
+              </div>
+              <div class="text-sm font-extrabold text-emerald-950 mt-0.5">平均 73.1% <span class="text-[10px] font-semibold text-emerald-700">(24,987 cs)</span></div>
+              <div class="text-[10px] text-emerald-700 mt-0.5">1100比 <b class="underline">+2,609 cs 多く格納</b></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 左ペイン②：積載品目リスト（SKU明細テーブル・品目追加/編集） -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-3 bg-slate-50/80 border-b border-slate-200 flex flex-col gap-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="font-extrabold text-slate-800 text-xs flex items-center gap-1.5">
+                <i data-lucide="clipboard-list" class="w-4 h-4 text-blue-600"></i>
+                <span>積載品目リスト（SKU明細・納品順）</span>
+                <span class="text-[10px] text-slate-500 font-normal">（表示: <b id="displayedCount" class="text-slate-800">0</b> 品目）</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="exportCSV()" class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-[11px] px-2 py-1 rounded-lg font-medium flex items-center transition shadow-2xs cursor-pointer" title="品目一覧をExcel対応CSVとしてダウンロード">
+                  <i data-lucide="file-spreadsheet" class="w-3 h-3 mr-1 text-emerald-600"></i> CSV
+                </button>
+                <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] px-2.5 py-1 rounded-lg font-bold flex items-center transition shadow-2xs cursor-pointer">
+                  <i data-lucide="plus" class="w-3.5 h-3.5 mr-0.5"></i> 品目追加
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <div class="relative flex-1 min-w-[140px]">
+                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
+                <input type="text" id="searchInput" oninput="renderTable()" placeholder="品名やSKUコードで検索..." class="w-full pl-7 pr-2 py-1 text-[11px] bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500">
+              </div>
+              <select id="stageFilter" onchange="renderTable()" class="text-[11px] bg-white border border-slate-300 rounded-lg px-2 py-1 focus:outline-none">
+                <option value="all">全ステージ</option>
+                <option value="1">Stage 1 (奥)</option>
+                <option value="2">Stage 2 (手前)</option>
+              </select>
+              <select id="sortBy" onchange="renderTable()" class="text-[11px] bg-white border border-slate-300 rounded-lg px-2 py-1 focus:outline-none">
+                <option value="default">標準順</option>
+                <option value="qty-desc">数量順</option>
+                <option value="weight-desc">総重量順</option>
+                <option value="volume-desc">総容積順</option>
+                <option value="name">品名順</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="max-h-[310px] overflow-y-auto overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-[11px] border-collapse">
               <thead>
-                <tr class="bg-slate-800 text-white font-bold sticky top-0 z-10 shadow-xs">
-                  <th class="py-2 px-2 text-center w-8">#</th>
-                  <th class="py-2 px-2.5">出荷日 / 便No</th>
-                  <th class="py-2 px-2">便種・車種</th>
-                  <th class="py-2 px-2.5">品目数・主要積載銘柄</th>
-                  <th class="py-2 px-2 text-right">出庫数</th>
-                  <th class="py-2 px-2 text-right">出庫才数(率)</th>
-                  <th class="py-2 px-2 text-right">総重量(率)</th>
-                  <th class="py-2 px-2.5 text-center bg-indigo-900/90 border-l border-slate-700">📦 手積み(バラ)<br><span class="text-[9px] font-normal text-indigo-200">クリックで3D表示</span></th>
-                  <th class="py-2 px-2.5 text-center bg-blue-900/90 border-l border-slate-700">🟦 1100パレット(16枚)<br><span class="text-[9px] font-normal text-blue-200">クリックで3D表示</span></th>
-                  <th class="py-2 px-2.5 text-center bg-emerald-900/90 border-l border-slate-700">🟩 2200パレット(4枚)<br><span class="text-[9px] font-normal text-emerald-200">クリックで3D表示</span></th>
-                  <th class="py-2 px-2 text-center border-l border-slate-700">1100→2200<br>改善効果</th>
+                <tr class="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold sticky top-0 z-10">
+                  <th class="py-2 px-2">色/Stg</th>
+                  <th class="py-2 px-2">品名 / コード</th>
+                  <th class="py-2 px-1.5 whitespace-nowrap">寸法(cm)</th>
+                  <th class="py-2 px-1.5 text-right whitespace-nowrap">単重</th>
+                  <th class="py-2 px-1.5 text-right whitespace-nowrap">数量</th>
+                  <th class="py-2 px-1.5 text-right whitespace-nowrap">総重/容積</th>
+                  <th class="py-2 px-2 text-center whitespace-nowrap">操作</th>
+                </tr>
+              </thead>
+              <tbody id="cargoTableBody" class="divide-y divide-slate-100">
+                <!-- JavaScriptで動的生成 -->
+              </tbody>
+            </table>
+          </div>
+          <div class="px-3 py-1.5 bg-slate-50 border-t border-slate-200 text-[10px] text-slate-500 flex justify-between items-center">
+            <span>💡 行クリックで数量・寸法・ステージを直接編集可能</span>
+            <span>単位: cm / kg / m³</span>
+          </div>
+        </div>
+
+        <!-- 左ペイン③：積載バランス診断＆NG項目解析インスペクター -->
+        <div id="balanceDiagnosticPanel" class="p-3.5 bg-slate-900 text-white rounded-xl border border-slate-700 text-xs shadow-md transition-all duration-300">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 bg-rose-600 rounded-lg font-bold text-xs">⚖️</span>
+              <div>
+                <div class="font-bold text-xs sm:text-sm flex items-center gap-2 flex-wrap">
+                  <span>積載バランス診断 ＆ NG解析</span>
+                  <span id="diagSafetyBadge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold">
+                    安全スコア: 100点 (優良)
+                  </span>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-0.5">
+                  偏荷重・前後軸重・座屈・宙浮き・逆ピラミッドをリアルタイム診断
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 flex-wrap self-end sm:self-auto">
+              <label class="flex items-center gap-1.5 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 cursor-pointer text-[10px]">
+                <input type="checkbox" id="chkDiagnosticHighlight" onchange="toggleDiagnosticHighlight()" class="w-3 h-3 accent-rose-500 cursor-pointer">
+                <span class="font-medium text-slate-200">⚠️ NG箱強調</span>
+              </label>
+              <button onclick="export3DImage(true)" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-[10px] transition flex items-center gap-1 cursor-pointer">
+                <i data-lucide="download" class="w-3 h-3"></i> 診断画像出力
+              </button>
+            </div>
+          </div>
+
+          <!-- 左右偏荷重 & 前後軸重 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2.5">
+            <div class="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700/80">
+              <div class="flex justify-between items-center text-[10px] text-slate-400 mb-1">
+                <span>左右偏荷重 (横転耐性)</span>
+                <span id="diagLRStatus" class="font-bold text-emerald-400">良好 (差 3.2%)</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] font-mono font-bold mb-1">
+                <span id="diagLeftRatio" class="text-sky-300">左: 51.6%</span>
+                <span id="diagRightRatio" class="text-indigo-300">右: 48.4%</span>
+              </div>
+              <div class="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden flex">
+                <div id="diagLeftBar" class="bg-sky-500 h-full" style="width: 51.6%;"></div>
+                <div id="diagRightBar" class="bg-indigo-500 h-full" style="width: 48.4%;"></div>
+              </div>
+              <div class="text-[10px] text-slate-400 mt-1" id="diagLRDetail">左 1,980kg / 右 1,850kg</div>
+            </div>
+
+            <div class="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700/80">
+              <div class="flex justify-between items-center text-[10px] text-slate-400 mb-1">
+                <span>前後軸重バランス</span>
+                <span id="diagFRStatus" class="font-bold text-emerald-400">良好</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] font-mono font-bold mb-1">
+                <span id="diagFrontRatio" class="text-emerald-300">前(奥): 52.0%</span>
+                <span id="diagRearRatio" class="text-amber-300">後(手前): 48.0%</span>
+              </div>
+              <div class="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden flex">
+                <div id="diagFrontBar" class="bg-emerald-500 h-full" style="width: 52%;"></div>
+                <div id="diagRearBar" class="bg-amber-500 h-full" style="width: 48%;"></div>
+              </div>
+              <div class="text-[10px] text-slate-400 mt-1" id="diagFRDetail">重心位置: 荷台中央より前方 +25cm</div>
+            </div>
+          </div>
+
+          <!-- 検出NG件数サマリー -->
+          <div class="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700/80 mt-2">
+            <div class="text-[10px] text-slate-400 mb-1.5 font-medium">検出されたNGリスク項目サマリー</div>
+            <div class="grid grid-cols-4 gap-1.5 text-center">
+              <div class="bg-slate-900/70 p-1.5 rounded border border-rose-500/30">
+                <div class="text-[9px] text-rose-300">重量逆転(座屈)</div>
+                <div id="cntCrushRisk" class="font-mono font-bold text-xs text-rose-400">0 件</div>
+              </div>
+              <div class="bg-slate-900/70 p-1.5 rounded border border-orange-500/30">
+                <div class="text-[9px] text-orange-300">支持不足(宙浮)</div>
+                <div id="cntOverhang" class="font-mono font-bold text-xs text-orange-400">0 件</div>
+              </div>
+              <div class="bg-slate-900/70 p-1.5 rounded border border-amber-500/30">
+                <div class="text-[9px] text-amber-300">逆ピラミッド</div>
+                <div id="cntPyramid" class="font-mono font-bold text-xs text-amber-400">0 件</div>
+              </div>
+              <div class="bg-slate-900/70 p-1.5 rounded border border-purple-500/30">
+                <div class="text-[9px] text-purple-300">縦立ち自立</div>
+                <div id="cntAspect" class="font-mono font-bold text-xs text-purple-400">0 件</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 抽出NGアイテム一覧リスト -->
+          <div id="ngItemsContainer" class="mt-2.5 pt-2.5 border-t border-slate-800">
+            <div class="flex justify-between items-center mb-1.5">
+              <span class="font-bold text-[11px] text-rose-300 flex items-center gap-1">
+                <i data-lucide="alert-triangle" class="w-3 h-3"></i> NG検出段ボール詳細リスト (<span id="ngListCount">0</span>件)
+              </span>
+              <span class="text-[9px] text-slate-400">※クリックで3Dフォーカス</span>
+            </div>
+            <div id="ngItemsList" class="max-h-36 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+              <!-- 動的挿入 -->
+            </div>
+          </div>
+
+          <!-- 導入済み8大数理ルール（折りたたみ） -->
+          <details class="mt-2.5 pt-2 border-t border-slate-800 group">
+            <summary class="cursor-pointer list-none flex items-center justify-between text-[11px] font-bold text-indigo-300 hover:text-indigo-200 transition select-none">
+              <span class="flex items-center gap-1">
+                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span>📐 荷姿・積載バランス8大数理ルール（安全基準一覧）</span>
+              </span>
+              <span class="text-[9px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">開閉 ▼</span>
+            </summary>
+            <div class="mt-2 overflow-x-auto rounded-lg border border-slate-700/80 bg-slate-950/70 max-h-48 overflow-y-auto custom-scrollbar">
+              <table class="w-full text-left border-collapse text-[10px]">
+                <thead>
+                  <tr class="bg-slate-800/90 text-slate-300 border-b border-slate-700 sticky top-0">
+                    <th class="py-1 px-1.5 font-bold w-5 text-center">#</th>
+                    <th class="py-1 px-2 font-bold">課題・現象</th>
+                    <th class="py-1 px-2 font-bold text-emerald-300">解決アルゴリズム</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/80 text-slate-300">
+                  <tr><td class="py-1 px-1.5 text-center font-mono text-amber-400">1</td><td class="py-1 px-2">パレット底面の隙間</td><td class="py-1 px-2"><b class="text-emerald-300">Floor Flattening Lock</b>（床面100%敷き詰めロック）</td></tr>
+                  <tr><td class="py-1 px-1.5 text-center font-mono text-amber-400">2</td><td class="py-1 px-2">外周の欠損・端の隙間</td><td class="py-1 px-2"><b class="text-emerald-300">Strict Shell Rule</b>（外周4隅・4辺密着優先）</td></tr>
+                  <tr><td class="py-1 px-1.5 text-center font-mono text-amber-400">3</td><td class="py-1 px-2">中央の巨大空洞</td><td class="py-1 px-2"><b class="text-emerald-300">ピンホール上限制約（≤15cm）＆求心密着</b></td></tr>
+                  <tr><td class="py-1 px-1.5 text-center font-mono text-amber-400">4</td><td class="py-1 px-2">列間のスリット状長大溝</td><td class="py-1 px-2"><b class="text-emerald-300">Tight-Fit Centering</b>（隙間0cm求心配置）</td></tr>
+                  <tr><td class="py-1 px-1.5 text-center font-mono text-amber-400">5</td><td class="py-1 px-2">中段くびれ・逆ピラミッド</td><td class="py-1 px-2"><b class="text-emerald-300">単箱重量・底面積非増加則</b>（山型ピラミッド積層）</td></tr>
+                  <tr><td class="py-1 px-1.5 text-center font-mono text-amber-400">6</td><td class="py-1 px-2">サイド底面浮き</td><td class="py-1 px-2"><b class="text-emerald-300">Vertical Pillar Check</b>（底面支持率88%以上必須）</td></tr>
+                  <tr><td class="py-1 px-1.5 text-center font-mono text-amber-400">7</td><td class="py-1 px-2">凸凹跨ぎ・縦立て</td><td class="py-1 px-2"><b class="text-emerald-300">平坦レイヤー積層＆縦立て禁止（H/min≤1.84）</b></td></tr>
+                  <tr><td class="py-1 px-1.5 text-center font-mono text-amber-400">8</td><td class="py-1 px-2">上下層の結束力不足</td><td class="py-1 px-2"><b class="text-emerald-300">1・2段目インターロッキング（交互反転）</b></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- 【右ペイン（幅 55%〜60%：lg:col-span-7）】                            -->
+      <!-- [ブロックA] 車両スペック＆積載率KPI（4カード）                        -->
+      <!-- [ブロックB] 積み残しアラート＆積載パターン切替バー                    -->
+      <!-- [ブロックC] 運用シミュレーション比較KPI（4ミニカード）                -->
+      <!-- [ブロックD＆E] 3Dビュアー（操作バー ＋ 3Dキャンバス ＋ ロボット再生） -->
+      <!-- [ブロックF] 全48便 積載効率・比較テーブル（★3Dビュアー直下）         -->
+      <!-- ===================================================================== -->
+      <div class="lg:col-span-7 space-y-3.5 min-w-0">
+
+        <!-- [ブロックA：基本スペック＆積載率KPI（4カード）] -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <!-- トラック諸元 -->
+          <div class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex flex-col justify-between">
+            <div class="flex justify-between items-start mb-1">
+              <span class="text-[11px] font-semibold text-slate-500">車両スペック</span>
+              <span class="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.5 rounded font-bold" id="truckType">低床10tウイング</span>
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-800" id="truckDims">L 960 × W 240 × H 260 cm</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">最大重量: <span class="font-bold text-slate-700" id="truckMaxWeight">13,000</span> kg / 容積: <span class="font-bold text-slate-700" id="truckMaxVolume">59.90</span> m³</div>
+            </div>
+          </div>
+
+          <!-- 積載数量・品目数 -->
+          <div class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex flex-col justify-between">
+            <div class="flex justify-between items-start mb-1">
+              <span class="text-[11px] font-semibold text-slate-500">積載貨物量</span>
+              <div class="p-1 bg-indigo-50 text-indigo-600 rounded-md">
+                <i data-lucide="package" class="w-3.5 h-3.5"></i>
+              </div>
+            </div>
+            <div>
+              <div class="text-xl font-extrabold text-slate-900 leading-tight" id="totalQty">0 <span class="text-xs font-normal text-slate-500">ケース</span></div>
+              <div class="text-[10px] text-slate-500 mt-0.5">全 <span class="font-bold text-slate-700" id="itemTypeCount">0</span> 品目</div>
+            </div>
+          </div>
+
+          <!-- 重量積載率 -->
+          <div class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex flex-col justify-between">
+            <div class="flex justify-between items-start mb-1">
+              <span class="text-[11px] font-semibold text-slate-500">重量積載率</span>
+              <div class="p-1 bg-emerald-50 text-emerald-600 rounded-md">
+                <i data-lucide="scale" class="w-3.5 h-3.5"></i>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-baseline justify-between mb-1">
+                <span class="text-xl font-extrabold text-slate-900 leading-tight" id="weightUsage">0%</span>
+                <span class="text-[10px] text-slate-500 font-mono" id="weightDetail">0 / 13,000 kg</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div id="weightBar" class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 容積利用率 -->
+          <div class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex flex-col justify-between">
+            <div class="flex justify-between items-start mb-1">
+              <span class="text-[11px] font-semibold text-slate-500">容積利用率</span>
+              <div class="p-1 bg-amber-50 text-amber-600 rounded-md">
+                <i data-lucide="box" class="w-3.5 h-3.5"></i>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-baseline justify-between mb-1">
+                <span class="text-xl font-extrabold text-slate-900 leading-tight" id="volumeUsage">0%</span>
+                <span class="text-[10px] text-slate-500 font-mono" id="volumeDetail">0 / 59.90 m³</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div id="volumeBar" class="bg-amber-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- [ブロックB：アラート ＆ 積載パターン切替バー] -->
+        <div id="unloadedAlertBar" class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-2.5 shadow-sm transition-all">
+          <div class="flex items-center space-x-2.5">
+            <div id="unloadedIconBg" class="p-2 bg-emerald-500 text-white rounded-lg flex-shrink-0 shadow-xs">
+              <i id="unloadedIcon" data-lucide="check-circle-2" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5 flex-wrap" id="unloadedStatusTitle">
+                全数格納完了 (積み残し 0ケース)
+              </div>
+              <div class="text-[11px] text-slate-600 mt-0.5" id="unloadedStatusSub">
+                全ケースがトラック荷台内に安全かつ最適に納まっています。
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1.5 flex-wrap w-full xl:w-auto justify-end">
+            <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-white shadow-2xs flex-wrap text-[11px]">
+              <button id="btnModeHighDensity" onclick="setPackingMode('highDensity')" class="px-2.5 py-1.5 font-semibold rounded-md transition flex items-center gap-1 bg-blue-600 text-white shadow-xs cursor-pointer">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 手積み
+              </button>
+              <button id="btnModeWall" onclick="setPackingMode('wallBuilding')" class="px-2 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1 cursor-pointer">
+                <i data-lucide="layers" class="w-3.5 h-3.5"></i> ウォール
+              </button>
+              <button id="btnModeP1100" onclick="setPackingMode('p1100')" class="px-2.5 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1 cursor-pointer">
+                <i data-lucide="grid" class="w-3.5 h-3.5 text-amber-600"></i> 1100P(16枚)
+              </button>
+              <button id="btnModeP2200" onclick="setPackingMode('p2200')" class="px-2.5 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1 cursor-pointer">
+                <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-emerald-600"></i> 2200P(4枚)
+              </button>
+            </div>
+
+            <button onclick="optimizePacking()" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-semibold flex items-center transition shadow-xs flex-shrink-0 cursor-pointer">
+              <i data-lucide="refresh-cw" class="w-3 h-3 mr-1"></i> 再計算
+            </button>
+          </div>
+        </div>
+
+        <!-- パレット積載効率向上オプションバー（パレット選択時のみ表示） -->
+        <div id="palletOptionsBar" class="hidden bg-gradient-to-r from-amber-50/95 via-orange-50/90 to-amber-50/95 border border-amber-300 rounded-xl p-2.5 shadow-xs transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px]">
+          <div class="flex items-center gap-2">
+            <span class="p-1.5 bg-amber-500 text-white rounded-lg shadow-2xs flex-shrink-0">
+              <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+            </span>
+            <div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-amber-950 text-xs">パレット積載条件</span>
+                <span id="palletRiskBadge" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  ✅ 安全基準遵守 (OH:0cm)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1.5 flex-wrap justify-end">
+            <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-amber-300">
+              <span class="text-slate-600 font-semibold text-[10px]">高さ:</span>
+              <select id="selPalletMaxHeight" onchange="onPalletOptionChanged()" class="bg-transparent font-bold text-slate-800 text-[11px] focus:outline-none cursor-pointer">
+                <option value="215" selected>標準215cm ★安全基準</option>
+                <option value="235">高積235cm (余白10cm)</option>
+                <option value="240">最大240cm (余白5cm)</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-amber-300">
+              <span class="text-slate-600 font-semibold text-[10px]">OH:</span>
+              <select id="selPalletOverhang" onchange="onPalletOptionChanged()" class="bg-transparent font-bold text-slate-800 text-[11px] focus:outline-none cursor-pointer">
+                <option value="0" selected>0cm (枠内厳守)</option>
+                <option value="2.5">+2.5cm (軽微)</option>
+                <option value="3.5">+3.5cm (最大)</option>
+              </select>
+            </div>
+
+            <label class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-amber-300 cursor-pointer">
+              <input type="checkbox" id="chkPalletTopFill" onchange="onPalletOptionChanged()" class="rounded text-amber-600 h-3 w-3 cursor-pointer">
+              <span class="text-slate-700 font-semibold text-[10px] select-none">天面充填</span>
+            </label>
+
+            <button onclick="applySafePalletPreset()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] px-2 py-1 rounded-lg transition cursor-pointer">
+              ★安全基準
+            </button>
+            <button onclick="applyLimitTestPalletPreset()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[10px] px-2 py-1 rounded-lg transition cursor-pointer">
+              限界検証
+            </button>
+          </div>
+        </div>
+
+        <!-- [ブロックC：運用シミュレーション比較KPI（4ミニカード）] -->
+        <div id="palletSummaryCard" class="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
+          <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800" id="summaryModeBadge">手摘み (高密度バラ積み)</span>
+                <span class="text-[11px] text-slate-500 font-medium">積載運用シミュレーション比較</span>
+              </div>
+              <div class="text-xs font-bold text-slate-800 mt-0.5 truncate" id="summaryModeTitle">手摘み：荷台全空間を活用した高密度積載</div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs flex-shrink-0">
+              <div class="bg-slate-50 px-2.5 py-2 rounded-lg border border-slate-200">
+                <div class="text-[10px] text-slate-500 font-medium">荷台内格納数</div>
+                <div class="text-xs sm:text-sm font-extrabold text-slate-800" id="summaryInTruck">792 / 792 cs</div>
+                <div class="text-[10px] text-emerald-600 font-semibold" id="summaryInTruckPct">積載率 100%</div>
+              </div>
+              <div class="bg-slate-50 px-2.5 py-2 rounded-lg border border-slate-200">
+                <div class="text-[10px] text-slate-500 font-medium">積み残し数 (後方保管)</div>
+                <div class="text-xs sm:text-sm font-extrabold text-slate-800" id="summaryOverflow">0 cs</div>
+                <div class="text-[10px] text-slate-500" id="summaryDiff">手摘み比 ±0 cs</div>
+              </div>
+              <div class="bg-slate-50 px-2.5 py-2 rounded-lg border border-slate-200">
+                <div class="text-[10px] text-slate-500 font-medium">積載実容積 / 重量</div>
+                <div class="text-xs sm:text-sm font-extrabold text-slate-800" id="summaryVolWeight">46.5 m³ / 5,011 kg</div>
+                <div class="text-[10px] text-slate-500" id="summaryVolPct">容積利用率 77.7%</div>
+              </div>
+              <div class="bg-slate-50 px-2.5 py-2 rounded-lg border border-slate-200">
+                <div class="text-[10px] text-slate-500 font-medium">想定荷役作業時間</div>
+                <div class="text-xs sm:text-sm font-extrabold text-blue-600" id="summaryWorkTime">約 120 分</div>
+                <div class="text-[10px] font-semibold text-emerald-600" id="summaryTimeSave">手摘み基準</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- [ブロックD＆E：3Dビュアー領域（操作バー ＋ 3Dキャンバス ＋ ロボット再生バー）] -->
+        <div class="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200 space-y-2.5">
+          <!-- ブロックD上部：操作バー -->
+          <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+            <div>
+              <h2 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                <i data-lucide="box" class="w-4 h-4 text-blue-600"></i> トラック荷台3Dモデル＆積み付けパッキング表示
+              </h2>
+              <p class="text-[10px] text-slate-500">ドラッグで回転、スクロールで拡大縮小、右ドラッグで平行移動。箱クリックで詳細表示。</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+              <!-- カメラ視点切り替えグループ -->
+              <div class="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-300 text-[11px]">
+                <span class="text-slate-500 px-1.5 font-medium flex items-center gap-0.5"><i data-lucide="video" class="w-3 h-3"></i>視点:</span>
+                <button onclick="setViewAngle('iso')" id="btnViewIso" class="px-2 py-0.5 rounded bg-white font-bold text-blue-600 shadow-xs cursor-pointer" title="鳥瞰（標準斜め視点）">鳥瞰</button>
+                <button onclick="setViewAngle('side')" id="btnViewSide" class="px-2 py-0.5 rounded hover:bg-white/70 text-slate-700 transition cursor-pointer" title="真横側面">側面</button>
+                <button onclick="setViewAngle('rear')" id="btnViewRear" class="px-2 py-0.5 rounded hover:bg-white/70 text-slate-700 transition cursor-pointer" title="後方後面">後面</button>
+                <button onclick="setViewAngle('top')" id="btnViewTop" class="px-2 py-0.5 rounded hover:bg-white/70 text-slate-700 transition cursor-pointer" title="真上上面">上面</button>
+              </div>
+
+              <button onclick="toggleTopSeams()" id="topSeamToggleBtn" class="bg-amber-50 hover:bg-amber-100 text-amber-900 px-2 py-1 rounded-lg border border-amber-300 font-semibold transition flex items-center gap-1 shadow-2xs cursor-pointer">
+                <i data-lucide="package" class="w-3 h-3 text-amber-600"></i> 天面線: ON
+              </button>
+              <button onclick="toggleTruckWalls()" id="wallToggleBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1 cursor-pointer">
+                <i data-lucide="eye" class="w-3 h-3"></i> 壁: ON
+              </button>
+              <button onclick="toggleGapVisualizer()" id="gapToggleBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1 shadow-2xs cursor-pointer" title="空き空間（デッドスペース）を3D表示">
+                <i data-lucide="scan" class="w-3 h-3 text-indigo-600"></i> <span id="gapToggleText">隙間: OFF</span>
+              </button>
+
+              <button onclick="toggleBalanceDiagnostics()" id="balanceDiagBtn" class="bg-rose-50 hover:bg-rose-100 text-rose-800 px-2.5 py-1 rounded-lg border border-rose-300 font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer" title="左ペインの積載バランス診断パネルへフォーカス＆NG強調">
+                <i data-lucide="scale" class="w-3 h-3 text-rose-600"></i> <span id="balanceDiagBtnText">⚖️ 診断</span>
+                <span id="ngBadgeCount" class="bg-rose-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold">0件</span>
+              </button>
+
+              <!-- 3D画像出力ボタングループ -->
+              <div class="relative inline-block text-left" id="imageExportDropdownWrapper">
+                <button onclick="toggleImageExportMenu()" id="btnImageExportMenu" class="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1 shadow-xs cursor-pointer">
+                  <i data-lucide="camera" class="w-3 h-3"></i> <span>📷 出力</span> <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                </button>
+                <div id="imageExportMenu" class="hidden absolute right-0 mt-1.5 w-56 bg-slate-900 border border-slate-700 text-white rounded-xl shadow-2xl py-1.5 z-40 text-xs">
+                  <button onclick="export3DImage(false); closeImageExportMenu();" class="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2 cursor-pointer">
+                    <i data-lucide="image" class="w-4 h-4 text-blue-400"></i>
+                    <div>
+                      <div class="font-bold">3Dビュー画像 (PNG)</div>
+                      <div class="text-[10px] text-slate-400">現在の3D画面を高解像度保存</div>
+                    </div>
+                  </button>
+                  <button onclick="export3DImage(true); closeImageExportMenu();" class="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2 border-t border-slate-800 cursor-pointer">
+                    <i data-lucide="file-check-2" class="w-4 h-4 text-emerald-400"></i>
+                    <div>
+                      <div class="font-bold text-emerald-300">📊 診断レポート画像 (PNG)</div>
+                      <div class="text-[10px] text-slate-400">左右比・前後比・NG項目を自動合成</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ブロックD中央：3D描画キャンバス -->
+          <div class="relative w-full h-[420px] xl:h-[450px] bg-slate-900 rounded-lg overflow-hidden shadow-inner">
+            <canvas id="threeCanvas"></canvas>
+
+            <!-- 3D操作ガイドオーバーレイ・凡例 -->
+            <div class="absolute bottom-2.5 left-2.5 bg-slate-900/90 backdrop-blur-md text-white text-[10px] p-2.5 rounded-xl border border-slate-700 pointer-events-none space-y-1 shadow-lg max-w-[260px]">
+              <div class="font-bold text-slate-300 border-b border-slate-700/60 pb-0.5 text-[9px] tracking-wide uppercase">積載ゾーン凡例</div>
+              <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-400 inline-block"></span> <span>奥側（キャビン側）: <b>Stage 1</b></span></div>
+              <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-sky-400 inline-block"></span> <span>手前側（後方ゲート）: <b>Stage 2</b></span></div>
+              <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-red-500/80 border border-red-300 inline-block"></span> <span class="text-red-300 font-semibold">後方ゲート外: 積み残し (Overflow)</span></div>
+              <div class="flex items-center gap-1.5"><span class="w-2.5 h-1.5 rounded bg-amber-400 border border-slate-600 inline-block"></span> <span class="text-amber-200">天面ライン: <b>上蓋フラップ・合わせ目</b></span></div>
+              <div id="gapLegendRow" class="hidden border-t border-indigo-700/60 pt-1 space-y-0.5">
+                <div class="text-[9px] font-bold text-indigo-300 flex items-center justify-between">
+                  <span>🔍 空間隙間</span>
+                  <span id="gapTotalVolBadge" class="bg-indigo-600 text-white px-1 py-0.2 rounded text-[9px] font-bold">0.0 m³</span>
+                </div>
+                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-cyan-400/80 inline-block"></span> <span class="text-cyan-200">パレット内空隙</span></div>
+                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-amber-400/80 inline-block"></span> <span class="text-amber-200">パレット上部余白</span></div>
+              </div>
+              <div class="text-emerald-300 text-[10px] pt-0.5 font-bold border-t border-slate-700/60" id="meshCounter">3D積載描画数: 0 / 0 ケース</div>
+            </div>
+
+            <!-- パッキング方式インジケーター（左上） -->
+            <div class="absolute top-2.5 left-2.5 bg-slate-900/80 backdrop-blur-sm text-slate-300 text-[10px] px-2.5 py-1 rounded-lg border border-slate-700 pointer-events-none flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+              <span>現在のロジック: <b id="currentLogicBadge" class="text-white">3D高密度バラ積み充填 (BLF)</b></span>
+            </div>
+
+            <!-- クリック時ポップアップツールチップ -->
+            <div id="3dTooltip" class="absolute top-2.5 right-2.5 bg-slate-900/95 text-white text-xs p-3.5 rounded-xl border border-slate-700 shadow-2xl hidden max-w-xs transition-all pointer-events-auto">
+              <div class="flex justify-between items-center mb-1.5 pb-1 border-b border-slate-800">
+                <div class="font-bold text-blue-400 text-xs" id="tooltipTitle">品名</div>
+                <button onclick="closeTooltip()" class="text-slate-400 hover:text-white p-0.5"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+              </div>
+              <div class="text-[10px] text-slate-300 space-y-0.5">
+                <div class="flex justify-between items-center py-0.5">
+                  <span>積載状態:</span>
+                  <span id="tooltipStatusBadge" class="font-bold px-1.5 py-0.5 rounded text-[9px]">荷台内積載</span>
+                </div>
+                <div id="tooltipPalletRow" class="hidden text-amber-300">積載パレット: <span id="tooltipPallet" class="font-bold font-mono"></span></div>
+                <div id="tooltipNGBadgeRow" class="hidden p-1 bg-rose-950/80 border border-rose-600/60 rounded text-[9px] text-rose-200 font-bold mb-1">
+                  ⚠️ <span id="tooltipNGReason">NG項目あり</span>
+                </div>
+                <div>天面向き: <span id="tooltipOrientationStatus" class="font-bold text-emerald-400">✅ 天面正常 (上向き)</span></div>
+                <div>底面支持率: <span id="tooltipSupportRatio" class="font-bold text-emerald-400">100%</span></div>
+                <div>ケース総数: <span id="tooltipQty" class="font-semibold text-white"></span></div>
+                <div>元サイズ: <span id="tooltipSize" class="text-white"></span></div>
+                <div>配置サイズ: <span id="tooltipOrient" class="text-amber-300 font-mono font-bold"></span></div>
+                <div>単体重量: <span id="tooltipWeight" class="text-white"></span></div>
+                <div>配送ステージ: <span id="tooltipStage" class="text-white"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ブロックE：パレタイズロボット 積載順シミュレーション＆CSV出力バー（3Dキャンバス直下） -->
+          <div id="robotSeqControlBar" class="p-2.5 bg-slate-900 text-white rounded-xl border border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs shadow-sm">
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 bg-blue-600 rounded-lg font-bold text-xs">🤖</span>
+              <div>
+                <div class="font-bold text-xs flex items-center gap-1.5 flex-wrap">
+                  <span>パレタイズロボット 積載シーケンス再生</span>
+                  <span id="robotSpecBadge" class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
+                    可搬20kg / リーチ1700mm+昇降軸
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
+              <button onclick="toggleRobotPlay()" id="btnRobotPlay" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-[11px] transition cursor-pointer">
+                ▶ 順再生
+              </button>
+              <button onclick="resetRobotStep()" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-600 text-[11px] transition cursor-pointer">
+                全表示
+              </button>
+              <div class="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
+                <span class="text-slate-400 text-[10px]">Step:</span>
+                <input type="range" id="robotStepSlider" min="1" max="793" value="793" oninput="onRobotSliderChange(this.value)" class="w-28 sm:w-36 accent-blue-500 cursor-pointer">
+                <span id="robotStepLabel" class="font-mono font-bold text-amber-400 text-[11px] min-w-[68px] text-right">793 / 793</span>
+              </div>
+              <button onclick="exportRobotSequenceCSV()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-[11px] transition cursor-pointer">
+                📥 ロボット座標CSV出力
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- [ブロックF：便ごと積載効率・比較テーブル（★3Dビュアーの直下に配置）] -->
+        <div id="blockFTripComparisonCard" class="bg-white rounded-xl shadow-sm border border-slate-200 p-3.5 space-y-2.5">
+          <!-- ヘッダー＆フィルターバー -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="px-2 py-0.5 bg-amber-400 text-slate-950 font-extrabold text-[10px] rounded-md">全48便 比較表</span>
+              <span class="font-extrabold text-xs sm:text-sm text-slate-800">📊 便ごと積載効率・比較テーブル（手積み vs 1100P vs 2200P）</span>
+              <span id="activeTripQuickBadge" class="px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-700 rounded text-[10px] font-mono font-bold">現在表示中: #1 09/01 便7601</span>
+            </div>
+            <div class="flex items-center gap-1.5 self-end sm:self-auto">
+              <button onclick="exportAll48TripsComparisonCSV()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer transition">
+                📥 CSV出力
+              </button>
+              <button onclick="loadOriginalSampleBatches()" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-[10px] border border-slate-200 cursor-pointer transition" title="初期サンプル5便データへ切り替え">
+                サンプル便切替
+              </button>
+            </div>
+          </div>
+
+          <!-- 絞り込みボタンバー -->
+          <div class="flex items-center justify-between gap-2 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] flex-wrap">
+            <div class="flex items-center gap-1 flex-wrap">
+              <span class="font-bold text-slate-600 mr-1">絞り込み:</span>
+              <button onclick="setInlineTripFilter('all')" id="inlineFilter_all" class="px-2 py-0.5 rounded-md font-bold bg-blue-600 text-white shadow-2xs cursor-pointer transition">すべて(48)</button>
+              <button onclick="setInlineTripFilter('regular')" id="inlineFilter_regular" class="px-2 py-0.5 rounded-md font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">定期便(31)</button>
+              <button onclick="setInlineTripFilter('extra')" id="inlineFilter_extra" class="px-2 py-0.5 rounded-md font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">臨時便(17)</button>
+              <button onclick="setInlineTripFilter('single')" id="inlineFilter_single" class="px-2 py-0.5 rounded-md font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">単一SKU(7)</button>
+              <button onclick="setInlineTripFilter('multi')" id="inlineFilter_multi" class="px-2 py-0.5 rounded-md font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition">多品種(41)</button>
+              <button onclick="setInlineTripFilter('p2200win')" id="inlineFilter_p2200win" class="px-2 py-0.5 rounded-md font-semibold bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200 cursor-pointer transition">🟩 2200P大幅優位(+15pt〜)</button>
+            </div>
+            <span class="text-[10px] text-blue-700 font-semibold hidden xl:inline">💡 「手積み」「1100P」「2200P」セルをクリックで真上の3D荷台が即座に切り替わります</span>
+          </div>
+
+          <!-- 固定高さ（max-h-[300px]）＆内部縦スクロール比較テーブル（Stickyヘッダー・全11列最適化） -->
+          <div id="rightPane48TripsScrollBox" class="max-h-[300px] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 shadow-inner bg-white custom-scrollbar">
+            <table class="w-full text-left border-collapse text-[11px]">
+              <thead class="sticky top-0 z-10 shadow-xs">
+                <tr class="bg-slate-800 text-white font-bold">
+                  <th class="py-2 px-1 text-center w-6">#</th>
+                  <th class="py-2 px-1.5 whitespace-nowrap">出荷日 / 便No</th>
+                  <th class="py-2 px-1 whitespace-nowrap text-center">便種・車種</th>
+                  <th class="py-2 px-1.5 whitespace-nowrap">品目数・主要銘柄</th>
+                  <th class="py-2 px-1.5 text-right whitespace-nowrap">出庫数</th>
+                  <th class="py-2 px-1.5 text-right whitespace-nowrap">才数(率)</th>
+                  <th class="py-2 px-1.5 text-right whitespace-nowrap">総重量(率)</th>
+                  <th class="py-1.5 px-1.5 text-center bg-indigo-900/95 border-l border-slate-700 whitespace-nowrap">📦 手積み(バラ)<br><span class="text-[9px] font-normal text-indigo-200">クリックで3D表示</span></th>
+                  <th class="py-1.5 px-1.5 text-center bg-blue-900/95 border-l border-slate-700 whitespace-nowrap">🟦 1100パレット<br><span class="text-[9px] font-normal text-blue-200">クリックで3D表示</span></th>
+                  <th class="py-1.5 px-1.5 text-center bg-emerald-900/95 border-l border-slate-700 whitespace-nowrap">🟩 2200パレット<br><span class="text-[9px] font-normal text-emerald-200">クリックで3D表示</span></th>
+                  <th class="py-1.5 px-1.5 text-center border-l border-slate-700 whitespace-nowrap">1100→2200<br>改善効果</th>
                 </tr>
               </thead>
               <tbody id="inline48TripsTableBody" class="divide-y divide-slate-100 text-slate-700">
@@ -217,621 +763,10 @@
             </table>
           </div>
         </div>
-      </details>
-    </div>
 
-    <!-- KPI & トラック情報サマリー -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      
-      <!-- トラック諸元 -->
-      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
-        <div class="flex justify-between items-start mb-2">
-          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">車両スペック</span>
-          <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold" id="truckType">低床10tウイング</span>
-        </div>
-        <div>
-          <div class="text-sm font-semibold text-slate-700" id="truckDims">L 960 × W 240 × H 260 cm</div>
-          <div class="text-xs text-slate-500 mt-1">最大積載重量: <span class="font-bold text-slate-700" id="truckMaxWeight">13,000</span> kg</div>
-          <div class="text-xs text-slate-500">最大積載容積: <span class="font-bold text-slate-700" id="truckMaxVolume">59.90</span> m³</div>
-        </div>
-      </div>
-
-      <!-- 積載数量・品目数 -->
-      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
-        <div class="flex justify-between items-start mb-2">
-          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">積載貨物量</span>
-          <div class="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
-            <i data-lucide="package" class="w-4 h-4"></i>
-          </div>
-        </div>
-        <div>
-          <div class="text-2xl font-bold text-slate-900" id="totalQty">0 <span class="text-sm font-normal text-slate-500">ケース</span></div>
-          <div class="text-xs text-slate-500 mt-1">全 <span class="font-bold text-slate-700" id="itemTypeCount">0</span> 品目</div>
-        </div>
-      </div>
-
-      <!-- 重量積載率 -->
-      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
-        <div class="flex justify-between items-start mb-2">
-          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">重量積載率</span>
-          <div class="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
-            <i data-lucide="scale" class="w-4 h-4"></i>
-          </div>
-        </div>
-        <div>
-          <div class="flex items-baseline justify-between mb-1">
-            <span class="text-2xl font-bold text-slate-900" id="weightUsage">0%</span>
-            <span class="text-xs text-slate-500" id="weightDetail">0 / 13,000 kg</span>
-          </div>
-          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-            <div id="weightBar" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 容積利用率 -->
-      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
-        <div class="flex justify-between items-start mb-2">
-          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">容積利用率</span>
-          <div class="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
-            <i data-lucide="box" class="w-4 h-4"></i>
-          </div>
-        </div>
-        <div>
-          <div class="flex items-baseline justify-between mb-1">
-            <span class="text-2xl font-bold text-slate-900" id="volumeUsage">0%</span>
-            <span class="text-xs text-slate-500" id="volumeDetail">0 / 59.90 m³</span>
-          </div>
-          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-            <div id="volumeBar" class="bg-amber-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
-          </div>
-        </div>
       </div>
 
     </div>
-
-    <!-- 積み残しアラート & パッキングモード切替アクションバー -->
-    <div id="unloadedAlertBar" class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col xl:flex-row items-center justify-between gap-4 shadow-sm transition-all">
-      <div class="flex items-center space-x-3 w-full xl:w-auto">
-        <div id="unloadedIconBg" class="p-2.5 bg-emerald-500 text-white rounded-xl flex-shrink-0 shadow-sm">
-          <i id="unloadedIcon" data-lucide="check-circle-2" class="w-5 h-5"></i>
-        </div>
-        <div>
-          <div class="font-bold text-slate-800 text-sm flex items-center gap-2" id="unloadedStatusTitle">
-            全数格納完了 (積み残し 0ケース)
-          </div>
-          <div class="text-xs text-slate-600 mt-0.5" id="unloadedStatusSub">
-            全ケースがトラック荷台内に安全かつ最適に納まっています。
-          </div>
-        </div>
-      </div>
-      
-      <div class="flex items-center gap-2 flex-wrap xl:flex-nowrap w-full xl:w-auto justify-end">
-        <!-- パッキング／パレット積載モード切替ボタングループ -->
-        <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-white shadow-sm flex-wrap text-xs">
-          <button id="btnModeHighDensity" onclick="setPackingMode('highDensity')" class="px-2.5 py-1.5 font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 手摘み (バラ積み)
-          </button>
-          <button id="btnModeWall" onclick="setPackingMode('wallBuilding')" class="px-2.5 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5">
-            <i data-lucide="layers" class="w-3.5 h-3.5"></i> 従来ウォール積み
-          </button>
-          <button id="btnModeP1100" onclick="setPackingMode('p1100')" class="px-2.5 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5">
-            <i data-lucide="grid" class="w-3.5 h-3.5 text-amber-600"></i> 1100mmパレット (16枚)
-          </button>
-          <button id="btnModeP2200" onclick="setPackingMode('p2200')" class="px-2.5 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5">
-            <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-amber-600"></i> 2200mmパレット (4枚)
-          </button>
-        </div>
-
-        <button onclick="optimizePacking()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold flex items-center transition shadow-sm flex-shrink-0">
-          <i data-lucide="refresh-cw" class="w-3.5 h-3.5 mr-1"></i> 再計算
-        </button>
-      </div>
-    </div>
-
-    <!-- 【パレット積載効率向上オプションバー】(パレット選択時のみ表示) -->
-    <div id="palletOptionsBar" class="hidden bg-gradient-to-r from-amber-50/95 via-orange-50/90 to-amber-50/95 border border-amber-300 rounded-xl p-3.5 shadow-sm transition-all flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3 text-xs">
-      <div class="flex items-center gap-2.5">
-        <span class="p-2 bg-amber-500 text-white rounded-lg shadow-xs flex-shrink-0">
-          <i data-lucide="sliders" class="w-4 h-4"></i>
-        </span>
-        <div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-bold text-amber-950 text-sm">パレット積載条件設定</span>
-            <span id="palletRiskBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-              ✅ 安全基準遵守 (OH: 0cm / パレット枠内完全格納)
-            </span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/80 text-amber-900 border border-amber-300">🤖 パレタイズロボット層積み</span>
-          </div>
-          <div class="text-[11px] text-amber-800 mt-0.5">
-            物流現場の安全品質基準（OH 0cm・荷傷み防止）を原則とし、必要に応じた限界検証テストが可能です
-          </div>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-2 flex-wrap w-full xl:w-auto justify-start xl:justify-end">
-        <!-- 積載高さ上限セレクター -->
-        <div class="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-amber-300 shadow-2xs">
-          <span class="text-slate-600 font-semibold text-[11px] flex items-center gap-1">
-            <i data-lucide="arrow-up-to-line" class="w-3.5 h-3.5 text-amber-600"></i> 積載高さ:
-          </span>
-          <select id="selPalletMaxHeight" onchange="onPalletOptionChanged()" class="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer">
-            <option value="215" selected>標準 215cm (天板+215 / 余白30cm) ★安全基準</option>
-            <option value="235">高積み 235cm (天板+235 / 余白10cm)</option>
-            <option value="240">最大 240cm (天板+240 / 余白5cm)</option>
-          </select>
-        </div>
-
-        <!-- はみ出し（オーバーハング）セレクター -->
-        <div class="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-amber-300 shadow-2xs">
-          <span class="text-slate-600 font-semibold text-[11px] flex items-center gap-1">
-            <i data-lucide="expand" class="w-3.5 h-3.5 text-amber-600"></i> はみ出し(OH):
-          </span>
-          <select id="selPalletOverhang" onchange="onPalletOptionChanged()" class="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer">
-            <option value="0" selected>なし 0cm (パレット枠内完全厳守) ★原則</option>
-            <option value="2.5">軽微 +2.5cm (⚠️ 荷傷み・受取拒否リスクあり)</option>
-            <option value="3.5">最大 +3.5cm (⚠️ 高リスク: 側壁干渉)</option>
-          </select>
-        </div>
-
-        <!-- 小型箱トップ積みトグル -->
-        <label class="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-amber-300 shadow-2xs cursor-pointer hover:bg-amber-50/50 transition">
-          <input type="checkbox" id="chkPalletTopFill" onchange="onPalletOptionChanged()" class="rounded text-amber-600 focus:ring-amber-500 h-3.5 w-3.5 cursor-pointer">
-          <span class="text-slate-700 font-semibold text-[11px] select-none">天面トップ積み (小型箱充填)</span>
-        </label>
-
-        <!-- プリセットボタン -->
-        <button onclick="applySafePalletPreset()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] px-2.5 py-1.5 rounded-lg transition shadow-2xs flex items-center gap-1 cursor-pointer" title="現場実務の安全基準(OH 0cm / 高215cm)をワンタッチ適用">
-          <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> ★現場安全基準
-        </button>
-        <button onclick="applyLimitTestPalletPreset()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] px-2 py-1.5 rounded-lg transition shadow-2xs flex items-center gap-1 cursor-pointer text-slate-100" title="高積み235cm+OH 2.5cmの限界容積テストを適用">
-          <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> 限界検証
-        </button>
-      </div>
-    </div>
-
-    <!-- 【積載運用比較サマリー】パネル -->
-    <div id="palletSummaryCard" class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800" id="summaryModeBadge">手摘み (高密度バラ積み)</span>
-            <span class="text-xs text-slate-500 font-medium">積載運用シミュレーション比較</span>
-          </div>
-          <div class="text-sm font-bold text-slate-800 mt-1" id="summaryModeTitle">手摘み：荷台全空間を活用した高密度積載</div>
-        </div>
-        
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-            <div class="text-[10px] text-slate-500 font-medium">荷台内格納数</div>
-            <div class="text-sm font-bold text-slate-800" id="summaryInTruck">792 / 792 cs</div>
-            <div class="text-[10px] text-emerald-600 font-semibold" id="summaryInTruckPct">積載率 100%</div>
-          </div>
-          <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-            <div class="text-[10px] text-slate-500 font-medium">積み残し数 (後方保管)</div>
-            <div class="text-sm font-bold text-slate-800" id="summaryOverflow">0 cs</div>
-            <div class="text-[10px] text-slate-500" id="summaryDiff">手摘み比 ±0 cs</div>
-          </div>
-          <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-            <div class="text-[10px] text-slate-500 font-medium">積載実容積 / 重量</div>
-            <div class="text-sm font-bold text-slate-800" id="summaryVolWeight">46.5 m³ / 5,011 kg</div>
-            <div class="text-[10px] text-slate-500" id="summaryVolPct">容積利用率 77.7%</div>
-          </div>
-          <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-            <div class="text-[10px] text-slate-500 font-medium">想定荷役作業時間</div>
-            <div class="text-sm font-bold text-blue-600" id="summaryWorkTime">約 120 分</div>
-            <div class="text-[10px] font-semibold text-emerald-600" id="summaryTimeSave">手摘み基準</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3D表示キャンバスエリア -->
-    <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-100">
-        <div>
-          <h2 class="font-bold text-slate-800 flex items-center gap-2">
-            <i data-lucide="box" class="w-5 h-5 text-blue-600"></i> トラック荷台3Dモデル＆積み付けパッキング表示
-          </h2>
-          <p class="text-xs text-slate-500 mt-0.5">ドラッグで360度回転、スクロールで拡大縮小、右ドラッグで並行移動。貨物クリックで詳細表示。</p>
-        </div>
-        
-        <!-- コントロールボタン -->
-        <div class="flex flex-wrap items-center gap-2 text-xs">
-          <!-- カメラ視点切り替えグループ -->
-          <div class="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-300 text-[11px]">
-            <span class="text-slate-500 px-1.5 font-medium flex items-center gap-1"><i data-lucide="video" class="w-3 h-3"></i> 視点:</span>
-            <button onclick="setViewAngle('iso')" id="btnViewIso" class="px-2 py-1 rounded bg-white font-bold text-blue-600 shadow-xs" title="鳥瞰（標準斜め視点）">鳥瞰</button>
-            <button onclick="setViewAngle('side')" id="btnViewSide" class="px-2 py-1 rounded hover:bg-white/70 text-slate-700 transition" title="真横側面（段差・高さバランス確認）">側面</button>
-            <button onclick="setViewAngle('rear')" id="btnViewRear" class="px-2 py-1 rounded hover:bg-white/70 text-slate-700 transition" title="後方後面（左右偏荷重・荷崩れ確認）">後面</button>
-            <button onclick="setViewAngle('top')" id="btnViewTop" class="px-2 py-1 rounded hover:bg-white/70 text-slate-700 transition" title="真上上面（パレット配置・隙間確認）">上面</button>
-          </div>
-
-          <button onclick="toggleTopSeams()" id="topSeamToggleBtn" class="bg-amber-50 hover:bg-amber-100 text-amber-900 px-2.5 py-1.5 rounded-lg border border-amber-300 font-semibold transition flex items-center gap-1 shadow-2xs">
-            <i data-lucide="package" class="w-3.5 h-3.5 text-amber-600"></i> 天面線: ON
-          </button>
-          <button onclick="toggleTruckWalls()" id="wallToggleBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1">
-            <i data-lucide="eye" class="w-3.5 h-3.5"></i> 壁: ON
-          </button>
-          <button onclick="toggleGapVisualizer()" id="gapToggleBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center gap-1 shadow-2xs" title="空き空間（デッドスペース）を3D表示">
-            <i data-lucide="scan" class="w-3.5 h-3.5 text-indigo-600"></i> <span id="gapToggleText">隙間: OFF</span>
-          </button>
-
-          <!-- 【新機能】積載バランス診断・NG抽出トグルボタン -->
-          <button onclick="toggleBalanceDiagnostics()" id="balanceDiagBtn" class="bg-rose-50 hover:bg-rose-100 text-rose-800 px-3 py-1.5 rounded-lg border border-rose-300 font-bold transition flex items-center gap-1.5 shadow-2xs" title="積載バランス（偏荷重・座屈・宙浮き・逆ピラミッド）を診断してNG項目を抽出">
-            <i data-lucide="scale" class="w-3.5 h-3.5 text-rose-600"></i> <span id="balanceDiagBtnText">⚖️ バランス診断</span>
-            <span id="ngBadgeCount" class="bg-rose-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ml-0.5">0件</span>
-          </button>
-
-          <!-- 【新機能】3D画像出力ボタングループ -->
-          <div class="relative inline-block text-left" id="imageExportDropdownWrapper">
-            <button onclick="toggleImageExportMenu()" id="btnImageExportMenu" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
-              <i data-lucide="camera" class="w-3.5 h-3.5"></i> <span>📸 3D画像出力</span> <i data-lucide="chevron-down" class="w-3 h-3"></i>
-            </button>
-            <div id="imageExportMenu" class="hidden absolute right-0 mt-1.5 w-60 bg-slate-900 border border-slate-700 text-white rounded-xl shadow-2xl py-1.5 z-40 text-xs">
-              <button onclick="export3DImage(false); closeImageExportMenu();" class="w-full text-left px-3.5 py-2 hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer">
-                <i data-lucide="image" class="w-4 h-4 text-blue-400"></i>
-                <div>
-                  <div class="font-bold">3Dビュー画像 (PNG)</div>
-                  <div class="text-[10px] text-slate-400">現在の3D画面を高解像度保存</div>
-                </div>
-              </button>
-              <button onclick="export3DImage(true); closeImageExportMenu();" class="w-full text-left px-3.5 py-2 hover:bg-slate-800 flex items-center gap-2.5 border-t border-slate-800 cursor-pointer">
-                <i data-lucide="file-check-2" class="w-4 h-4 text-emerald-400"></i>
-                <div>
-                  <div class="font-bold text-emerald-300">📊 診断レポート画像 (PNG)</div>
-                  <div class="text-[10px] text-slate-400">左右比・前後比・NG項目を自動合成</div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 【追加】パレタイズロボット 1箱ずつ積載順シミュレーション＆CSV出力バー -->
-      <div id="robotSeqControlBar" class="mb-4 p-3 bg-slate-900 text-white rounded-xl border border-slate-700 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 text-xs shadow-md">
-        <div class="flex items-center gap-2.5">
-          <span class="p-2 bg-blue-600 rounded-lg font-bold">🤖</span>
-          <div>
-            <div class="font-bold text-sm flex items-center gap-2">
-              <span>パレタイズロボット 積載シーケンス再生</span>
-              <span id="robotSpecBadge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono">
-                推奨: 可搬20kg / リーチ1700mm+昇降軸+回転台
-              </span>
-            </div>
-            <div class="text-[11px] text-slate-400 mt-0.5">
-              下層(Layer 1)の奥側(Far)から手前側(Near)へ1箱ずつ順番に配置し、アーム干渉を防止します
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2.5 flex-wrap w-full lg:w-auto justify-end">
-          <button onclick="toggleRobotPlay()" id="btnRobotPlay" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition cursor-pointer">
-            ▶ 順再生
-          </button>
-          <button onclick="resetRobotStep()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-600 transition cursor-pointer">
-            全表示
-          </button>
-          <div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
-            <span class="text-slate-400">Step:</span>
-            <input type="range" id="robotStepSlider" min="1" max="793" value="793" oninput="onRobotSliderChange(this.value)" class="w-36 accent-blue-500 cursor-pointer">
-            <span id="robotStepLabel" class="font-mono font-bold text-amber-400 min-w-[75px] text-right">793 / 793</span>
-          </div>
-          <button onclick="exportRobotSequenceCSV()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold transition cursor-pointer">
-            📥 ロボット座標CSV出力
-          </button>
-        </div>
-      </div>
-
-      <!-- 【新機能】積載バランス診断＆NG項目自動抽出パネル -->
-      <div id="balanceDiagnosticPanel" class="mb-4 p-4 bg-slate-900 text-white rounded-xl border border-slate-700 text-xs shadow-lg transition-all duration-300">
-        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-          <div class="flex items-center gap-2.5">
-            <span class="p-2 bg-rose-600 rounded-lg font-bold">⚖️</span>
-            <div>
-              <div class="font-bold text-sm flex items-center gap-2">
-                <span>積載バランス診断 ＆ NG項目解析インスペクター</span>
-                <span id="diagSafetyBadge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold">
-                  安全スコア: 92点 (優良)
-                </span>
-              </div>
-              <div class="text-[11px] text-slate-400 mt-0.5">
-                左右偏荷重・前後軸重・重量逆転（座屈）・宙浮き（オーバーハング）・逆ピラミッドを自動解析
-              </div>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 flex-wrap">
-            <label class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer text-[11px]">
-              <input type="checkbox" id="chkDiagnosticHighlight" onchange="toggleDiagnosticHighlight()" class="w-3.5 h-3.5 accent-rose-500 cursor-pointer">
-              <span class="font-medium text-slate-200">⚠️ NG箱のみ3D強調表示 (正常箱ゴースト化)</span>
-            </label>
-            <button onclick="export3DImage(true)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer">
-              <i data-lucide="download" class="w-3.5 h-3.5"></i> 診断レポート画像出力
-            </button>
-          </div>
-        </div>
-
-        <!-- 診断サマリーグリッド -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3 pt-1">
-          <!-- 左右偏荷重メーター -->
-          <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700/80">
-            <div class="flex justify-between items-center text-[11px] text-slate-400 mb-1">
-              <span>左右偏荷重 (横転耐性)</span>
-              <span id="diagLRStatus" class="font-bold text-emerald-400">良好 (差 3.2%)</span>
-            </div>
-            <div class="flex items-center justify-between text-xs font-mono font-bold mb-1">
-              <span id="diagLeftRatio" class="text-sky-300">左: 51.6%</span>
-              <span id="diagRightRatio" class="text-indigo-300">右: 48.4%</span>
-            </div>
-            <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden flex">
-              <div id="diagLeftBar" class="bg-sky-500 h-full" style="width: 51.6%;"></div>
-              <div id="diagRightBar" class="bg-indigo-500 h-full" style="width: 48.4%;"></div>
-            </div>
-            <div class="text-[10px] text-slate-400 mt-1.5" id="diagLRDetail">左 1,980kg / 右 1,850kg (基準: 左右差10%以内)</div>
-          </div>
-
-          <!-- 前後軸重配分 -->
-          <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700/80">
-            <div class="flex justify-between items-center text-[11px] text-slate-400 mb-1">
-              <span>前後軸重バランス</span>
-              <span id="diagFRStatus" class="font-bold text-emerald-400">良好</span>
-            </div>
-            <div class="flex items-center justify-between text-xs font-mono font-bold mb-1">
-              <span id="diagFrontRatio" class="text-emerald-300">前(奥): 52.0%</span>
-              <span id="diagRearRatio" class="text-amber-300">後(手前): 48.0%</span>
-            </div>
-            <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden flex">
-              <div id="diagFrontBar" class="bg-emerald-500 h-full" style="width: 52%;"></div>
-              <div id="diagRearBar" class="bg-amber-500 h-full" style="width: 48%;"></div>
-            </div>
-            <div class="text-[10px] text-slate-400 mt-1.5" id="diagFRDetail">重心位置: 荷台中央より前方 +25cm</div>
-          </div>
-
-          <!-- 検出NG件数サマリー -->
-          <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700/80 col-span-1 md:col-span-2">
-            <div class="text-[11px] text-slate-400 mb-1.5 font-medium">検出されたNGリスク項目サマリー</div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-              <div class="bg-slate-900/70 p-1.5 rounded border border-rose-500/30">
-                <div class="text-[10px] text-rose-300">重量逆転(座屈)</div>
-                <div id="cntCrushRisk" class="font-mono font-bold text-sm text-rose-400">0 件</div>
-              </div>
-              <div class="bg-slate-900/70 p-1.5 rounded border border-orange-500/30">
-                <div class="text-[10px] text-orange-300">支持率不足(宙浮き)</div>
-                <div id="cntOverhang" class="font-mono font-bold text-sm text-orange-400">0 件</div>
-              </div>
-              <div class="bg-slate-900/70 p-1.5 rounded border border-amber-500/30">
-                <div class="text-[10px] text-amber-300">逆ピラミッド</div>
-                <div id="cntPyramid" class="font-mono font-bold text-sm text-amber-400">0 件</div>
-              </div>
-              <div class="bg-slate-900/70 p-1.5 rounded border border-purple-500/30">
-                <div class="text-[10px] text-purple-300">縦立ち自立</div>
-                <div id="cntAspect" class="font-mono font-bold text-sm text-purple-400">0 件</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 抽出NGアイテム一覧リスト（クリックで3Dカメラが該当箱へフォーカス） -->
-        <div id="ngItemsContainer" class="mt-3 pt-3 border-t border-slate-800">
-          <div class="flex justify-between items-center mb-2">
-            <span class="font-bold text-xs text-rose-300 flex items-center gap-1.5">
-              <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> NG検出段ボール詳細リスト (<span id="ngListCount">0</span>件)
-            </span>
-            <span class="text-[10px] text-slate-400">※リストのアイテムをクリックすると3Dカメラが該当箱へスムーズにフォーカスします</span>
-          </div>
-          <div id="ngItemsList" class="max-h-48 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-            <!-- 動的挿入 -->
-          </div>
-        </div>
-
-        <!-- 導入済み8大数理ルール（課題・リスク・根本原因・解決アルゴリズム一覧） -->
-        <details class="mt-3 pt-2.5 border-t border-slate-800 group">
-          <summary class="cursor-pointer list-none flex items-center justify-between text-xs font-bold text-indigo-300 hover:text-indigo-200 transition select-none">
-            <span class="flex items-center gap-1.5">
-              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
-              <span>📐 荷姿・積載バランスに関する8大数理ルール（物理原則・安全基準一覧）を表示</span>
-            </span>
-            <span class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 group-open:bg-indigo-950/60 group-open:text-indigo-300">クリックで開閉 ▼</span>
-          </summary>
-          <div class="mt-2.5 overflow-x-auto rounded-lg border border-slate-700/80 bg-slate-950/70">
-            <table class="w-full text-left border-collapse text-[11px]">
-              <thead>
-                <tr class="bg-slate-800/90 text-slate-300 border-b border-slate-700">
-                  <th class="py-1.5 px-2 font-bold w-7 text-center">#</th>
-                  <th class="py-1.5 px-2.5 font-bold">発生していた課題・現象</th>
-                  <th class="py-1.5 px-2.5 font-bold">現場リスク</th>
-                  <th class="py-1.5 px-2.5 font-bold">根本原因</th>
-                  <th class="py-1.5 px-2.5 font-bold text-emerald-300">ソフトウェア上の解決アルゴリズム</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800/80 text-slate-300">
-                <tr class="hover:bg-slate-900/60">
-                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">1</td>
-                  <td class="py-1.5 px-2.5 font-semibold text-white">パレット底面の隙間（木枠露出）</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">上段箱が下からの支持を失い、角落ち・傾斜崩壊を誘発。</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">床面（Y=0）の全象限が埋まる前に上段への積載へ移行していた。</td>
-                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">Floor Flattening Lock（床面敷き詰めロック）</b><br><span class="text-[10px] text-slate-400">床面が100%埋まるまで上段（Y&gt;0）への積載を禁止し、フラットな土台を形成。</span></td>
-                </tr>
-                <tr class="hover:bg-slate-900/60">
-                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">2</td>
-                  <td class="py-1.5 px-2.5 font-semibold text-white">外周の欠損・端の隙間</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">外周の支えがなくなり、輸送振動や遠心力で外側へ崩落。ラップテンション無効化。</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">外周密着がソフト制約に留まり、箱数優先で外周欠損配置が選ばれていた。</td>
-                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">厳格外周4隅・4辺密着（Strict Shell Rule）</b><br><span class="text-[10px] text-slate-400">パレットの4隅および外周4辺すべてに段ボールが密着する配置（corners === 4）を最優先化。</span></td>
-                </tr>
-                <tr class="hover:bg-slate-900/60">
-                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">3</td>
-                  <td class="py-1.5 px-2.5 font-semibold text-white">中央の巨大空洞（25〜40cmの大穴）</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">上段箱が空洞の上を跨ぎ、踏み抜き・内側への陥没・ズレ落ちが発生。</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">風車探索で外周端に無理に広げた結果、中央に大穴が開いていた。</td>
-                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">ピンホール上限制約（≤15.0cm）＆ 中心寄せ（求心密着）</b><br><span class="text-[10px] text-slate-400">空洞幅・奥行15cm超の風車を禁止。箱同士を中心に隙間0cmで密着させ余白は外周へ逃がす。</span></td>
-                </tr>
-                <tr class="hover:bg-slate-900/60">
-                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">4</td>
-                  <td class="py-1.5 px-2.5 font-semibold text-white">列間のスリット状長大溝（天板露出）</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">同一SKUの列同士が引き離され、上段箱の角が溝に落ち込む。</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">単純グリッド配置で手前端と奥端に箱を引き離して中央に余白を集約していた。</td>
-                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">Tight-Fit Centering（タイトフィット求心配置）</b><br><span class="text-[10px] text-slate-400">列間・箱間の隙間を0cmで完全密着させ、ブロック全体を中心寄せして中央溝を完全消滅。</span></td>
-                </tr>
-                <tr class="hover:bg-slate-900/60">
-                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">5</td>
-                  <td class="py-1.5 px-2.5 font-semibold text-white">中段のくびれ・逆ピラミッド（頭でっかち）</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">重心が上がり、ブレーキ・加速時の前後Gで上段が倒壊・下段が座屈。</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">体積ソートのみで配置され、軽量・小面積箱の上に重量・大面積箱が載っていた。</td>
-                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">底面積・重量非増加則（山型ピラミッド積層）</b><br><span class="text-[10px] text-slate-400">下段ほど大底面積・高重量を強制。直下の箱より重い/大きい箱が載る配置を厳格排除。</span></td>
-                </tr>
-                <tr class="hover:bg-slate-900/60">
-                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">6</td>
-                  <td class="py-1.5 px-2.5 font-semibold text-white">サイドの底面浮き（片持ちオーバーハング）</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">下段に床がない空間へ上段が飛び出し、自重で脱落。</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">直下の接触面積しか見ておらず、床面までの荷重伝達パスが途切れていた。</td>
-                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">垂直荷重パス検証（Vertical Pillar Check）</b><br><span class="text-[10px] text-slate-400">床面（Y=0）まで垂直な柱が繋がり底面支持率88%以上を満たす配置のみ許可。</span></td>
-                </tr>
-                <tr class="hover:bg-slate-900/60">
-                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">7</td>
-                  <td class="py-1.5 px-2.5 font-semibold text-white">凸凹跨ぎ・煙突タワー化・縦立て</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">縦立て箱の転倒、不等沈下による段ボール折損、特定箇所のみの突出。</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">端数箱が空いている角に無秩序に積まれ、薄面接地（縦立て）が許容されていた。</td>
-                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">平坦レイヤー積層（Strict Layer-by-Layer）＆ 縦立て禁止</b><br><span class="text-[10px] text-slate-400">アスペクト比&gt;1.8の縦立てを完全排除。段差1.2cm以上の跨ぎを禁止し低い層から平坦に集約。</span></td>
-                </tr>
-                <tr class="hover:bg-slate-900/60">
-                  <td class="py-1.5 px-2 text-center font-mono font-bold text-amber-400">8</td>
-                  <td class="py-1.5 px-2.5 font-semibold text-white">上下層の結束力不足（棒積み崩壊）</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">ブロック積み（棒積み）により上下の結束が弱く、横揺れで崩壊。</td>
-                  <td class="py-1.5 px-2.5 text-slate-400">上下の層が同一パターンで積まれ、目地（継ぎ目）が一直線に揃っていた。</td>
-                  <td class="py-1.5 px-2.5"><b class="text-emerald-300">1・2段目インターロッキング（交互反転）</b><br><span class="text-[10px] text-slate-400">奇数段（パターンA）に対し偶数段は90度回転・鏡像反転（パターンB）を適用し互い違いに噛み合わせる。</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </details>
-      </div>
-
-      <!-- 3D描画エリア -->
-      <div class="relative w-full h-[520px] bg-slate-900 rounded-lg overflow-hidden shadow-inner">
-        <canvas id="threeCanvas"></canvas>
-        
-        <!-- 3D操作ガイドオーバーレイ・凡例 -->
-        <div class="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-md text-white text-[11px] p-3 rounded-xl border border-slate-700 pointer-events-none space-y-1.5 shadow-lg max-w-xs">
-          <div class="font-bold text-slate-300 border-b border-slate-700/60 pb-1 text-[10px] tracking-wide uppercase">積載ゾーン凡例</div>
-          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-emerald-400 inline-block shadow-sm"></span> <span>奥側（キャビン側）: <b>Stage 1 (配送先 1)</b></span></div>
-          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-sky-400 inline-block shadow-sm"></span> <span>手前側（後方ゲート）: <b>Stage 2 (配送先 2)</b></span></div>
-          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-red-500/80 border border-red-300 inline-block shadow-sm"></span> <span class="text-red-300 font-semibold">後方ゲート外: 積み残し保管エリア (Overflow)</span></div>
-          <div class="flex items-center gap-2"><span class="w-3 h-1.5 rounded bg-amber-400 border border-slate-600 inline-block shadow-sm"></span> <span class="text-amber-200">天面ライン: <b>段ボール上蓋フラップ・合わせ目</b></span></div>
-          <!-- 空間隙間表示（デッドスペース）凡例（ON時のみ展開） -->
-          <div id="gapLegendRow" class="hidden border-t border-indigo-700/60 pt-1.5 space-y-1">
-            <div class="text-[10px] font-bold text-indigo-300 uppercase tracking-wider flex items-center justify-between">
-              <span>🔍 空間隙間（デッドスペース）</span>
-              <span id="gapTotalVolBadge" class="bg-indigo-600 text-white px-1.5 py-0.2 rounded text-[10px] font-bold">0.0 m³</span>
-            </div>
-            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-cyan-400/80 border border-cyan-200 inline-block shadow-sm"></span> <span class="text-cyan-200">パレット内空隙 (ピンホール/段差)</span></div>
-            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-amber-400/80 border border-amber-200 inline-block shadow-sm"></span> <span class="text-amber-200">パレット上部余白 (上限高まで)</span></div>
-            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-purple-400/80 border border-purple-200 inline-block shadow-sm"></span> <span class="text-purple-200">車両空間余白 (天井/側壁/後方)</span></div>
-          </div>
-          <div class="text-emerald-300 text-[11px] pt-1 font-bold border-t border-slate-700/60 mt-1" id="meshCounter">3D積載描画数: 0 / 0 ケース</div>
-        </div>
-
-        <!-- パッキング方式インジケーター（右上） -->
-        <div class="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-sm text-slate-300 text-[10px] px-2.5 py-1.5 rounded-lg border border-slate-700 pointer-events-none flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-          <span>現在のロジック: <b id="currentLogicBadge" class="text-white">3D高密度バラ積み充填 (BLF)</b></span>
-        </div>
-
-        <!-- クリック時ポップアップツールチップ -->
-        <div id="3dTooltip" class="absolute top-3 right-3 bg-slate-900/95 text-white text-xs p-4 rounded-xl border border-slate-700 shadow-2xl hidden max-w-xs transition-all pointer-events-auto">
-          <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-800">
-            <div class="font-bold text-blue-400 text-sm" id="tooltipTitle">品名</div>
-            <button onclick="closeTooltip()" class="text-slate-400 hover:text-white p-0.5"><i data-lucide="x" class="w-4 h-4"></i></button>
-          </div>
-          <div class="text-[11px] text-slate-300 space-y-1">
-            <div class="flex justify-between items-center py-0.5">
-              <span>積載状態:</span>
-              <span id="tooltipStatusBadge" class="font-bold px-2 py-0.5 rounded text-[10px]">荷台内積載</span>
-            </div>
-            <div id="tooltipPalletRow" class="hidden text-amber-300">積載パレット: <span id="tooltipPallet" class="font-bold font-mono"></span></div>
-            <div id="tooltipNGBadgeRow" class="hidden p-1.5 bg-rose-950/80 border border-rose-600/60 rounded text-[10px] text-rose-200 font-bold mb-1">
-              ⚠️ <span id="tooltipNGReason">NG項目あり</span>
-            </div>
-            <div>天面向き: <span id="tooltipOrientationStatus" class="font-bold text-emerald-400">✅ 天面正常 (上向き)</span></div>
-            <div>底面支持率: <span id="tooltipSupportRatio" class="font-bold text-emerald-400">100% (安定接地・荷崩れ防止)</span></div>
-            <div>ケース総数: <span id="tooltipQty" class="font-semibold text-white"></span></div>
-            <div>元サイズ (L×W×H): <span id="tooltipSize" class="text-white"></span></div>
-            <div>配置サイズ (L×W×H): <span id="tooltipOrient" class="text-amber-300 font-mono font-bold"></span></div>
-            <div>単体重量: <span id="tooltipWeight" class="text-white"></span></div>
-            <div>配送ステージ: <span id="tooltipStage" class="text-white"></span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 貨物アイテムテーブル -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <!-- フィルタ・コントロールバー -->
-      <div class="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div class="flex items-center gap-2 flex-1 max-w-md">
-          <div class="relative w-full">
-            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
-            <input type="text" id="searchInput" oninput="renderTable()" placeholder="品名やIDで検索..." class="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- ステージフィルター -->
-          <select id="stageFilter" onchange="renderTable()" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="all">全ステージ表示</option>
-            <option value="1">Stage 1 (奥)</option>
-            <option value="2">Stage 2 (手前)</option>
-          </select>
-
-          <!-- 並び替え -->
-          <select id="sortBy" onchange="renderTable()" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="default">標準（JSON順）</option>
-            <option value="qty-desc">数量（多い順）</option>
-            <option value="weight-desc">総重量（重い順）</option>
-            <option value="volume-desc">総容積（大きい順）</option>
-            <option value="name">品名順</option>
-          </select>
-
-          <!-- CSVダウンロードボタン -->
-          <button onclick="exportCSV()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center transition shadow-2xs cursor-pointer" title="品目一覧をExcel対応CSVとしてダウンロード">
-            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> CSV出力
-          </button>
-
-          <!-- 新規アイテム追加ボタン -->
-          <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium flex items-center transition shadow-2xs cursor-pointer">
-            <i data-lucide="plus" class="w-4 h-4 mr-1"></i> 品目追加
-          </button>
-        </div>
-      </div>
-
-      <!-- テーブル -->
-      <div class="overflow-x-auto custom-scrollbar">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="bg-slate-100 text-slate-600 border-b border-slate-200 font-semibold">
-              <th class="py-3 px-4">カラー</th>
-              <th class="py-3 px-4">配送ステージ</th>
-              <th class="py-3 px-4">品名</th>
-              <th class="py-3 px-4">サイズ (L×W×H cm)</th>
-              <th class="py-3 px-4 text-right">単体重量 (kg)</th>
-              <th class="py-3 px-4 text-right">数量 (ケース)</th>
-              <th class="py-3 px-4 text-right">合計重量 (kg)</th>
-              <th class="py-3 px-4 text-right">合計容積 (m³)</th>
-              <th class="py-3 px-4 text-center">操作</th>
-            </tr>
-          </thead>
-          <tbody id="cargoTableBody" class="divide-y divide-slate-100">
-            <!-- JavaScriptで動的生成 -->
-          </tbody>
-        </table>
-      </div>
-      <div class="p-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex justify-between items-center">
-        <span>表示中の品目数: <span id="displayedCount" class="font-bold text-slate-700">0</span> 件</span>
-        <span>※商品行をクリックして詳細編集可能</span>
-      </div>
-    </div>
-
   </main>
 
   <!-- 編集・追加モーダル -->
@@ -1427,25 +1362,50 @@
       };
     }
 
-    // 特定の便＆積載モードへ1クリックで切り替えて3Dビューへスクロール
-    function switchBatchAndMode(idx, mode, scrollTo3D = false) {
-      if (mode && packingMode !== mode) {
-        packingMode = mode;
-        const btnHD = document.getElementById('modeBtnHighDensity');
-        const btnP11 = document.getElementById('modeBtnP1100');
-        const btnP22 = document.getElementById('modeBtnP2200');
-        const btnStd = document.getElementById('modeBtnStandard');
-        const optBar = document.getElementById('palletOptionBar');
-        const activeCls = "px-3 py-1.5 text-xs font-bold rounded-md transition flex items-center gap-1.5 cursor-pointer bg-blue-600 text-white shadow-xs";
-        const inactiveCls = "px-3 py-1.5 text-xs font-bold rounded-md transition flex items-center gap-1.5 cursor-pointer text-slate-600 hover:text-slate-900";
-        if (btnHD) btnHD.className = mode === 'highDensity' ? activeCls : inactiveCls;
-        if (btnP11) btnP11.className = mode === 'p1100' ? activeCls : inactiveCls;
-        if (btnP22) btnP22.className = mode === 'p2200' ? activeCls : inactiveCls;
-        if (btnStd) btnStd.className = mode === 'standard' ? activeCls : inactiveCls;
-        if (optBar) {
-          if (mode === 'p1100' || mode === 'p2200') optBar.classList.remove('hidden');
-          else optBar.classList.add('hidden');
+    // ブロックBの積載パターンボタン群のハイライト同期ヘルパー
+    function syncPackingModeButtonsUI(mode) {
+      const btnMap = {
+        highDensity: 'btnModeHighDensity',
+        wallBuilding: 'btnModeWall',
+        p1100: 'btnModeP1100',
+        p2200: 'btnModeP2200'
+      };
+      Object.entries(btnMap).forEach(([m, btnId]) => {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        if (m === mode) {
+          btn.className = "px-2.5 py-1.5 font-semibold rounded-md transition flex items-center gap-1 bg-blue-600 text-white shadow-xs cursor-pointer";
+        } else {
+          btn.className = "px-2.5 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1 cursor-pointer";
         }
+      });
+
+      const badge = document.getElementById('currentLogicBadge');
+      const cfg = PALLET_CONFIGS[mode] || PALLET_CONFIGS.highDensity;
+      if (badge && cfg) badge.innerText = cfg.name;
+
+      const palletBar = document.getElementById('palletOptionsBar');
+      if (palletBar) {
+        if (cfg && cfg.isPallet) palletBar.classList.remove('hidden');
+        else palletBar.classList.add('hidden');
+      }
+    }
+
+    // 3Dビュアー直下の比較テーブル（ブロックF）の選択行へ自動スクロール追従
+    function scrollActiveTripRowIntoView(smooth = true) {
+      const idx = multiBatchData.activeBatchIndex;
+      const row = document.getElementById(`inlineTripRow_${idx}`);
+      const container = document.getElementById('rightPane48TripsScrollBox');
+      if (row && container) {
+        row.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant', block: 'nearest' });
+      }
+    }
+
+    // 特定の便＆積載モードへ1クリックで切り替えて真上の3Dビュアー＆KPIを即時更新
+    function switchBatchAndMode(idx, mode, scrollTo3D = false) {
+      if (mode) {
+        packingMode = mode;
+        syncPackingModeButtonsUI(mode);
       }
       switchBatch(idx, false);
       if (scrollTo3D) {
@@ -1461,15 +1421,15 @@
         const btn = document.getElementById('inlineFilter_' + k);
         if (!btn) return;
         if (k === f) {
-          btn.className = "px-2.5 py-1 rounded-lg font-bold bg-blue-600 text-white shadow-2xs cursor-pointer transition";
+          btn.className = "px-2 py-0.5 rounded-md font-bold bg-blue-600 text-white shadow-2xs cursor-pointer transition";
         } else {
-          btn.className = "px-2.5 py-1 rounded-lg font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition";
+          btn.className = "px-2 py-0.5 rounded-md font-semibold bg-white text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer transition";
         }
       });
       renderInline48TripsTable();
     }
 
-    // メイン画面の「全48便 便別状況見える化ボード」テーブル描画
+    // ブロックF（3Dビュアー直下）の「全48便 積載効率・比較テーブル」描画
     function renderInline48TripsTable() {
       const tbody = document.getElementById('inline48TripsTableBody');
       if (!tbody) return;
@@ -1502,51 +1462,74 @@
 
         const isActive = idx === multiBatchData.activeBatchIndex;
         const tr = document.createElement('tr');
+        tr.id = `inlineTripRow_${idx}`;
         tr.className = isActive
-          ? 'bg-blue-50/90 font-semibold border-l-4 border-l-blue-600 transition'
-          : 'hover:bg-slate-50 transition';
+          ? 'bg-blue-50/70 font-semibold border-l-4 border-l-blue-600 transition'
+          : 'hover:bg-slate-50/90 transition';
 
         const mainItemName = (batch.cargoItems && batch.cargoItems[0]) ? batch.cargoItems[0].name : (batch.dest || '-');
-        const saisuStr = batch.totalSaisu ? `${Math.round(batch.totalSaisu).toLocaleString()}才 (${batch.saisuRate}%)` : `${mHD.totalVol}m³`;
-        const wtStr = batch.totalWeight ? `${Math.round(batch.totalWeight).toLocaleString()}kg (${batch.weightRate}%)` : `${mHD.totalWeight.toLocaleString()}kg (${mHD.weightRate}%)`;
-        const vehicleBadge = isExtra
-          ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">臨時・10臨片</span>'
-          : '<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px]">定期・10t車</span>';
+        const fullTooltip = (batch.cargoItems || []).map(it => `${it.name} (${it.qty}cs)`).join(' / ') || (batch.dest || mainItemName);
 
-        const activeModeRing = (m) => (isActive && packingMode === m) ? 'ring-2 ring-blue-500 bg-white shadow-2xs' : '';
+        const saisuLine1 = batch.totalSaisu ? `${Math.round(batch.totalSaisu).toLocaleString()}才` : `${mHD.totalVol}m³`;
+        const saisuLine2 = batch.saisuRate ? `(${batch.saisuRate}%)` : `(${mHD.volRate}%)`;
+
+        const wtVal = batch.totalWeight ? Math.round(batch.totalWeight) : mHD.totalWeight;
+        const wtRateVal = batch.weightRate || mHD.weightRate;
+
+        const vehicleBadge = isExtra
+          ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[11px] whitespace-nowrap inline-block">臨時・10臨</span>'
+          : '<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[11px] whitespace-nowrap inline-block">定期・10t</span>';
+
+        const cellClsHD = (isActive && packingMode === 'highDensity')
+          ? 'ring-2 ring-inset ring-indigo-600 bg-indigo-50/90 shadow-2xs'
+          : 'hover:bg-indigo-50/60 hover:ring-1 hover:ring-inset hover:ring-indigo-300';
+        const cellClsP11 = (isActive && packingMode === 'p1100')
+          ? 'ring-2 ring-inset ring-blue-600 bg-blue-50/90 shadow-2xs'
+          : 'hover:bg-blue-50/60 hover:ring-1 hover:ring-inset hover:ring-blue-300';
+        const cellClsP22 = (isActive && packingMode === 'p2200')
+          ? 'ring-2 ring-inset ring-emerald-600 bg-emerald-50/95 shadow-2xs'
+          : 'hover:bg-emerald-50/60 hover:ring-1 hover:ring-inset hover:ring-emerald-300';
 
         tr.innerHTML = `
-          <td class="py-1.5 px-2 text-center font-mono text-slate-400">${idx + 1}</td>
-          <td class="py-1.5 px-2.5 cursor-pointer" onclick="switchBatch(${idx})">
-            <div class="font-extrabold text-slate-900 flex items-center gap-1">
-              ${isActive ? '<span class="w-2 h-2 rounded-full bg-blue-600 inline-block"></span>' : ''}
+          <td class="py-1.5 px-1 text-center font-mono text-[10px] text-slate-400">${idx + 1}</td>
+          <td class="py-1.5 px-1.5 cursor-pointer whitespace-nowrap" onclick="switchBatch(${idx})">
+            <div class="font-extrabold text-slate-900 flex items-center gap-1 text-[11px]">
+              ${isActive ? '<span class="w-1.5 h-1.5 rounded-full bg-blue-600 inline-block flex-shrink-0"></span>' : ''}
               <span>${batch.code || batch.id}</span>
             </div>
           </td>
-          <td class="py-1.5 px-2">${vehicleBadge}</td>
-          <td class="py-1.5 px-2.5 max-w-[220px] truncate" title="${batch.dest || mainItemName}">
-            <span class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 font-bold text-[10px] mr-1">${skuCnt}品目</span>
-            <span class="text-slate-600">${mainItemName}</span>
+          <td class="py-1.5 px-1 text-center whitespace-nowrap">${vehicleBadge}</td>
+          <td class="py-1.5 px-1.5 whitespace-nowrap" title="${fullTooltip}">
+            <div class="flex items-center gap-1">
+              <span class="px-1 py-0.2 rounded bg-slate-200 text-slate-800 font-bold text-[10px] flex-shrink-0">${skuCnt}品目</span>
+              <span class="text-slate-600 inline-block max-w-[110px] truncate">${mainItemName}</span>
+            </div>
           </td>
-          <td class="py-1.5 px-2 text-right font-mono font-bold text-slate-900">${mHD.totalQty.toLocaleString()} cs</td>
-          <td class="py-1.5 px-2 text-right font-mono text-slate-600">${saisuStr}</td>
-          <td class="py-1.5 px-2 text-right font-mono text-slate-600">${wtStr}</td>
-          <td class="py-1.5 px-2 text-center border-l border-slate-100 cursor-pointer hover:bg-indigo-50 transition ${activeModeRing('highDensity')}" onclick="switchBatchAndMode(${idx}, 'highDensity')" title="クリックでこの便の手積み3Dシミュレーションを表示">
-            <div class="font-mono font-extrabold ${mHD.overflow === 0 ? 'text-emerald-600' : 'text-indigo-700'}">${mHD.loaded.toLocaleString()} cs (${mHD.loadRate}%)</div>
-            <div class="text-[10px] ${mHD.overflow === 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}">${mHD.overflow === 0 ? '✅ 全数格納' : '残 ' + mHD.overflow + 'cs'}</div>
+          <td class="py-1.5 px-1.5 text-right font-mono font-bold text-slate-900 whitespace-nowrap">${mHD.totalQty.toLocaleString()} cs</td>
+          <td class="py-1.5 px-1.5 text-right font-mono text-slate-600 whitespace-nowrap leading-tight">
+            <div>${saisuLine1}</div>
+            <div class="text-[9px] text-slate-400">${saisuLine2}</div>
           </td>
-          <td class="py-1.5 px-2 text-center border-l border-slate-100 cursor-pointer hover:bg-blue-50 transition ${activeModeRing('p1100')}" onclick="switchBatchAndMode(${idx}, 'p1100')" title="クリックでこの便の1100mmパレット3Dシミュレーションを表示">
-            <div class="font-mono font-bold text-blue-700">${mP11.loaded.toLocaleString()} cs (${mP11.loadRate}%)</div>
-            <div class="text-[10px] text-slate-400">残 ${mP11.overflow}cs</div>
+          <td class="py-1.5 px-1.5 text-right font-mono text-slate-600 whitespace-nowrap leading-tight">
+            <div>${wtVal.toLocaleString()}kg</div>
+            <div class="text-[9px] text-slate-400">(${wtRateVal}%)</div>
           </td>
-          <td class="py-1.5 px-2 text-center border-l border-slate-100 cursor-pointer hover:bg-emerald-50 transition ${activeModeRing('p2200')}" onclick="switchBatchAndMode(${idx}, 'p2200')" title="クリックでこの便の2200mmパレット3Dシミュレーションを表示">
-            <div class="font-mono font-extrabold text-emerald-700">${mP22.loaded.toLocaleString()} cs (${mP22.loadRate}%)</div>
-            <div class="text-[10px] text-slate-400">残 ${mP22.overflow}cs</div>
+          <td class="py-1.5 px-1.5 text-center border-l border-slate-100 cursor-pointer transition whitespace-nowrap ${cellClsHD}" onclick="switchBatchAndMode(${idx}, 'highDensity')" title="クリックでこの便の手積み3Dシミュレーションを表示">
+            <div class="font-mono font-extrabold ${mHD.overflow === 0 ? 'text-emerald-600' : 'text-indigo-700'}">${mHD.loaded.toLocaleString()}cs (${mHD.loadRate}%)</div>
+            <div class="text-[9px] ${mHD.overflow === 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}">${mHD.overflow === 0 ? '✅ 全数格納' : '残 ' + mHD.overflow + 'cs'}</div>
           </td>
-          <td class="py-1.5 px-2 text-center border-l border-slate-100 font-mono">
+          <td class="py-1.5 px-1.5 text-center border-l border-slate-100 cursor-pointer transition whitespace-nowrap ${cellClsP11}" onclick="switchBatchAndMode(${idx}, 'p1100')" title="クリックでこの便の1100mmパレット3Dシミュレーションを表示">
+            <div class="font-mono font-bold text-blue-700">${mP11.loaded.toLocaleString()}cs (${mP11.loadRate}%)</div>
+            <div class="text-[9px] text-slate-400">残 ${mP11.overflow}cs</div>
+          </td>
+          <td class="py-1.5 px-1.5 text-center border-l border-slate-100 cursor-pointer transition whitespace-nowrap ${cellClsP22}" onclick="switchBatchAndMode(${idx}, 'p2200')" title="クリックでこの便の2200mmパレット3Dシミュレーションを表示">
+            <div class="font-mono font-extrabold text-emerald-700">${mP22.loaded.toLocaleString()}cs (${mP22.loadRate}%)</div>
+            <div class="text-[9px] text-slate-400">残 ${mP22.overflow}cs</div>
+          </td>
+          <td class="py-1.5 px-1.5 text-center border-l border-slate-100 font-mono whitespace-nowrap leading-tight">
             ${diff22_11 > 0
-              ? `<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-extrabold text-[10px]">+${diff22_11}cs (+${diffPt}pt)</span>`
-              : `<span class="text-slate-400 text-[10px]">±0cs (同数)</span>`
+              ? `<span class="px-1 py-0.5 rounded bg-emerald-100 text-emerald-800 font-extrabold text-[10px] inline-block">+${diff22_11}cs<br><span class="text-[9px]">(+${diffPt}pt)</span></span>`
+              : `<span class="text-slate-400 text-[10px]">±0cs</span>`
             }
           </td>
         `;
@@ -1556,7 +1539,7 @@
       const curBatch = multiBatchData.batches[multiBatchData.activeBatchIndex];
       const badgeEl = document.getElementById('activeTripQuickBadge');
       if (badgeEl && curBatch) {
-        const modeLabel = packingMode === 'highDensity' ? '手積み(バラ)' : (packingMode === 'p1100' ? '1100パレット' : (packingMode === 'p2200' ? '2200パレット' : '標準'));
+        const modeLabel = packingMode === 'highDensity' ? '手積み(バラ)' : (packingMode === 'p1100' ? '1100パレット' : (packingMode === 'p2200' ? '2200パレット' : 'ウォール'));
         badgeEl.innerText = `現在表示中: #${multiBatchData.activeBatchIndex + 1} ${curBatch.code || curBatch.id} [${modeLabel}]`;
       }
     }
@@ -1651,6 +1634,7 @@
 
       renderBatchTabs();
       updateDashboard();
+      scrollActiveTripRowIntoView(!silent);
       if (!silent) {
         showToast(`便を切り替えました: #${idx + 1} ${batch.code || batch.id} (${batch.dest || ''})`, 'info');
       }
@@ -1906,6 +1890,7 @@
       try { initThreeJS(); } catch (e) { console.warn('ThreeJS init warning:', e); }
       switchBatch(0, true);
       window.addEventListener('resize', onWindowResize);
+      setTimeout(onWindowResize, 60);
     }
     window.onload = initApp;
     document.addEventListener('DOMContentLoaded', initApp);
@@ -1993,32 +1978,8 @@
 
     function setPackingMode(mode) {
       packingMode = mode;
-      
-      const modes = ['highDensity', 'wallBuilding', 'p1100', 'p2200'];
-      modes.forEach(m => {
-        const btnId = 'btnMode' + m.charAt(0).toUpperCase() + m.slice(1);
-        const btn = document.getElementById(btnId);
-        if (btn) {
-          if (m === mode) {
-            btn.className = "px-2.5 py-1.5 font-semibold rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm";
-          } else {
-            btn.className = "px-2.5 py-1.5 font-medium text-slate-600 hover:text-slate-900 rounded-md transition flex items-center gap-1.5";
-          }
-        }
-      });
-
-      const badge = document.getElementById('currentLogicBadge');
+      syncPackingModeButtonsUI(mode);
       const cfg = PALLET_CONFIGS[mode] || PALLET_CONFIGS.highDensity;
-      badge.innerText = cfg.name;
-
-      const palletBar = document.getElementById('palletOptionsBar');
-      if (palletBar) {
-        if (cfg.isPallet) {
-          palletBar.classList.remove('hidden');
-        } else {
-          palletBar.classList.add('hidden');
-        }
-      }
 
       if (cfg.isPallet) {
         showToast(`「${cfg.name}」を適用しました。パレット改善オプションで積載率を高められます。`, "info");
@@ -4310,13 +4271,13 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
       meshCounter.innerText = `3D積載描画数: ${loadedCount} / ${totalQty} ケース (${unloadedCount === 0 ? '完全格納完了' : unloadedCount + 'cs 積み残し発生'})`;
 
       if (unloadedCount === 0) {
-        unloadedBar.className = 'bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-all';
+        unloadedBar.className = 'bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-2.5 shadow-sm transition-all';
         unloadedIconBg.className = 'p-2.5 bg-emerald-500 text-white rounded-xl flex-shrink-0 shadow-sm';
         unloadedIcon.setAttribute('data-lucide', 'check-circle-2');
         unloadedTitle.innerHTML = `<span class="text-emerald-950 font-bold text-sm">全数格納完了 (積み残し 0ケース)</span> <span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">100% 格納</span>`;
         unloadedSub.innerText = `全 ${totalQty} ケースがトラックの枠内(${truckL}cm)に完璧に収まっています。`;
       } else {
-        unloadedBar.className = 'bg-red-50 border border-red-300 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-all';
+        unloadedBar.className = 'bg-red-50 border border-red-300 rounded-xl p-3 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-2.5 shadow-sm transition-all';
         unloadedIconBg.className = 'p-2.5 bg-red-500 text-white rounded-xl flex-shrink-0 shadow-sm';
         unloadedIcon.setAttribute('data-lucide', 'alert-triangle');
         
@@ -4942,29 +4903,31 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 cursor-pointer';
         tr.innerHTML = `
-          <td class="py-2.5 px-4">
-            <div class="w-5 h-5 rounded border shadow-sm" style="background-color: ${item.color || '#3b82f6'}"></div>
+          <td class="py-2 px-2 whitespace-nowrap">
+            <div class="flex items-center gap-1.5">
+              <div class="w-3.5 h-3.5 rounded border shadow-2xs flex-shrink-0" style="background-color: ${item.color || '#3b82f6'}"></div>
+              <span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${item.deliveryStage === 1 ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'}">
+                S${item.deliveryStage}
+              </span>
+            </div>
           </td>
-          <td class="py-2.5 px-4 font-semibold">
-            <span class="px-2 py-0.5 rounded ${item.deliveryStage === 1 ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'}">
-              Stage ${item.deliveryStage}
-            </span>
+          <td class="py-2 px-2 font-medium text-slate-800 max-w-[160px]" title="${item.name} (${item.id})">
+            <div class="truncate font-bold text-[11px]">${item.name}</div>
+            <div class="text-[9px] text-slate-400 font-mono truncate">${item.id}</div>
           </td>
-          <td class="py-2.5 px-4 font-medium text-slate-800">
-            <div>${item.name}</div>
-            <div class="text-[10px] text-slate-400 font-mono">${item.id}</div>
+          <td class="py-2 px-1.5 text-slate-600 font-mono text-[10px] whitespace-nowrap">${item.L}×${item.W}×${item.H}</td>
+          <td class="py-2 px-1.5 text-right text-slate-600 font-mono whitespace-nowrap">${item.weight}kg</td>
+          <td class="py-2 px-1.5 text-right font-extrabold text-slate-900 font-mono whitespace-nowrap">${item.qty}cs</td>
+          <td class="py-2 px-1.5 text-right font-mono whitespace-nowrap leading-tight">
+            <div class="font-semibold text-slate-700">${totalWeight}kg</div>
+            <div class="text-[9px] text-slate-400">${totalVolume}m³</div>
           </td>
-          <td class="py-2.5 px-4 text-slate-600">${item.L} × ${item.W} × ${item.H}</td>
-          <td class="py-2.5 px-4 text-right text-slate-600">${item.weight}</td>
-          <td class="py-2.5 px-4 text-right font-bold text-slate-900">${item.qty}</td>
-          <td class="py-2.5 px-4 text-right font-semibold text-slate-700">${totalWeight}</td>
-          <td class="py-2.5 px-4 text-right text-slate-600">${totalVolume}</td>
-          <td class="py-2.5 px-4 text-center space-x-1" onclick="event.stopPropagation()">
-            <button onclick="editItem('${item.id}')" class="p-1 hover:bg-slate-200 rounded text-slate-600 transition" title="編集">
-              <i data-lucide="edit-3" class="w-4 h-4"></i>
+          <td class="py-2 px-1.5 text-center whitespace-nowrap" onclick="event.stopPropagation()">
+            <button onclick="editItem('${item.id}')" class="p-1 hover:bg-slate-200 rounded text-slate-600 transition cursor-pointer" title="編集">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
             </button>
-            <button onclick="confirmDeleteItem('${item.id}')" class="p-1 hover:bg-red-100 rounded text-red-600 transition" title="削除">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <button onclick="confirmDeleteItem('${item.id}')" class="p-1 hover:bg-red-100 rounded text-red-600 transition cursor-pointer" title="削除">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           </td>
         `;
@@ -5199,13 +5162,15 @@ function packStageHighDensityBLF(stageItems, startX, truckW, truckH, maxAllowedX
     function toggleBalanceDiagnostics() {
       const panel = document.getElementById('balanceDiagnosticPanel');
       if (panel) {
-        panel.classList.toggle('hidden');
+        panel.classList.remove('hidden');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        panel.classList.add('ring-2', 'ring-rose-500');
+        setTimeout(() => panel.classList.remove('ring-2', 'ring-rose-500'), 1500);
       }
-      // もしハイライトがOFFなら自動でONに
-      if (!isDiagnosticHighlightMode) {
-        isDiagnosticHighlightMode = true;
-        updateDiagnosticMeshHighlights();
-      }
+      isDiagnosticHighlightMode = !isDiagnosticHighlightMode;
+      const chk = document.getElementById('chkDiagnosticHighlight');
+      if (chk) chk.checked = isDiagnosticHighlightMode;
+      updateDiagnosticMeshHighlights();
     }
 
     function toggleImageExportMenu() {
