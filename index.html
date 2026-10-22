@@ -1391,13 +1391,22 @@
       }
     }
 
-    // 3Dビュアー直下の比較テーブル（ブロックF）の選択行へ自動スクロール追従
+    // 3Dビュアー直下の比較テーブル（ブロックF）および上部便タブの選択位置へ内部スクロール追従
     function scrollActiveTripRowIntoView(smooth = true) {
       const idx = multiBatchData.activeBatchIndex;
       const row = document.getElementById(`inlineTripRow_${idx}`);
       const container = document.getElementById('rightPane48TripsScrollBox');
       if (row && container) {
-        row.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant', block: 'nearest' });
+        const theadH = container.querySelector('thead')?.offsetHeight || 38;
+        const rowTop = row.offsetTop;
+        const rowH = row.offsetHeight;
+        const viewTop = container.scrollTop + theadH;
+        const viewBottom = container.scrollTop + container.clientHeight;
+        if (rowTop < viewTop) {
+          container.scrollTo({ top: Math.max(0, rowTop - theadH - 4), behavior: smooth ? 'smooth' : 'instant' });
+        } else if (rowTop + rowH > viewBottom) {
+          container.scrollTo({ top: rowTop + rowH - container.clientHeight + 4, behavior: smooth ? 'smooth' : 'instant' });
+        }
       }
     }
 
